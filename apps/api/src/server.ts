@@ -20,15 +20,15 @@ const gracefulShutdown = () => {
   // eslint-disable-next-line no-console
   console.log('\n🛑 Shutting down gracefully...')
 
-  server.close(async () => {
+  server.close(() => {
     // eslint-disable-next-line no-console
     console.log('✅ HTTP server closed')
 
-    await prisma.$disconnect()
-    // eslint-disable-next-line no-console
-    console.log('✅ Database connection closed')
-
-    process.exit(0)
+    void prisma.$disconnect().then(() => {
+      // eslint-disable-next-line no-console
+      console.log('✅ Database connection closed')
+      process.exit(0)
+    })
   })
 
   // Force shutdown after 10 seconds
