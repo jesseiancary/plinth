@@ -294,11 +294,21 @@ Scalar docs are served at `GET /docs` in development and production.
 
 > Update this section as phases are completed.
 
-**Active:** Phase 0 — Repo & Tooling Setup
-**Next:** Phase 1 — Database & API Foundation
-**Completed:** —
+**Active:** Phase 1 — Database & API Foundation
+**Next:** Phase 2 — Authentication
+**Completed:** Phase 0 — Repo & Tooling Setup ✅
 
 See `docs/ROADMAP.md` for full checklist.
+
+### Phase 1 Goals
+
+- Initialize Prisma with PostgreSQL database
+- Create core schema: `User`, `Organization`, `Membership`, `Invitation`, `ApiKey`, `WebhookEvent`
+- Set up Express API with TypeScript
+- Implement middleware stack (helmet, cors, morgan, error handling, validation)
+- Create health check endpoint
+- Wire up Scalar API documentation
+- Install and configure all dependencies
 
 ---
 
