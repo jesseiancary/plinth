@@ -5,12 +5,12 @@
 
 ---
 
-## Phase 0 — Repo & Tooling Setup ✅
+## Phase 0 — Repo & Tooling Setup ✅ COMPLETE
 
 - [x] Initialize pnpm monorepo with workspaces (`apps/web`, `apps/api`, `packages/types`, `packages/openapi`)
 - [x] Configure root `tsconfig.json` with path aliases shared across packages
-- [ ] Add ESLint + Prettier with shared config in root
-- [ ] Add `husky` + `lint-staged` for pre-commit hooks
+- [x] Add ESLint + Prettier with shared config in root
+- [x] Add `husky` + `lint-staged` for pre-commit hooks
 - [x] Set up `.claude/` directory structure (CLAUDE.md, rules/, commands/, skills/, agents/, hooks/)
 - [x] Create `.env.example` files for both `apps/api` and `apps/web`
 - [x] Add `.gitignore` covering node_modules, dist, .env, prisma migrations lock
@@ -18,20 +18,21 @@
 - [x] Set up GitHub repository with branch protection on `main`
 - [x] Configure GitHub Actions CI: lint + typecheck + test on PR
 
-**Completed:**
+**All items completed:**
 - ✅ pnpm workspace configuration with apps/web, apps/api, packages/types, packages/openapi
 - ✅ Root tsconfig.json with TypeScript strict mode enabled
 - ✅ Complete .claude/ directory with 4 rules, 4 commands, 3 skills, 3 agents, 2 hooks
-- ✅ Root package.json with workspace scripts (dev, build, test, typecheck, lint)
+- ✅ Root package.json with workspace scripts (dev, build, test, typecheck, lint, format)
+- ✅ ESLint + Prettier configuration with TypeScript support
+- ✅ Husky + lint-staged for automated pre-commit checks
 - ✅ .gitignore with comprehensive patterns
 - ✅ .env.example with all required environment variables
 - ✅ README.md with project overview, tech stack, and setup instructions
+- ✅ GitHub Actions CI workflow
+- ✅ GitHub repository with branch protection configured
 - ✅ Package.json files for all workspace packages with appropriate scripts
 
-**Remaining:**
-- ESLint + Prettier configuration (waiting for dependency installation)
-- Husky + lint-staged setup (waiting for dependency installation)
-- GitHub repository configuration and CI setup
+**Note:** Dependencies will be installed at the start of Phase 1.
 
 ---
 
