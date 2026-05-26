@@ -15,8 +15,8 @@
 - [x] Create `.env.example` files for both `apps/api` and `apps/web`
 - [x] Add `.gitignore` covering node_modules, dist, .env, prisma migrations lock
 - [x] Create initial `README.md` with project overview, architecture diagram placeholder, and local setup instructions
-- [ ] Set up GitHub repository with branch protection on `main`
-- [ ] Configure GitHub Actions CI: lint + typecheck + test on PR
+- [x] Set up GitHub repository with branch protection on `main`
+- [x] Configure GitHub Actions CI: lint + typecheck + test on PR
 
 **Completed:**
 - ✅ pnpm workspace configuration with apps/web, apps/api, packages/types, packages/openapi

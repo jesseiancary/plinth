@@ -1,0 +1,18 @@
+# Dependencies
+node_modules
+.pnpm-store
+
+# Build output
+dist
+build
+coverage
+
+# Lock files
+pnpm-lock.yaml
+package-lock.json
+
+# Generated files
+*.tsbuildinfo
+
+# Markdown files in docs (preserve formatting)
+CHANGELOG.md
