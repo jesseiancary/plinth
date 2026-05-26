@@ -66,6 +66,7 @@ gh api repos/:owner/:repo/branches/main/protection \
 Configure the following settings:
 
 #### Branch Name Pattern
+
 ```
 main
 ```
@@ -73,11 +74,13 @@ main
 #### Protect Matching Branches
 
 **Require a pull request before merging:**
+
 - ✅ Enable this
 - Dismiss stale pull request approvals when new commits are pushed: ✅
 - Required approving reviews: 0 (you can increase this if working with a team)
 
 **Require status checks to pass before merging:**
+
 - ✅ Enable this
 - ✅ Require branches to be up to date before merging
 - Add the following status checks (they'll appear after the first CI run):
@@ -87,18 +90,23 @@ main
   - `Build`
 
 **Require conversation resolution before merging:**
+
 - ✅ Enable this (optional but recommended)
 
 **Do not allow bypassing the above settings:**
+
 - ✅ Enable this (prevents admins from bypassing)
 
 **Restrict who can push to matching branches:**
+
 - ⬜ Leave disabled (unless you have specific users/teams)
 
 **Allow force pushes:**
+
 - ⬜ Disabled (default)
 
 **Allow deletions:**
+
 - ⬜ Disabled (default)
 
 Click **Create** to save the rule.
@@ -112,6 +120,7 @@ Click **Create** to save the rule.
 1. Go to **Settings** → **General**
 
 **Features:**
+
 - ✅ Issues
 - ⬜ Projects (optional)
 - ✅ Wikis (optional)
@@ -119,6 +128,7 @@ Click **Create** to save the rule.
 - ⬜ Discussions (optional)
 
 **Pull Requests:**
+
 - ✅ Allow merge commits
 - ✅ Allow squash merging (recommended)
 - ⬜ Allow rebase merging (optional)
@@ -158,11 +168,13 @@ git push -u origin test/ci-setup
 ### Create a Pull Request
 
 Using GitHub CLI:
+
 ```bash
 gh pr create --title "Test CI Setup" --body "Verifying GitHub Actions workflow runs correctly"
 ```
 
 Or via web UI:
+
 1. Go to your repository on GitHub
 2. Click **Pull requests** tab
 3. Click **New pull request**
@@ -182,6 +194,7 @@ Or via web UI:
 **Note:** Some jobs will fail initially because dependencies aren't installed yet. This is expected at this stage of the project.
 
 Once all checks pass (or you've addressed any setup issues), you can:
+
 - Merge the PR if you want to keep the change
 - Close the PR without merging if it was just a test
 
@@ -204,19 +217,22 @@ Add this near the top of your [README.md](../README.md) file, just below the tit
 ### CI Jobs Failing
 
 **Missing dependencies:**
+
 - Wait until Phase 1 when we install npm packages
 - For now, you can disable the workflow temporarily by adding this to the top of `.github/workflows/ci.yml`:
   ```yaml
   # Temporarily disabled until dependencies are installed
   on:
-    workflow_dispatch:  # Only run manually
+    workflow_dispatch: # Only run manually
   ```
 
 **PostgreSQL connection issues:**
+
 - The test job includes a PostgreSQL service container
 - Make sure the `DATABASE_URL` environment variable is set correctly in the workflow
 
 **Prisma Client not generated:**
+
 - The workflow includes a step to run `pnpm --filter api db:generate`
 - This requires the Prisma schema to exist (coming in Phase 1)
 
@@ -260,22 +276,161 @@ You now have:
 
 ## GitHub CLI Quick Reference
 
+### Complete PR Workflow
+
 ```bash
-# View CI status
-gh run list --branch main
+# 1. Create feature branch from main
+git checkout main
+git pull
+git checkout -b feat/new-feature  # or fix/bug-name, docs/update-readme, etc.
 
-# View latest run
-gh run view
+# 2. Make changes and commit (follow conventional commits)
+git add .
+git commit -m "feat: add new feature description"
 
-# Re-run failed jobs
-gh run rerun
+# 3. Push branch to GitHub
+git push -u origin feat/new-feature
 
-# Create PR
-gh pr create --title "feat: add feature" --body "Description"
+# 4. Create pull request
+gh pr create \
+  --title "feat: add new feature" \
+  --body "## Summary
+Description of changes
 
-# Check PR status
+## Changes
+- Item 1
+- Item 2
+
+## Test Plan
+- [x] All tests passing
+- [x] Manual testing completed"
+
+# 5. Watch CI checks run
+gh run watch  # Interactive mode
+# or
+gh run list --limit 1  # Get run ID
+gh run watch <run-id>  # Watch specific run
+
+# 6. View PR status
+gh pr view  # View current branch's PR
+gh pr view 3  # View specific PR number
+
+# 7. Merge when checks pass
+gh pr merge --squash --delete-branch  # Squash commits and clean up
+# or
+gh pr merge --auto --squash  # Auto-merge when checks pass
+```
+
+### One-Line Shortcuts
+
+```bash
+# Create and push branch in one go
+git checkout -b feat/feature && git add . && git commit -m "feat: description" && git push -u origin feat/feature
+
+# View PR with full details in JSON
+gh pr view --json number,title,state,statusCheckRollup
+
+# Merge current branch's PR
+gh pr merge --squash --delete-branch
+
+# List all open PRs
+gh pr list
+
+# Check status of all your PRs
 gh pr status
 
-# Merge PR (after checks pass)
+# Close PR without merging
+gh pr close 3
+```
+
+### CI Management
+
+```bash
+# View recent CI runs
+gh run list --limit 5
+
+# View CI status for current branch
+gh run list --branch $(git branch --show-current)
+
+# Watch latest run
+gh run watch $(gh run list --limit 1 --json databaseId --jq '.[0].databaseId')
+
+# View run details
+gh run view <run-id>
+
+# Re-run failed jobs
+gh run rerun <run-id>
+
+# Download run logs
+gh run download <run-id>
+```
+
+### Branch Management
+
+```bash
+# List all branches
+git branch -a
+
+# Delete local branch
+git branch -d feat/old-feature
+
+# Delete remote branch
+git push origin --delete feat/old-feature
+
+# Prune deleted remote branches
+git fetch --prune
+
+# Switch back to main and update
+git checkout main && git pull
+```
+
+### Common Workflows
+
+**Quick documentation fix:**
+
+```bash
+git checkout -b docs/fix-typo
+# Make changes
+git add . && git commit -m "docs: fix typo in README"
+git push -u origin docs/fix-typo
+gh pr create --title "docs: fix typo in README" --body "Minor documentation fix"
+gh pr merge --auto --squash
+```
+
+**Feature development:**
+
+```bash
+git checkout -b feat/user-authentication
+# Implement feature
+git add . && git commit -m "feat: add user authentication endpoints"
+git push -u origin feat/user-authentication
+gh pr create --title "feat: add user authentication" --body "$(cat <<'EOF'
+## Summary
+Implements user registration, login, and JWT authentication
+
+## Changes
+- Add POST /api/v1/auth/register endpoint
+- Add POST /api/v1/auth/login endpoint
+- Implement JWT middleware
+- Add integration tests
+
+## Test Plan
+- [x] Unit tests passing
+- [x] Integration tests passing
+- [x] Manual testing with Postman
+EOF
+)"
+# Wait for reviews/checks, then merge
 gh pr merge --squash --delete-branch
+```
+
+**Bug fix:**
+
+```bash
+git checkout -b fix/null-pointer-error
+# Fix bug
+git add . && git commit -m "fix: resolve null pointer in user lookup"
+git push -u origin fix/null-pointer-error
+gh pr create --title "fix: resolve null pointer in user lookup" --body "Fixes #123"
+gh pr merge --auto --squash
 ```
