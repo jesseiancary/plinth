@@ -102,6 +102,25 @@ pnpm lint
 pnpm build
 ```
 
+### Database Management
+
+```bash
+# Generate Prisma client
+pnpm --filter api db:generate
+
+# Create a new migration
+pnpm --filter api db:migrate
+
+# Deploy migrations (CI/production)
+pnpm --filter api db:migrate:deploy
+
+# Reset database (drop all data)
+pnpm --filter api db:reset
+
+# Seed database with test data
+pnpm --filter api db:seed
+```
+
 ## Project Documentation
 
 - [CLAUDE.md](CLAUDE.md) — Project overview and AI development workflow
