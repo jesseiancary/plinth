@@ -7,6 +7,7 @@ Base path: `/api/v1`
 Format: `noun-plural/resource-id/sub-resource`
 
 Examples:
+
 - `GET /api/v1/orgs/:slug/members`
 - `POST /api/v1/orgs/:slug/invitations`
 - `DELETE /api/v1/orgs/:slug/api-keys/:id`
@@ -79,7 +80,8 @@ Cursor-based using `?cursor=` + `?limit=` query params.
 
 ## Tenant Isolation
 
-- **CRITICAL:** `organizationId` must ALWAYS be sourced from `req.tenantId` (derived from JWT or API key context).
+- **CRITICAL:** `organizationId` must ALWAYS be sourced from `req.tenantId` (derived from JWT or API
+  key context).
 - **NEVER** trust the client to provide `organizationId` in the request body or query params.
 - **All Prisma queries** must filter by `organizationId` to enforce tenant isolation.
 - Cross-tenant access is a security bug, not a feature.

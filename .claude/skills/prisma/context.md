@@ -244,12 +244,12 @@ model Membership {
 
 ## Common Prisma Errors
 
-| Code | Meaning | Solution |
-|------|---------|----------|
-| P2002 | Unique constraint violation | Check for duplicates before insert |
-| P2025 | Record not found | Handle 404 case |
-| P2003 | Foreign key constraint failed | Ensure related record exists |
-| P2016 | Query interpretation error | Check query syntax |
+| Code  | Meaning                       | Solution                           |
+| ----- | ----------------------------- | ---------------------------------- |
+| P2002 | Unique constraint violation   | Check for duplicates before insert |
+| P2025 | Record not found              | Handle 404 case                    |
+| P2003 | Foreign key constraint failed | Ensure related record exists       |
+| P2016 | Query interpretation error    | Check query syntax                 |
 
 ## Best Practices
 

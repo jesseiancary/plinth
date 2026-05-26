@@ -71,9 +71,7 @@ beforeEach(async () => {
 
 describe('GET /api/v1/orgs/:slug/<resources>', () => {
   it('returns 401 when not authenticated', async () => {
-    await request(app)
-      .get('/api/v1/orgs/acme/<resources>')
-      .expect(401)
+    await request(app).get('/api/v1/orgs/acme/<resources>').expect(401)
   })
 
   it('returns 200 and resources list when authenticated', async () => {

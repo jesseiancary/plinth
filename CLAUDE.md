@@ -1,19 +1,21 @@
 # CLAUDE.md — SaaS Starter
 
-> This file is loaded at every Claude Code session start. Keep it accurate and up to date.
-> It is the single source of truth for project context, conventions, and AI workflow guidance.
+> This file is loaded at every Claude Code session start. Keep it accurate and up to date. It is the
+> single source of truth for project context, conventions, and AI workflow guidance.
 
 ---
 
 ## Project Overview
 
-A production-grade **multi-tenant SaaS starter** built as a public portfolio project.
-Demonstrates: tenant isolation, RBAC, invitation flows, API key management, and a fully documented public REST API.
+A production-grade **multi-tenant SaaS starter** built as a public portfolio project. Demonstrates:
+tenant isolation, RBAC, invitation flows, API key management, and a fully documented public REST
+API.
 
 Future phases will add a **subscription billing dashboard** (Stripe, webhooks, dunning logic).
 
 The project also serves as a showcase for **thoughtful AI-assisted development** — not vibe coding,
-but a disciplined workflow using Claude Code agents, skills, commands, and hooks. See `AI_DEVELOPMENT.md`.
+but a disciplined workflow using Claude Code agents, skills, commands, and hooks. See
+`AI_DEVELOPMENT.md`.
 
 ---
 
@@ -66,8 +68,8 @@ WebhookEvent  (standalone log table)
 ```
 
 **Tenant isolation strategy:** single database, `organizationId` foreign key on all tenant-scoped
-resources. All queries in the API layer are filtered by `req.tenantId` — never trust the client
-to provide this. Cross-tenant access is a security bug, not a feature.
+resources. All queries in the API layer are filtered by `req.tenantId` — never trust the client to
+provide this. Cross-tenant access is a security bug, not a feature.
 
 **Roles:** `owner | admin | member`
 
@@ -111,20 +113,21 @@ Base path: `/api/v1`
 }
 ```
 
-**Pagination:** cursor-based using `?cursor=` + `?limit=` (default 20, max 100).
-Response includes `{ data: [], nextCursor: string | null }`.
+**Pagination:** cursor-based using `?cursor=` + `?limit=` (default 20, max 100). Response includes
+`{ data: [], nextCursor: string | null }`.
 
-**API Key authentication:** `Authorization: Bearer sk_live_...` header.
-Keys are hashed (SHA-256) at rest — the plaintext is returned once on creation and never stored.
+**API Key authentication:** `Authorization: Bearer sk_live_...` header. Keys are hashed (SHA-256) at
+rest — the plaintext is returned once on creation and never stored.
 
 ---
 
 ## Code Style
 
-- **TypeScript strict mode on.** No `any`. If you need an escape hatch, use `unknown` + a type guard.
+- **TypeScript strict mode on.** No `any`. If you need an escape hatch, use `unknown` + a type
+  guard.
 - **`const` only** — never `let` unless reassignment is genuinely required and unavoidable.
-- **Zod for all I/O** — every request body, query param, and env variable validated with Zod.
-  Infer TypeScript types from Zod schemas with `z.infer<typeof Schema>` — do not duplicate types.
+- **Zod for all I/O** — every request body, query param, and env variable validated with Zod. Infer
+  TypeScript types from Zod schemas with `z.infer<typeof Schema>` — do not duplicate types.
 - **No barrel files** (`index.ts` re-exports) — import directly from source files.
 - **Named exports only** — no default exports except React components and route handlers.
 - **Error handling:** use the `AppError` class for all known failure modes. Never throw raw strings.
@@ -136,7 +139,8 @@ Keys are hashed (SHA-256) at rest — the plaintext is returned once on creation
 ## Testing Conventions
 
 - Tests live alongside source: `src/routes/auth.test.ts` next to `src/routes/auth.ts`
-- **Integration tests first** on the API — test through the HTTP layer (Supertest), not unit-testing internals
+- **Integration tests first** on the API — test through the HTTP layer (Supertest), not unit-testing
+  internals
 - Each test file resets the database to a known state using a `beforeEach` seed helper
 - Test naming: `describe('POST /api/v1/auth/login')` → `it('returns 401 when password is wrong')`
 - Do not mock Prisma in integration tests — use a real test database (separate from dev)
@@ -300,7 +304,8 @@ This project uses a full `.claude/` directory structure for disciplined AI-assis
 ### Commands (invoke with `/command-name`)
 
 - `/review` — pre-PR checklist: types, tests, OpenAPI sync, security, edge cases
-- `/add-endpoint` — scaffold a new route: route file + controller + Zod schema + OpenAPI entry + test stub
+- `/add-endpoint` — scaffold a new route: route file + controller + Zod schema + OpenAPI entry +
+  test stub
 - `/add-migration` — guided Prisma schema change + migration naming + seed update
 - `/fix-issue` — structured bug investigation: reproduce → isolate → fix → test
 
@@ -325,7 +330,8 @@ This project uses a full `.claude/` directory structure for disciplined AI-assis
 
 ## OpenAPI & Type Generation
 
-The spec lives in `packages/openapi/openapi.yaml` and is the **source of truth** for the API contract.
+The spec lives in `packages/openapi/openapi.yaml` and is the **source of truth** for the API
+contract.
 
 ```bash
 # Regenerate TypeScript types from spec
@@ -367,9 +373,7 @@ Scalar docs are served at `GET /docs` in development and production.
 
 > Update this section as phases are completed.
 
-**Active:** Phase 2 — Authentication
-**Next:** Phase 3 — Organization Management
-**Completed:**
+**Active:** Phase 2 — Authentication **Next:** Phase 3 — Organization Management **Completed:**
 
 - Phase 0 — Repo & Tooling Setup ✅
 - Phase 1 — Database & API Foundation ✅
@@ -391,22 +395,22 @@ See `docs/ROADMAP.md` for full checklist.
 
 ## Key Decisions & Rationale
 
-**Why manual JWT over an auth library?**
-Auth.js/Clerk abstract away the implementation details this project intends to demonstrate.
-Understanding token rotation, httpOnly cookies, and refresh flows is the point.
+**Why manual JWT over an auth library?** Auth.js/Clerk abstract away the implementation details this
+project intends to demonstrate. Understanding token rotation, httpOnly cookies, and refresh flows is
+the point.
 
-**Why cursor pagination over offset?**
-Offset pagination breaks under concurrent inserts. Cursor-based is the correct choice for any
-production API and is worth demonstrating even on a small dataset.
+**Why cursor pagination over offset?** Offset pagination breaks under concurrent inserts.
+Cursor-based is the correct choice for any production API and is worth demonstrating even on a small
+dataset.
 
-**Why single-DB multi-tenancy over per-tenant schemas?**
-Per-tenant schemas don't scale operationally (migrations across thousands of schemas become painful).
-Single DB with row-level `organizationId` is the industry default for early-stage SaaS.
+**Why single-DB multi-tenancy over per-tenant schemas?** Per-tenant schemas don't scale
+operationally (migrations across thousands of schemas become painful). Single DB with row-level
+`organizationId` is the industry default for early-stage SaaS.
 
-**Why Scalar over Swagger UI?**
-Scalar is actively maintained, has a significantly better UX, supports OpenAPI 3.1 natively,
-and is new enough to be worth learning. Swagger UI is legacy at this point.
+**Why Scalar over Swagger UI?** Scalar is actively maintained, has a significantly better UX,
+supports OpenAPI 3.1 natively, and is new enough to be worth learning. Swagger UI is legacy at this
+point.
 
-**Why pnpm workspaces?**
-Faster installs, strict dependency isolation, and native monorepo support without a separate tool
-like Turborepo (which can be added later if build caching becomes a concern).
+**Why pnpm workspaces?** Faster installs, strict dependency isolation, and native monorepo support
+without a separate tool like Turborepo (which can be added later if build caching becomes a
+concern).

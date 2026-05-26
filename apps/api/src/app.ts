@@ -1,19 +1,22 @@
-import express from 'express'
-import helmet from 'helmet'
-import cors from 'cors'
-import morgan from 'morgan'
-import cookieParser from 'cookie-parser'
-import { rateLimit } from 'express-rate-limit'
-import { apiReference } from '@scalar/express-api-reference'
 import { readFileSync } from 'node:fs'
-import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
+import { fileURLToPath } from 'node:url'
+
+import { apiReference } from '@scalar/express-api-reference'
+import cookieParser from 'cookie-parser'
+import cors from 'cors'
+import express from 'express'
+import { rateLimit } from 'express-rate-limit'
+import helmet from 'helmet'
+import morgan from 'morgan'
+
 import { errorHandler } from './middleware/error-handler.js'
 import { notFound } from './middleware/not-found.js'
 import { healthRouter } from './routes/health.js'
 
-const __filename = fileURLToPath(import.meta.url)
-const __dirname = dirname(__filename)
+// ESM __dirname/__filename equivalents
+const filename = fileURLToPath(import.meta.url)
+const currentDir = dirname(filename)
 
 const app = express()
 
@@ -21,13 +24,13 @@ const app = express()
 app.use(
   helmet({
     contentSecurityPolicy: false, // Disable for Scalar docs
-  })
+  }),
 )
 app.use(
   cors({
     origin: process.env.APP_URL || 'http://localhost:5173',
     credentials: true,
-  })
+  }),
 )
 
 // Rate limiting
@@ -50,7 +53,10 @@ if (process.env.NODE_ENV !== 'test') {
 }
 
 // API Documentation
-const openapiSpec = readFileSync(join(__dirname, '../../../packages/openapi/openapi.yaml'), 'utf-8')
+const openapiSpec = readFileSync(
+  join(currentDir, '../../../packages/openapi/openapi.yaml'),
+  'utf-8',
+)
 
 app.use(
   '/docs',
@@ -58,7 +64,7 @@ app.use(
     spec: {
       content: openapiSpec,
     },
-  })
+  }),
 )
 
 // Routes

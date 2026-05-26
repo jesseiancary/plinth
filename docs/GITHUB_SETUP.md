@@ -191,7 +191,8 @@ Or via web UI:
    - ✅ Validate OpenAPI Spec
    - ✅ Build
 
-**Note:** Some jobs will fail initially because dependencies aren't installed yet. This is expected at this stage of the project.
+**Note:** Some jobs will fail initially because dependencies aren't installed yet. This is expected
+at this stage of the project.
 
 Once all checks pass (or you've addressed any setup issues), you can:
 
@@ -219,7 +220,8 @@ Add this near the top of your [README.md](../README.md) file, just below the tit
 **Missing dependencies:**
 
 - Wait until Phase 1 when we install npm packages
-- For now, you can disable the workflow temporarily by adding this to the top of `.github/workflows/ci.yml`:
+- For now, you can disable the workflow temporarily by adding this to the top of
+  `.github/workflows/ci.yml`:
   ```yaml
   # Temporarily disabled until dependencies are installed
   on:
