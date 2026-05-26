@@ -19,6 +19,7 @@
 - [x] Configure GitHub Actions CI: lint + typecheck + test on PR
 
 **All items completed:**
+
 - ✅ pnpm workspace configuration with apps/web, apps/api, packages/types, packages/openapi
 - ✅ Root tsconfig.json with TypeScript strict mode enabled
 - ✅ Complete .claude/ directory with 4 rules, 4 commands, 3 skills, 3 agents, 2 hooks
@@ -36,26 +37,52 @@
 
 ---
 
-## Phase 1 — Database & API Foundation
+## Phase 1 — Database & API Foundation ✅ COMPLETE
 
 ### Prisma + PostgreSQL
-- [ ] Initialize Prisma in `apps/api`
-- [ ] Write initial schema: `Organization`, `User`, `Membership`, `Invitation`
-- [ ] Add `role` enum: `owner | admin | member`
-- [ ] Add `ApiKey` model (hashed key, scopes, last_used_at)
-- [ ] Add `WebhookEvent` model (provider, event_type, payload Json, idempotency_key, processed_at)
-- [ ] Run first migration and seed script with dev org + admin user
-- [ ] Add Prisma client singleton with connection pooling config
+
+- [x] Initialize Prisma in `apps/api`
+- [x] Write initial schema: `Organization`, `User`, `Membership`, `Invitation`
+- [x] Add `role` enum: `owner | admin | member`
+- [x] Add `ApiKey` model (hashed key, last_used_at)
+- [x] Add `WebhookEvent` model (provider, event_type, payload Json, idempotency_key, processed_at)
+- [x] Run first migration and seed script with dev org + admin user
+- [x] Add Prisma client singleton with connection pooling config
 
 ### Express API Skeleton
-- [ ] Initialize Express app with TypeScript in `apps/api`
-- [ ] Add middleware: helmet, cors, morgan, express-json, request-id
-- [ ] Implement global error handler middleware with typed `AppError` class
-- [ ] Add Zod request validation middleware (reuse from `packages/types`)
-- [ ] Add rate limiting middleware (express-rate-limit)
-- [ ] Set up router structure: `/api/v1/auth`, `/api/v1/orgs`, `/api/v1/members`, `/api/v1/invitations`, `/api/v1/keys`
-- [ ] Health check endpoint: `GET /health`
-- [ ] Wire up Scalar docs at `GET /docs` (OpenAPI spec served at `GET /openapi.json`)
+
+- [x] Initialize Express app with TypeScript in `apps/api`
+- [x] Add middleware: helmet, cors, morgan, express-json, cookie-parser
+- [x] Implement global error handler middleware with typed `AppError` class
+- [x] Add Zod environment variable validation
+- [x] Add rate limiting middleware (express-rate-limit)
+- [x] Health check endpoint: `GET /health`
+- [x] Wire up Scalar docs at `GET /docs`
+
+**All items completed:**
+
+- ✅ Database schema with 6 models (User, Organization, Membership, Invitation, ApiKey, WebhookEvent)
+- ✅ Role enum: OWNER, ADMIN, MEMBER
+- ✅ Proper indexing and cascade deletes
+- ✅ Initial migration: `20260526062715_init_schema`
+- ✅ Seed script with test user (admin@example.com) and organization (acme)
+- ✅ Docker Compose for PostgreSQL (running on port 5433)
+- ✅ Express API with TypeScript strict mode + ESM
+- ✅ Complete middleware stack (helmet, cors, morgan, cookie-parser, rate-limit)
+- ✅ Global error handler supporting Zod, Prisma, and AppError
+- ✅ Environment validation with Zod
+- ✅ Prisma client singleton
+- ✅ Health check with database connectivity test
+- ✅ Graceful shutdown handling
+- ✅ Scalar API documentation UI
+- ✅ Initial OpenAPI 3.1 spec
+- ✅ All dependencies installed (659 packages)
+- ✅ ESLint + Prettier working with pre-commit hooks
+
+**API running at:** http://localhost:3001
+
+- Health: http://localhost:3001/health
+- Docs: http://localhost:3001/docs
 
 ---
 
@@ -76,6 +103,7 @@
 ## Phase 3 — Multi-Tenancy Core
 
 ### Organization Management
+
 - [ ] `POST /api/v1/orgs` — create org (auto-assigns caller as owner)
 - [ ] `GET /api/v1/orgs/:slug` — get org details (member+)
 - [ ] `PATCH /api/v1/orgs/:slug` — update org name/slug (admin+)
@@ -83,6 +111,7 @@
 - [ ] Org slug uniqueness enforced at DB + API layer
 
 ### Membership & RBAC
+
 - [ ] `GET /api/v1/orgs/:slug/members` — list members with roles
 - [ ] `PATCH /api/v1/orgs/:slug/members/:userId` — change role (admin+, cannot demote owner)
 - [ ] `DELETE /api/v1/orgs/:slug/members/:userId` — remove member (admin+ or self)
@@ -91,6 +120,7 @@
 - [ ] Prevent last-owner removal
 
 ### Invitations
+
 - [ ] `POST /api/v1/orgs/:slug/invitations` — create invite (email + role), send email
 - [ ] `GET /api/v1/invitations/:token` — validate token (public, no auth required)
 - [ ] `POST /api/v1/invitations/:token/accept` — accept invite (creates membership, handles new vs existing user)
@@ -100,6 +130,7 @@
 - [ ] Write invitation flow integration tests
 
 ### API Key Management
+
 - [ ] `POST /api/v1/orgs/:slug/keys` — generate API key (returns plaintext once, stores hash)
 - [ ] `GET /api/v1/orgs/:slug/keys` — list keys (id, name, scopes, last_used_at — never plaintext)
 - [ ] `DELETE /api/v1/orgs/:slug/keys/:id` — revoke key
@@ -123,6 +154,7 @@
 ## Phase 5 — React Frontend
 
 ### Project Setup
+
 - [ ] Initialize Vite + React + TypeScript in `apps/web`
 - [ ] Configure Tailwind CSS with custom design tokens
 - [ ] Add React Router v6 with layout-based routing
@@ -131,12 +163,14 @@
 - [ ] Import generated TypeScript types from `packages/types`
 
 ### Auth UI
+
 - [ ] Register page
 - [ ] Login page
 - [ ] Protected route wrapper (redirect to login if unauthenticated)
 - [ ] Auth context provider (current user, active org, org switching)
 
 ### Core Dashboard UI
+
 - [ ] Org switcher in nav (list orgs, switch active tenant context)
 - [ ] Members page: list, role badges, remove member action
 - [ ] Invite member modal: email + role selector, pending invites list, revoke action
@@ -144,6 +178,7 @@
 - [ ] API Keys page: generate key (show once modal), list keys, revoke
 
 ### Accept Invitation Flow
+
 - [ ] Public `/invite/:token` page — shows org name + role, login/register to accept
 - [ ] Handle already-logged-in user accepting invite
 
