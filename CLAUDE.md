@@ -38,19 +38,19 @@ but a disciplined workflow using Claude Code agents, skills, commands, and hooks
 
 ## Tech Stack
 
-| Layer | Choice | Notes |
-|---|---|---|
-| Database | PostgreSQL | Via Railway or local Docker |
-| ORM | Prisma | Schema-first, migrations in version control |
-| API | Node.js + Express + TypeScript | `apps/api` |
-| Validation | Zod | All request/response I/O validated at runtime |
-| Auth | JWT (access) + httpOnly refresh cookie | Rolled manually — no auth library abstraction |
-| Frontend | React + Vite + TypeScript | `apps/web` |
-| Styling | Tailwind CSS | Utility-first, custom design tokens in `tailwind.config.ts` |
-| Data fetching | TanStack Query (React Query) | All server state |
-| API Docs | OpenAPI 3.1 + Scalar | Spec in `packages/openapi`, served at `/docs` |
-| Testing | Vitest + Supertest | Integration-first on API; RTL for frontend |
-| Package manager | pnpm workspaces | Run commands from repo root |
+| Layer           | Choice                                 | Notes                                                       |
+| --------------- | -------------------------------------- | ----------------------------------------------------------- |
+| Database        | PostgreSQL                             | Via Railway or local Docker                                 |
+| ORM             | Prisma                                 | Schema-first, migrations in version control                 |
+| API             | Node.js + Express + TypeScript         | `apps/api`                                                  |
+| Validation      | Zod                                    | All request/response I/O validated at runtime               |
+| Auth            | JWT (access) + httpOnly refresh cookie | Rolled manually — no auth library abstraction               |
+| Frontend        | React + Vite + TypeScript              | `apps/web`                                                  |
+| Styling         | Tailwind CSS                           | Utility-first, custom design tokens in `tailwind.config.ts` |
+| Data fetching   | TanStack Query (React Query)           | All server state                                            |
+| API Docs        | OpenAPI 3.1 + Scalar                   | Spec in `packages/openapi`, served at `/docs`               |
+| Testing         | Vitest + Supertest                     | Integration-first on API; RTL for frontend                  |
+| Package manager | pnpm workspaces                        | Run commands from repo root                                 |
 
 ---
 
@@ -70,6 +70,7 @@ resources. All queries in the API layer are filtered by `req.tenantId` — never
 to provide this. Cross-tenant access is a security bug, not a feature.
 
 **Roles:** `owner | admin | member`
+
 - `owner` — full control, cannot be removed, can transfer ownership
 - `admin` — manage members and invitations, cannot demote owner
 - `member` — read access to org resources
@@ -81,10 +82,12 @@ to provide this. Cross-tenant access is a security bug, not a feature.
 Base path: `/api/v1`
 
 **URL structure:** `noun-plural/resource-id/sub-resource`
+
 - `GET /api/v1/orgs/:slug/members`
 - `POST /api/v1/orgs/:slug/invitations`
 
 **HTTP status codes:**
+
 - `200` — success with body
 - `201` — resource created
 - `204` — success, no body (DELETE)
@@ -97,6 +100,7 @@ Base path: `/api/v1`
 - `500` — unexpected server error
 
 **Error response shape (always):**
+
 ```json
 {
   "error": {
@@ -148,6 +152,7 @@ Conventional commits: `type(scope): description`
 Types: `feat`, `fix`, `chore`, `docs`, `refactor`, `test`, `ci`
 
 Examples:
+
 ```
 feat(auth): add refresh token rotation
 fix(invitations): handle expired token edge case
@@ -165,6 +170,7 @@ Never commit directly to `main`. PRs require passing CI.
 Managed via `.env` (gitignored) and `.env.example` (committed).
 
 **`apps/api/.env`**
+
 ```
 DATABASE_URL=postgresql://...
 JWT_SECRET=
@@ -181,6 +187,7 @@ NODE_ENV=development
 ```
 
 **`apps/web/.env`**
+
 ```
 VITE_API_URL=http://localhost:3000
 ```
@@ -224,28 +231,33 @@ pnpm lint
 This project uses a full `.claude/` directory structure for disciplined AI-assisted development.
 
 ### Rules (always active)
+
 - `.claude/rules/code-style.md` — TypeScript and code quality rules
 - `.claude/rules/api-conventions.md` — REST design, error shapes, status codes
 - `.claude/rules/testing.md` — test structure, coverage, database reset patterns
 - `.claude/rules/git.md` — conventional commits, branch policy
 
 ### Commands (invoke with `/command-name`)
+
 - `/review` — pre-PR checklist: types, tests, OpenAPI sync, security, edge cases
 - `/add-endpoint` — scaffold a new route: route file + controller + Zod schema + OpenAPI entry + test stub
 - `/add-migration` — guided Prisma schema change + migration naming + seed update
 - `/fix-issue` — structured bug investigation: reproduce → isolate → fix → test
 
 ### Skills (auto-loaded based on task context)
+
 - `openapi/` — loaded when working on API spec or generating types
 - `prisma/` — loaded when modifying schema or writing migrations
 - `rbac/` — loaded when adding permission-guarded routes or membership logic
 
 ### Agents (specialized subagents with isolated context)
+
 - `code-reviewer` — security and correctness focused review agent
 - `api-designer` — REST design and OpenAPI spec decisions
 - `db-architect` — schema design, indexing strategy, query optimization
 
 ### Hooks
+
 - `validate-types.sh` — runs `tsc --noEmit` before Claude edits TypeScript files
 - `lint-staged.sh` — ESLint + Prettier check triggered pre-commit
 
@@ -267,6 +279,7 @@ pnpm --filter openapi validate
 ```
 
 When adding a new endpoint:
+
 1. Add the route to Express
 2. Add the Zod schema to `packages/types`
 3. Document the endpoint in `openapi.yaml`
@@ -294,21 +307,25 @@ Scalar docs are served at `GET /docs` in development and production.
 
 > Update this section as phases are completed.
 
-**Active:** Phase 1 — Database & API Foundation
-**Next:** Phase 2 — Authentication
-**Completed:** Phase 0 — Repo & Tooling Setup ✅
+**Active:** Phase 2 — Authentication
+**Next:** Phase 3 — Organization Management
+**Completed:**
+
+- Phase 0 — Repo & Tooling Setup ✅
+- Phase 1 — Database & API Foundation ✅
 
 See `docs/ROADMAP.md` for full checklist.
 
-### Phase 1 Goals
+### Phase 2 Goals
 
-- Initialize Prisma with PostgreSQL database
-- Create core schema: `User`, `Organization`, `Membership`, `Invitation`, `ApiKey`, `WebhookEvent`
-- Set up Express API with TypeScript
-- Implement middleware stack (helmet, cors, morgan, error handling, validation)
-- Create health check endpoint
-- Wire up Scalar API documentation
-- Install and configure all dependencies
+- Implement user registration and login endpoints
+- JWT-based authentication (access token + httpOnly refresh token)
+- Token refresh and logout flows
+- Password hashing with bcrypt
+- JWT middleware to extract and verify tokens, attach `req.user` and `req.tenantId`
+- API key middleware for programmatic access
+- Integration tests for all auth flows
+- Document auth endpoints in OpenAPI spec
 
 ---
 
