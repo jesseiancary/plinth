@@ -1,0 +1,19 @@
+{
+  "name": "plinth",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Production-grade multi-tenant SaaS starter",
+  "scripts": {
+    "dev": "pnpm --parallel --filter api --filter web dev",
+    "build": "pnpm --recursive build",
+    "typecheck": "pnpm --recursive typecheck",
+    "lint": "pnpm --recursive lint",
+    "test": "pnpm --recursive test",
+    "clean": "pnpm --recursive clean"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "pnpm": ">=8.0.0"
+  },
+  "packageManager": "pnpm@8.15.0"
+}

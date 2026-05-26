@@ -1,0 +1,11 @@
+{
+  "name": "@plinth/openapi",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "validate": "openapi-cli validate openapi.yaml",
+    "generate:types": "openapi-typescript openapi.yaml -o ../types/src/generated.ts",
+    "generate:zod": "openapi-zod-client openapi.yaml -o ../types/src/schemas.ts",
+    "clean": "rm -rf dist"
+  }
+}

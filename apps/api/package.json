@@ -1,0 +1,23 @@
+{
+  "name": "@plinth/api",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "build": "tsc",
+    "start": "node dist/server.js",
+    "test": "vitest",
+    "test:watch": "vitest watch",
+    "test:coverage": "vitest --coverage",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src --ext .ts",
+    "db:migrate": "prisma migrate dev",
+    "db:migrate:deploy": "prisma migrate deploy",
+    "db:reset": "prisma migrate reset",
+    "db:generate": "prisma generate",
+    "db:seed": "tsx prisma/seed.ts",
+    "db:studio": "prisma studio",
+    "clean": "rm -rf dist"
+  }
+}
