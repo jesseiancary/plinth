@@ -1,0 +1,119 @@
+openapi: 3.1.0
+info:
+  title: Plinth API
+  version: 1.0.0
+  description: Production-grade multi-tenant SaaS API
+  contact:
+    name: Plinth Team
+    url: https://github.com/jesseiancary/plinth
+
+servers:
+  - url: http://localhost:3001
+    description: Development
+  - url: https://api.plinth.dev
+    description: Production
+
+paths:
+  /health:
+    get:
+      summary: Health check
+      description: Check API and database connectivity status
+      operationId: healthCheck
+      tags:
+        - Health
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - status
+                  - timestamp
+                  - database
+                properties:
+                  status:
+                    type: string
+                    enum: [ok]
+                  timestamp:
+                    type: string
+                    format: date-time
+                  database:
+                    type: string
+                    enum: [connected]
+        '503':
+          description: Service is unhealthy
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - status
+                  - timestamp
+                  - database
+                properties:
+                  status:
+                    type: string
+                    enum: [error]
+                  timestamp:
+                    type: string
+                    format: date-time
+                  database:
+                    type: string
+                    enum: [disconnected]
+
+components:
+  schemas:
+    Error:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          type: object
+          required:
+            - code
+            - message
+          properties:
+            code:
+              type: string
+              description: Machine-readable error code
+            message:
+              type: string
+              description: Human-readable error message
+            details:
+              type: object
+              description: Additional error context
+              additionalProperties: true
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT access token
+
+    apiKeyAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: API Key
+      description: API key (format sk_live_...)
+
+security:
+  - bearerAuth: []
+  - apiKeyAuth: []
+
+tags:
+  - name: Health
+    description: Health check endpoints
+  - name: Auth
+    description: Authentication endpoints
+  - name: Organizations
+    description: Organization management
+  - name: Members
+    description: Team member management
+  - name: Invitations
+    description: Team invitation management
+  - name: API Keys
+    description: API key management

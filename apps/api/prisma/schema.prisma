@@ -1,0 +1,102 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  OWNER
+  ADMIN
+  MEMBER
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  memberships Membership[]
+
+  @@map("users")
+}
+
+model Organization {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  memberships Membership[]
+  invitations Invitation[]
+  apiKeys     ApiKey[]
+
+  @@index([slug])
+  @@map("organizations")
+}
+
+model Membership {
+  id             String       @id @default(cuid())
+  role           Role         @default(MEMBER)
+  userId         String
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@unique([userId, organizationId])
+  @@index([organizationId])
+  @@index([userId])
+  @@map("memberships")
+}
+
+model Invitation {
+  id             String       @id @default(cuid())
+  email          String
+  role           Role         @default(MEMBER)
+  token          String       @unique
+  expiresAt      DateTime
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  invitedById    String
+  createdAt      DateTime     @default(now())
+
+  @@index([organizationId])
+  @@index([token])
+  @@map("invitations")
+}
+
+model ApiKey {
+  id             String       @id @default(cuid())
+  name           String
+  keyHash        String       @unique
+  lastUsedAt     DateTime?
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@index([organizationId])
+  @@map("api_keys")
+}
+
+model WebhookEvent {
+  id              String   @id @default(cuid())
+  provider        String
+  eventType       String
+  payload         Json
+  idempotencyKey  String   @unique
+  processedAt     DateTime?
+  createdAt       DateTime @default(now())
+
+  @@index([provider, eventType])
+  @@index([idempotencyKey])
+  @@map("webhook_events")
+}
