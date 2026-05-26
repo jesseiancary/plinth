@@ -145,23 +145,83 @@ Keys are hashed (SHA-256) at rest — the plaintext is returned once on creation
 
 ---
 
-## Git Conventions
+## Git Conventions & PR Workflow
 
-Conventional commits: `type(scope): description`
+**CRITICAL: NEVER commit directly to `main`. ALL changes must go through a pull request.**
 
-Types: `feat`, `fix`, `chore`, `docs`, `refactor`, `test`, `ci`
+### Mandatory Workflow for Every Change
 
-Examples:
+```bash
+# 1. Start from main (ALWAYS)
+git checkout main
+git pull
+
+# 2. Create feature branch (REQUIRED)
+git checkout -b type/description
+# Examples: feat/user-auth, fix/null-pointer, docs/update-readme
+
+# 3. Make changes and commit
+git add .
+git commit -m "type(scope): description"
+
+# 4. Push branch
+git push -u origin type/description
+
+# 5. Create PR
+gh pr create --title "type: description" --body "PR description"
+
+# 6. Wait for CI checks to pass (5 jobs must be green)
+
+# 7. Merge PR (only after all checks pass)
+gh pr merge --squash --delete-branch
+
+# 8. Return to main
+git checkout main
+git pull
+```
+
+**This workflow applies to:**
+
+- ✅ Feature development
+- ✅ Bug fixes
+- ✅ Documentation changes
+- ✅ Configuration updates
+- ✅ Refactoring
+- ✅ **EVERYTHING** — no exceptions
+
+### Conventional Commits
+
+Format: `type(scope): description`
+
+**Types:**
+
+- `feat` — New feature
+- `fix` — Bug fix
+- `docs` — Documentation only
+- `chore` — Tooling, dependencies, config
+- `refactor` — Code restructuring (no behavior change)
+- `test` — Adding or updating tests
+- `ci` — CI/CD pipeline changes
+
+**Examples:**
 
 ```
 feat(auth): add refresh token rotation
 fix(invitations): handle expired token edge case
 chore(deps): upgrade prisma to 6.x
 docs(openapi): document membership endpoints
+refactor(prisma): extract query helpers
+test(auth): add login integration tests
+ci(github): add codecov upload step
 ```
 
-Branch naming: `feat/slug`, `fix/slug`, `chore/slug`
-Never commit directly to `main`. PRs require passing CI.
+**Branch naming:** `type/description-in-kebab-case`
+
+- ✅ `feat/user-authentication`
+- ✅ `fix/null-pointer-error`
+- ✅ `docs/update-readme`
+- ❌ `feature_auth` (wrong format)
+- ❌ `fix-bug` (not descriptive)
 
 ---
 
