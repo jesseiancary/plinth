@@ -1,5 +1,7 @@
 # Plinth
 
+[![CI](https://github.com/jesseiancary/plinth/actions/workflows/ci.yml/badge.svg)](https://github.com/jesseiancary/plinth/actions/workflows/ci.yml)
+
 A production-grade multi-tenant SaaS starter built as a public portfolio project.
 
 ## Features
