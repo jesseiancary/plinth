@@ -2,7 +2,8 @@
 
 ## TypeScript
 
-- **Strict mode is always on.** No `any` types allowed. Use `unknown` + type guards if an escape hatch is needed.
+- **Strict mode is always on.** No `any` types allowed. Use `unknown` + type guards if an escape
+  hatch is needed.
 - **Use `const` only** — never `let` unless reassignment is genuinely required and unavoidable.
 - **Named exports only** — no default exports except React components and route handlers.
 - **No barrel files** (`index.ts` re-exports) — import directly from source files.

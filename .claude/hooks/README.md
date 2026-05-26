@@ -10,7 +10,8 @@ Event-driven scripts that run in response to Claude Code actions.
 
 **Purpose:** Runs `tsc --noEmit` to check for type errors before making changes.
 
-**Behavior:** Warns if type errors exist but doesn't block the edit. Claude will be informed of the type issues and can address them.
+**Behavior:** Warns if type errors exist but doesn't block the edit. Claude will be informed of the
+type issues and can address them.
 
 ### `lint-staged.sh`
 
@@ -19,6 +20,7 @@ Event-driven scripts that run in response to Claude Code actions.
 **Purpose:** Runs ESLint and Prettier on staged TypeScript files.
 
 **Behavior:**
+
 - Lints staged `.ts` and `.tsx` files
 - Auto-fixes issues where possible
 - Formats code with Prettier
@@ -28,6 +30,7 @@ Event-driven scripts that run in response to Claude Code actions.
 ## Hook Configuration
 
 Hooks are shell scripts that:
+
 - Return exit code 0 for success
 - Return non-zero exit code to block the action (use sparingly)
 - Print useful feedback to help Claude understand what happened

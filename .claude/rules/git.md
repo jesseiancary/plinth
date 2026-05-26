@@ -53,6 +53,7 @@ ci: add typecheck step to GitHub Actions
 Format: `<type>/<slug>`
 
 Examples:
+
 - `feat/refresh-token-rotation`
 - `fix/invitation-expiry`
 - `chore/upgrade-prisma`
@@ -86,11 +87,13 @@ Examples:
 
 ```markdown
 ## Summary
+
 - Added refresh token rotation to auth flow
 - Updated JWT middleware to validate refresh tokens
 - Added integration tests for token refresh
 
 ## Test plan
+
 - [ ] Manual test: login and refresh token
 - [ ] Integration tests pass
 - [ ] No breaking changes to existing endpoints

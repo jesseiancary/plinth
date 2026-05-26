@@ -1,6 +1,7 @@
 # .claude Directory
 
-This directory contains configuration and context for Claude Code, enabling disciplined AI-assisted development.
+This directory contains configuration and context for Claude Code, enabling disciplined AI-assisted
+development.
 
 ## Directory Structure
 
@@ -60,7 +61,8 @@ Skills are automatically loaded based on task context:
 
 Agents are invoked for specific domains requiring isolated context:
 
-- **code-reviewer** — Security and correctness focused review (tenant isolation, auth, input validation)
+- **code-reviewer** — Security and correctness focused review (tenant isolation, auth, input
+  validation)
 - **api-designer** — REST design decisions and OpenAPI spec guidance
 - **db-architect** — Schema design, indexing strategy, query optimization
 
@@ -83,4 +85,5 @@ This .claude/ directory enables a disciplined workflow that:
 4. **Documents decisions** — Skills and agents capture domain knowledge
 5. **Accelerates development** — Commands automate repetitive tasks
 
-The goal is not "vibe coding" but **thoughtful, systematic AI-assisted development** with clear guardrails and repeatable processes.
+The goal is not "vibe coding" but **thoughtful, systematic AI-assisted development** with clear
+guardrails and repeatable processes.

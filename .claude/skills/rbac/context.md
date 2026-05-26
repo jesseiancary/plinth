@@ -33,20 +33,20 @@ owner > admin > member
 
 ## Permission Matrix
 
-| Action | Owner | Admin | Member |
-|--------|-------|-------|--------|
-| View organization | ✅ | ✅ | ✅ |
-| Update organization settings | ✅ | ✅ | ❌ |
-| Delete organization | ✅ | ❌ | ❌ |
-| View members | ✅ | ✅ | ✅ |
-| Invite members | ✅ | ✅ | ❌ |
-| Remove members | ✅ | ✅ | ❌ |
-| Change member roles | ✅ | ✅ | ❌ |
-| Transfer ownership | ✅ | ❌ | ❌ |
-| Create API keys | ✅ | ✅ | ❌ |
-| Delete API keys | ✅ | ✅ | ❌ |
-| View billing | ✅ | ❌ | ❌ |
-| Manage subscription | ✅ | ❌ | ❌ |
+| Action                       | Owner | Admin | Member |
+| ---------------------------- | ----- | ----- | ------ |
+| View organization            | ✅    | ✅    | ✅     |
+| Update organization settings | ✅    | ✅    | ❌     |
+| Delete organization          | ✅    | ❌    | ❌     |
+| View members                 | ✅    | ✅    | ✅     |
+| Invite members               | ✅    | ✅    | ❌     |
+| Remove members               | ✅    | ✅    | ❌     |
+| Change member roles          | ✅    | ✅    | ❌     |
+| Transfer ownership           | ✅    | ❌    | ❌     |
+| Create API keys              | ✅    | ✅    | ❌     |
+| Delete API keys              | ✅    | ✅    | ❌     |
+| View billing                 | ✅    | ❌    | ❌     |
+| Manage subscription          | ✅    | ❌    | ❌     |
 
 ## Middleware Implementation
 
@@ -90,28 +90,18 @@ import { requireRole } from '../middleware/rbac'
 const router = Router()
 
 // Anyone in the org can view members
-router.get(
-  '/orgs/:slug/members',
-  authenticate,
-  requireRole('MEMBER'),
-  MemberController.list
-)
+router.get('/orgs/:slug/members', authenticate, requireRole('MEMBER'), MemberController.list)
 
 // Only admins and owners can invite
 router.post(
   '/orgs/:slug/invitations',
   authenticate,
   requireRole('ADMIN'),
-  InvitationController.create
+  InvitationController.create,
 )
 
 // Only owners can delete the org
-router.delete(
-  '/orgs/:slug',
-  authenticate,
-  requireRole('OWNER'),
-  OrganizationController.delete
-)
+router.delete('/orgs/:slug', authenticate, requireRole('OWNER'), OrganizationController.delete)
 ```
 
 ## Special Permission Rules
@@ -124,7 +114,11 @@ router.delete(
 - New owner must accept (via confirmation flow)
 
 ```typescript
-export const transferOwnership = async (orgId: string, newOwnerId: string, currentOwnerId: string) => {
+export const transferOwnership = async (
+  orgId: string,
+  newOwnerId: string,
+  currentOwnerId: string,
+) => {
   await prisma.$transaction([
     // Demote current owner to admin
     prisma.membership.update({
@@ -177,11 +171,7 @@ export const canRemoveMember = (removerRole: Role, targetRole: Role): boolean =>
 - Members cannot change roles
 
 ```typescript
-export const canChangeRole = (
-  changerRole: Role,
-  targetRole: Role,
-  newRole: Role
-): boolean => {
+export const canChangeRole = (changerRole: Role, targetRole: Role, newRole: Role): boolean => {
   // Cannot promote to owner (use transfer ownership instead)
   if (newRole === 'OWNER') {
     return false
@@ -214,7 +204,7 @@ export const createInvitation = async (
   orgId: string,
   email: string,
   role: Role,
-  invitedById: string
+  invitedById: string,
 ) => {
   // Generate unique token
   const token = crypto.randomBytes(32).toString('hex')

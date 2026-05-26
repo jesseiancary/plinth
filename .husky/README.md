@@ -11,6 +11,7 @@ Hooks are automatically installed when you run `pnpm install` (via the `prepare`
 ### pre-commit
 
 Runs `lint-staged` which:
+
 - Lints and fixes TypeScript files with ESLint
 - Formats all staged files with Prettier
 - Only runs on staged files (fast!)

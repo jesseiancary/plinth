@@ -113,6 +113,7 @@ pnpm --filter openapi validate
 ```
 
 This checks for:
+
 - Valid YAML syntax
 - OpenAPI 3.1 compliance
 - Schema references exist
@@ -143,6 +144,7 @@ pnpm --filter openapi generate:zod
 The OpenAPI spec is served at `/docs` using Scalar UI.
 
 Scalar features:
+
 - Interactive API playground
 - Code generation in multiple languages
 - Request/response examples

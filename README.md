@@ -4,7 +4,8 @@
 
 A production-grade multi-tenant SaaS starter built as a public portfolio project.
 
-**Project Status:** Phase 1 Complete (Database & API Foundation) — Phase 2 In Progress (Authentication)
+**Project Status:** Phase 1 Complete (Database & API Foundation) — Phase 2 In Progress
+(Authentication)
 
 ## Overview
 
@@ -105,7 +106,8 @@ WebhookEvent (future)
 └── processedAt
 ```
 
-**Tenant Isolation:** Single database with `organizationId` on all tenant resources. All queries filtered by `organizationId` at application layer.
+**Tenant Isolation:** Single database with `organizationId` on all tenant resources. All queries
+filtered by `organizationId` at application layer.
 
 ### API Architecture
 
@@ -345,4 +347,5 @@ MIT
 
 ## Contributing
 
-This is a portfolio project and not currently accepting contributions. Feel free to fork and adapt for your own use.
+This is a portfolio project and not currently accepting contributions. Feel free to fork and adapt
+for your own use.

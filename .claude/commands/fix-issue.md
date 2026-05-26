@@ -82,7 +82,7 @@ console.log('Request:', { method: req.method, url: req.url, body: req.body })
 
 // Add Prisma query logging
 const result = await prisma.user.findMany({
-  where: { organizationId: tenantId }
+  where: { organizationId: tenantId },
 })
 console.log('Query result:', result)
 

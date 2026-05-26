@@ -1,12 +1,13 @@
-import type { Request, Response, NextFunction, ErrorRequestHandler } from 'express'
+import type { ErrorRequestHandler, NextFunction, Request, Response } from 'express'
 import { ZodError } from 'zod'
+
 import { AppError } from '../lib/errors.js'
 
 export const errorHandler: ErrorRequestHandler = (
   err: Error,
   _req: Request,
   res: Response,
-  _next: NextFunction
+  _next: NextFunction,
 ) => {
   // Zod validation errors
   if (err instanceof ZodError) {

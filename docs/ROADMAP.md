@@ -1,20 +1,22 @@
 # SaaS Starter — Project Roadmap
 
-> Multi-tenant SaaS foundation with public API + documentation.
-> Stack: PostgreSQL · Prisma · Node/Express · React · Vite · Tailwind · React Query · TypeScript · Scalar
+> Multi-tenant SaaS foundation with public API + documentation. Stack: PostgreSQL · Prisma ·
+> Node/Express · React · Vite · Tailwind · React Query · TypeScript · Scalar
 
 ---
 
 ## Phase 0 — Repo & Tooling Setup ✅ COMPLETE
 
-- [x] Initialize pnpm monorepo with workspaces (`apps/web`, `apps/api`, `packages/types`, `packages/openapi`)
+- [x] Initialize pnpm monorepo with workspaces (`apps/web`, `apps/api`, `packages/types`,
+      `packages/openapi`)
 - [x] Configure root `tsconfig.json` with path aliases shared across packages
 - [x] Add ESLint + Prettier with shared config in root
 - [x] Add `husky` + `lint-staged` for pre-commit hooks
 - [x] Set up `.claude/` directory structure (CLAUDE.md, rules/, commands/, skills/, agents/, hooks/)
 - [x] Create `.env.example` files for both `apps/api` and `apps/web`
 - [x] Add `.gitignore` covering node_modules, dist, .env, prisma migrations lock
-- [x] Create initial `README.md` with project overview, architecture diagram placeholder, and local setup instructions
+- [x] Create initial `README.md` with project overview, architecture diagram placeholder, and local
+      setup instructions
 - [x] Set up GitHub repository with branch protection on `main`
 - [x] Configure GitHub Actions CI: lint + typecheck + test on PR
 
@@ -61,7 +63,8 @@
 
 **All items completed:**
 
-- ✅ Database schema with 6 models (User, Organization, Membership, Invitation, ApiKey, WebhookEvent)
+- ✅ Database schema with 6 models (User, Organization, Membership, Invitation, ApiKey,
+  WebhookEvent)
 - ✅ Role enum: OWNER, ADMIN, MEMBER
 - ✅ Proper indexing and cascade deletes
 - ✅ Initial migration: `20260526062715_init_schema`
@@ -89,7 +92,8 @@
 ## Phase 2 — Authentication
 
 - [ ] Implement `POST /api/v1/auth/register` — create user + personal org
-- [ ] Implement `POST /api/v1/auth/login` — return JWT access token + refresh token (httpOnly cookie)
+- [ ] Implement `POST /api/v1/auth/login` — return JWT access token + refresh token (httpOnly
+      cookie)
 - [ ] Implement `POST /api/v1/auth/refresh` — rotate refresh token
 - [ ] Implement `POST /api/v1/auth/logout` — invalidate refresh token
 - [ ] Implement `GET /api/v1/auth/me` — return current user + memberships
@@ -123,7 +127,8 @@
 
 - [ ] `POST /api/v1/orgs/:slug/invitations` — create invite (email + role), send email
 - [ ] `GET /api/v1/invitations/:token` — validate token (public, no auth required)
-- [ ] `POST /api/v1/invitations/:token/accept` — accept invite (creates membership, handles new vs existing user)
+- [ ] `POST /api/v1/invitations/:token/accept` — accept invite (creates membership, handles new vs
+      existing user)
 - [ ] `DELETE /api/v1/invitations/:id` — revoke pending invite (admin+)
 - [ ] Token expiry: 72 hours, single-use, stored as hash
 - [ ] Edge cases: invitee already member, org at seat limit, token expired
@@ -192,18 +197,21 @@
 - [ ] Write `.claude/rules/testing.md` — integration-first, colocated tests, coverage requirements
 - [ ] Write `.claude/rules/git.md` — conventional commits, branch naming, PR checklist
 - [ ] Write `.claude/commands/review.md` — slash command for pre-PR review checklist
-- [ ] Write `.claude/commands/add-endpoint.md` — slash command scaffolding a new route (route + controller + Zod schema + OpenAPI entry + test)
+- [ ] Write `.claude/commands/add-endpoint.md` — slash command scaffolding a new route (route +
+      controller + Zod schema + OpenAPI entry + test)
 - [ ] Write `.claude/commands/add-migration.md` — slash command for Prisma schema change + migration
 - [ ] Write `.claude/commands/fix-issue.md` — slash command for bug investigation workflow
 - [ ] Write `.claude/skills/openapi/SKILL.md` — context for generating spec-compliant endpoint docs
-- [ ] Write `.claude/skills/prisma/SKILL.md` — context for schema changes, migration naming, seed patterns
+- [ ] Write `.claude/skills/prisma/SKILL.md` — context for schema changes, migration naming, seed
+      patterns
 - [ ] Write `.claude/skills/rbac/SKILL.md` — context for adding new permission-guarded routes
 - [ ] Write `.claude/agents/code-reviewer.md` — specialized agent for security + correctness review
 - [ ] Write `.claude/agents/api-designer.md` — specialized agent for REST/OpenAPI design decisions
 - [ ] Write `.claude/agents/db-architect.md` — specialized agent for schema + query optimization
 - [ ] Write `.claude/hooks/validate-types.sh` — pre-tool hook: run `tsc --noEmit` before edits
 - [ ] Write `.claude/hooks/lint-staged.sh` — pre-commit hook via husky
-- [ ] Add `AI_DEVELOPMENT.md` to repo root explaining the Claude Code workflow, agents used, and how AI was used thoughtfully throughout the project
+- [ ] Add `AI_DEVELOPMENT.md` to repo root explaining the Claude Code workflow, agents used, and how
+      AI was used thoughtfully throughout the project
 
 ---
 
@@ -228,7 +236,8 @@
 - [ ] Configure environment variables in both platforms
 - [ ] Set up Prisma migrate deploy in CI/CD pipeline
 - [ ] Add live demo link to README
-- [ ] Write architecture decision records (ADRs) for: monorepo structure, tenant isolation strategy, token design, API key hashing approach
+- [ ] Write architecture decision records (ADRs) for: monorepo structure, tenant isolation strategy,
+      token design, API key hashing approach
 - [ ] Final README pass: architecture diagram, local setup, API docs link, AI workflow section
 
 ---

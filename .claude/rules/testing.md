@@ -73,9 +73,7 @@ import { app } from '../app'
 
 describe('GET /api/v1/orgs/:slug/members', () => {
   it('returns 401 when not authenticated', async () => {
-    const response = await request(app)
-      .get('/api/v1/orgs/acme/members')
-      .expect(401)
+    const response = await request(app).get('/api/v1/orgs/acme/members').expect(401)
 
     expect(response.body.error.code).toBe('UNAUTHORIZED')
   })
