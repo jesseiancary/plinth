@@ -241,6 +241,7 @@ JWT_SECRET=
 JWT_REFRESH_SECRET=
 JWT_ACCESS_EXPIRY=15m
 JWT_REFRESH_EXPIRY=7d
+BCRYPT_WORK_FACTOR=10
 SMTP_HOST=
 SMTP_PORT=
 SMTP_USER=
@@ -373,25 +374,26 @@ Scalar docs are served at `GET /docs` in development and production.
 
 > Update this section as phases are completed.
 
-**Active:** Phase 2 — Authentication
-**Next:** Phase 3 — Organization Management
+**Active:** Phase 3 — Organization Management
+**Next:** Phase 4 — OpenAPI Spec & Scalar Docs (in progress)
 **Completed:**
 
 - Phase 0 — Repo & Tooling Setup ✅
 - Phase 1 — Database & API Foundation ✅
+- Phase 2 — Authentication ✅
 
 See `docs/ROADMAP.md` for full checklist.
 
-### Phase 2 Goals
+### Phase 3 Goals
 
-- Implement user registration and login endpoints
-- JWT-based authentication (access token + httpOnly refresh token)
-- Token refresh and logout flows
-- Password hashing with bcrypt
-- JWT middleware to extract and verify tokens, attach `req.user` and `req.tenantId`
-- API key middleware for programmatic access
-- Integration tests for all auth flows
-- Document auth endpoints in OpenAPI spec
+- Organization CRUD operations (create, get, update, delete)
+- Member management (list, update role, remove)
+- Invitation system (create, accept, revoke)
+- API key management (generate, list, revoke)
+- RBAC enforcement with role-based middleware
+- Owner transfer flow
+- Edge case handling (last owner, cross-tenant access)
+- Integration tests for all organization flows
 
 ---
 

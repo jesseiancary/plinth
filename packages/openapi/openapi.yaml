@@ -63,6 +63,248 @@ paths:
                     type: string
                     enum: [disconnected]
 
+  /api/v1/auth/register:
+    post:
+      summary: Register new user
+      description: Create a new user account and personal organization
+      operationId: register
+      tags:
+        - Auth
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - password
+                - name
+              properties:
+                email:
+                  type: string
+                  format: email
+                  description: User email address
+                password:
+                  type: string
+                  format: password
+                  minLength: 8
+                  maxLength: 128
+                  description: User password (min 8 characters)
+                name:
+                  type: string
+                  minLength: 1
+                  maxLength: 100
+                  description: User full name
+      responses:
+        '201':
+          description: User created successfully
+          headers:
+            Set-Cookie:
+              schema:
+                type: string
+                example: refreshToken=...; HttpOnly; Secure; SameSite=Strict
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - accessToken
+                  - user
+                properties:
+                  accessToken:
+                    type: string
+                    description: JWT access token
+                  user:
+                    $ref: '#/components/schemas/User'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Email already registered
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/v1/auth/login:
+    post:
+      summary: Login user
+      description: Authenticate user and return access token
+      operationId: login
+      tags:
+        - Auth
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - password
+              properties:
+                email:
+                  type: string
+                  format: email
+                  description: User email address
+                password:
+                  type: string
+                  format: password
+                  description: User password
+      responses:
+        '200':
+          description: Login successful
+          headers:
+            Set-Cookie:
+              schema:
+                type: string
+                example: refreshToken=...; HttpOnly; Secure; SameSite=Strict
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - accessToken
+                  - user
+                properties:
+                  accessToken:
+                    type: string
+                    description: JWT access token
+                  user:
+                    $ref: '#/components/schemas/User'
+        '401':
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/v1/auth/refresh:
+    post:
+      summary: Refresh access token
+      description: Use refresh token cookie to get a new access token
+      operationId: refreshToken
+      tags:
+        - Auth
+      security: []
+      responses:
+        '200':
+          description: Token refreshed successfully
+          headers:
+            Set-Cookie:
+              schema:
+                type: string
+                example: refreshToken=...; HttpOnly; Secure; SameSite=Strict
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - accessToken
+                properties:
+                  accessToken:
+                    type: string
+                    description: New JWT access token
+        '401':
+          description: Invalid or expired refresh token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/v1/auth/logout:
+    post:
+      summary: Logout user
+      description: Invalidate refresh token and clear cookie
+      operationId: logout
+      tags:
+        - Auth
+      security: []
+      responses:
+        '204':
+          description: Logout successful
+
+  /api/v1/auth/me:
+    get:
+      summary: Get current user
+      description: Get currently authenticated user with their memberships
+      operationId: getCurrentUser
+      tags:
+        - Auth
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Current user details
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - id
+                  - email
+                  - name
+                  - createdAt
+                  - memberships
+                properties:
+                  id:
+                    type: string
+                    description: User ID
+                  email:
+                    type: string
+                    format: email
+                    description: User email
+                  name:
+                    type: string
+                    description: User name
+                  createdAt:
+                    type: string
+                    format: date-time
+                    description: Account creation timestamp
+                  memberships:
+                    type: array
+                    items:
+                      type: object
+                      required:
+                        - id
+                        - role
+                        - organization
+                        - createdAt
+                      properties:
+                        id:
+                          type: string
+                        role:
+                          type: string
+                          enum: [OWNER, ADMIN, MEMBER]
+                        organization:
+                          type: object
+                          required:
+                            - id
+                            - name
+                            - slug
+                          properties:
+                            id:
+                              type: string
+                            name:
+                              type: string
+                            slug:
+                              type: string
+                        createdAt:
+                          type: string
+                          format: date-time
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
 components:
   schemas:
     Error:
@@ -86,6 +328,29 @@ components:
               type: object
               description: Additional error context
               additionalProperties: true
+
+    User:
+      type: object
+      required:
+        - id
+        - email
+        - name
+        - createdAt
+      properties:
+        id:
+          type: string
+          description: User ID
+        email:
+          type: string
+          format: email
+          description: User email address
+        name:
+          type: string
+          description: User full name
+        createdAt:
+          type: string
+          format: date-time
+          description: Account creation timestamp
 
   securitySchemes:
     bearerAuth:

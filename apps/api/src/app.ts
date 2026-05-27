@@ -10,8 +10,10 @@ import { rateLimit } from 'express-rate-limit'
 import helmet from 'helmet'
 import morgan from 'morgan'
 
+import { authenticateJWT } from './middleware/auth.js'
 import { errorHandler } from './middleware/error-handler.js'
 import { notFound } from './middleware/not-found.js'
+import { authRouter } from './routes/auth.js'
 import { healthRouter } from './routes/health.js'
 
 // ESM __dirname/__filename equivalents
@@ -67,8 +69,12 @@ app.use(
   }),
 )
 
+// Global JWT authentication middleware (does not enforce auth, just parses token)
+app.use(authenticateJWT)
+
 // Routes
 app.use('/health', healthRouter)
+app.use('/api/v1/auth', authRouter)
 
 // 404 handler
 app.use(notFound)
