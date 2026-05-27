@@ -105,6 +105,9 @@ importers:
       '@vitest/coverage-v8':
         specifier: ^1.2.1
         version: 1.6.1(vitest@1.6.1)
+      dotenv:
+        specifier: ^17.4.2
+        version: 17.4.2
       prisma:
         specifier: ^5.8.1
         version: 5.22.0
@@ -2963,6 +2966,11 @@ packages:
     engines: {node: '>=6.0.0'}
     dependencies:
       esutils: 2.0.3
+    dev: true
+
+  /dotenv@17.4.2:
+    resolution: {integrity: sha512-nI4U3TottKAcAD9LLud4Cb7b2QztQMUEfHbvhTH09bqXTxnSie8WnjPALV/WMCrJZ6UV/qHJ6L03OqO3LcdYZw==}
+    engines: {node: '>=12'}
     dev: true
 
   /dunder-proto@1.0.1:

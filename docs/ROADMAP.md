@@ -89,18 +89,53 @@
 
 ---
 
-## Phase 2 — Authentication
+## Phase 2 — Authentication ✅ COMPLETE
 
-- [ ] Implement `POST /api/v1/auth/register` — create user + personal org
-- [ ] Implement `POST /api/v1/auth/login` — return JWT access token + refresh token (httpOnly
+- [x] Implement `POST /api/v1/auth/register` — create user + personal org
+- [x] Implement `POST /api/v1/auth/login` — return JWT access token + refresh token (httpOnly
       cookie)
-- [ ] Implement `POST /api/v1/auth/refresh` — rotate refresh token
-- [ ] Implement `POST /api/v1/auth/logout` — invalidate refresh token
-- [ ] Implement `GET /api/v1/auth/me` — return current user + memberships
-- [ ] JWT middleware: extract + verify, attach `req.user` and `req.tenantId`
-- [ ] API key middleware: hash lookup, attach org context, scope enforcement
-- [ ] Password hashing with bcrypt (work factor configurable via env)
-- [ ] Write auth integration tests (Vitest + Supertest)
+- [x] Implement `POST /api/v1/auth/refresh` — rotate refresh token
+- [x] Implement `POST /api/v1/auth/logout` — invalidate refresh token
+- [x] Implement `GET /api/v1/auth/me` — return current user + memberships
+- [x] JWT middleware: extract + verify, attach `req.user` and `req.tenantId`
+- [x] API key middleware: hash lookup, attach org context, scope enforcement
+- [x] Password hashing with bcrypt (work factor configurable via env)
+- [x] Write auth integration tests (Vitest + Supertest)
+
+**All items completed:**
+
+- ✅ Database migration: added `tokenVersion` field to User model for refresh token rotation
+- ✅ Password hashing with bcrypt (configurable work factor via `BCRYPT_WORK_FACTOR` env)
+- ✅ JWT utilities: sign and verify access/refresh tokens with proper types
+- ✅ API key utilities: generate (sk*live*\*) and hash with SHA-256
+- ✅ Slug generation: unique organization slugs from names
+- ✅ Zod validation schemas for register and login
+- ✅ Auth endpoints: register, login, refresh, logout, me (all at `/api/v1/auth/*`)
+- ✅ JWT middleware: `authenticateJWT` (parse token), `requireAuth` (enforce auth)
+- ✅ RBAC middleware: `requireRole()` - checks organization membership and role
+- ✅ API key middleware: `authenticateApiKey` - hash lookup and tenant context
+- ✅ Async handler wrapper for proper Express error handling
+- ✅ Integration tests: 21 tests covering all auth flows and error cases
+- ✅ Test infrastructure: Vitest config, test helpers, database cleanup
+- ✅ OpenAPI documentation: all 5 auth endpoints documented with schemas
+- ✅ TypeScript: strict mode, all files type-checked
+- ✅ ESLint: all rules passing with test file overrides
+- ✅ httpOnly cookies for refresh tokens (7d expiry)
+- ✅ Token rotation on logout (increment tokenVersion to invalidate all tokens)
+- ✅ Personal organization automatically created on registration
+
+**Security features:**
+
+- ✅ Passwords hashed with bcrypt (work factor 10, configurable)
+- ✅ JWT access tokens (15m default expiry)
+- ✅ httpOnly refresh tokens in secure cookies
+- ✅ Refresh token rotation prevents token reuse
+- ✅ API keys hashed with SHA-256 (never stored plaintext)
+- ✅ Tenant isolation via `req.tenantId` (set by middleware)
+- ✅ Input validation with Zod on all endpoints
+- ✅ Proper error handling (no internal details leaked)
+
+**Test results:** 23/23 passing (21 auth + 2 health)
 
 ---
 
