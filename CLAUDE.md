@@ -373,7 +373,9 @@ Scalar docs are served at `GET /docs` in development and production.
 
 > Update this section as phases are completed.
 
-**Active:** Phase 2 — Authentication **Next:** Phase 3 — Organization Management **Completed:**
+**Active:** Phase 2 — Authentication
+**Next:** Phase 3 — Organization Management
+**Completed:**
 
 - Phase 0 — Repo & Tooling Setup ✅
 - Phase 1 — Database & API Foundation ✅
@@ -395,22 +397,22 @@ See `docs/ROADMAP.md` for full checklist.
 
 ## Key Decisions & Rationale
 
-**Why manual JWT over an auth library?** Auth.js/Clerk abstract away the implementation details this
-project intends to demonstrate. Understanding token rotation, httpOnly cookies, and refresh flows is
-the point.
+**Why manual JWT over an auth library?**
+Auth.js/Clerk abstract away the implementation details this project intends to demonstrate.
+Understanding token rotation, httpOnly cookies, and refresh flows is the point.
 
-**Why cursor pagination over offset?** Offset pagination breaks under concurrent inserts.
-Cursor-based is the correct choice for any production API and is worth demonstrating even on a small
-dataset.
+**Why cursor pagination over offset?**
+Offset pagination breaks under concurrent inserts. Cursor-based is the correct choice for any
+production API and is worth demonstrating even on a small dataset.
 
-**Why single-DB multi-tenancy over per-tenant schemas?** Per-tenant schemas don't scale
-operationally (migrations across thousands of schemas become painful). Single DB with row-level
-`organizationId` is the industry default for early-stage SaaS.
+**Why single-DB multi-tenancy over per-tenant schemas?**
+Per-tenant schemas don't scale operationally (migrations across thousands of schemas become painful).
+Single DB with row-level `organizationId` is the industry default for early-stage SaaS.
 
-**Why Scalar over Swagger UI?** Scalar is actively maintained, has a significantly better UX,
-supports OpenAPI 3.1 natively, and is new enough to be worth learning. Swagger UI is legacy at this
-point.
+**Why Scalar over Swagger UI?**
+Scalar is actively maintained, has a significantly better UX, supports OpenAPI 3.1 natively,
+and is new enough to be worth learning. Swagger UI is legacy at this point.
 
-**Why pnpm workspaces?** Faster installs, strict dependency isolation, and native monorepo support
-without a separate tool like Turborepo (which can be added later if build caching becomes a
-concern).
+**Why pnpm workspaces?**
+Faster installs, strict dependency isolation, and native monorepo support without a separate tool
+like Turborepo (which can be added later if build caching becomes a concern).
