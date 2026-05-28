@@ -33,6 +33,19 @@ Run a comprehensive pre-PR checklist before creating a pull request.
 - [ ] All inputs validated with Zod
 - [ ] Prisma queries scoped to `organizationId`
 - [ ] Error responses don't leak internal details
+- [ ] 404 vs 403 decision follows conventions (don't leak org existence)
+
+### RBAC & Multi-Tenancy (Phase 3)
+
+- [ ] Last owner cannot be removed or demoted
+- [ ] Owner cannot demote themselves
+- [ ] Admin cannot demote owner
+- [ ] Cross-tenant access returns 403, not 200 with empty data
+- [ ] Invitation tokens are hashed (SHA-256) before storage
+- [ ] API keys are hashed (SHA-256) before storage
+- [ ] Tokens are single-use (deleted or marked used after acceptance)
+- [ ] Token expiry is enforced (72 hours for invitations)
+- [ ] User cannot be invited to org they're already a member of
 
 ### Edge Cases
 

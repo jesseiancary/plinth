@@ -292,3 +292,126 @@ afterAll(async () => {
   await prisma.$disconnect()
 })
 ```
+
+## Phase 3 Specific Patterns
+
+### Token Hashing (Invitations & API Keys)
+
+```typescript
+import crypto from 'crypto'
+
+// Generate and hash invitation token
+const generateInvitationToken = () => {
+  const token = crypto.randomBytes(32).toString('hex')
+  const tokenHash = crypto.createHash('sha256').update(token).digest('hex')
+  return { token, tokenHash }
+}
+
+// Store only hash
+const { token, tokenHash } = generateInvitationToken()
+await prisma.invitation.create({
+  data: {
+    token: tokenHash, // Store hash, not plaintext
+    // ... other fields
+  },
+})
+
+// Return plaintext once
+return { token } // User sees: "abc123..." (never stored)
+```
+
+### Ownership Transfer Transaction
+
+```typescript
+await prisma.$transaction(async (tx) => {
+  // Verify new owner is a member
+  const newOwnerMembership = await tx.membership.findUnique({
+    where: {
+      userId_organizationId: {
+        userId: newOwnerId,
+        organizationId: orgId,
+      },
+    },
+  })
+
+  if (!newOwnerMembership) {
+    throw new AppError('New owner must be a member', 400, 'NOT_MEMBER')
+  }
+
+  // Demote current owner to admin
+  await tx.membership.update({
+    where: {
+      userId_organizationId: {
+        userId: currentOwnerId,
+        organizationId: orgId,
+      },
+    },
+    data: { role: 'ADMIN' },
+  })
+
+  // Promote new owner
+  await tx.membership.update({
+    where: {
+      userId_organizationId: {
+        userId: newOwnerId,
+        organizationId: orgId,
+      },
+    },
+    data: { role: 'OWNER' },
+  })
+})
+```
+
+### Last Owner Check
+
+```typescript
+const ownerCount = await prisma.membership.count({
+  where: {
+    organizationId: req.tenantId,
+    role: 'OWNER',
+  },
+})
+
+if (ownerCount === 1 && targetMembership.role === 'OWNER') {
+  throw new AppError('Cannot remove last owner', 400, 'LAST_OWNER')
+}
+```
+
+### Invitation Expiry Cleanup (Cron Job)
+
+```typescript
+// Delete expired invitations (run daily)
+await prisma.invitation.deleteMany({
+  where: {
+    expiresAt: {
+      lt: new Date(),
+    },
+  },
+})
+```
+
+### Cross-Tenant Query Prevention
+
+```typescript
+// ❌ WRONG - Missing organizationId filter
+const invitation = await prisma.invitation.findUnique({
+  where: { token: hashedToken },
+})
+
+// ✅ CORRECT - Always include organizationId for tenant-scoped resources
+const invitation = await prisma.invitation.findFirst({
+  where: {
+    token: hashedToken,
+    organizationId: req.tenantId,
+  },
+})
+
+// NOTE: Invitation acceptance is an exception - public endpoint
+// In that case, verify org exists and user isn't already a member
+const invitation = await prisma.invitation.findUnique({
+  where: { token: hashedToken },
+  include: {
+    organization: true, // Verify org still exists
+  },
+})
+```

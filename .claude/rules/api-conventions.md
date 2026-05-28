@@ -102,3 +102,53 @@ Use the `requireRole()` middleware to enforce permissions.
 - **ISO 8601 timestamps:** always return dates in UTC.
 - **No null pollution:** prefer omitting keys over setting them to `null`.
 - **Envelope responses** only when pagination metadata is needed.
+
+## 404 vs 403 Decision Matrix
+
+When a resource is not found OR user lacks access, choose the status code carefully:
+
+### Use 404 (hide existence from non-members)
+
+- Organization doesn't exist → **404** (don't confirm org exists to non-members)
+- Member doesn't exist within org → **404** (if user is not org member)
+- Invitation doesn't exist → **404** (public endpoint, don't leak info)
+
+### Use 403 (user knows resource exists but can't access it)
+
+- User is org member but has insufficient role → **403 FORBIDDEN**
+- User tries to demote owner (when not owner) → **403 FORBIDDEN**
+- User tries to access admin-only feature → **403 FORBIDDEN**
+
+### Decision Tree
+
+```
+Request comes in
+    ↓
+1. Is auth token valid? NO → 401 UNAUTHENTICATED
+    ↓ YES
+2. Does org exist? NO → 404 ORG_NOT_FOUND
+    ↓ YES
+3. Is user a member? NO → 403 NOT_ORG_MEMBER
+    ↓ YES
+4. Does user have required role? NO → 403 FORBIDDEN
+    ↓ YES
+5. Does specific resource exist? NO → 404 RESOURCE_NOT_FOUND
+    ↓ YES
+6. Process request → 200/201/204
+```
+
+**Rationale:** Use 404 when the user shouldn't even know if the resource exists (prevents information leakage about organizations they're not a member of). Use 403 when the user is already "inside" the organization but lacks permissions for a specific action.
+
+## PATCH Usage in Phase 3
+
+While PATCH is generally less common than GET/POST/DELETE, Phase 3 uses it for partial updates:
+
+- `PATCH /orgs/:slug` — update org name/slug (admin+)
+- `PATCH /orgs/:slug/members/:userId` — update member role (admin+)
+
+**Use PATCH (not PUT) because:**
+
+- We're updating a subset of fields, not replacing the entire resource
+- Client doesn't need to send all fields
+- More forgiving for API evolution (adding fields doesn't break clients)
+- RESTful semantics: PUT = full replacement, PATCH = partial update
