@@ -299,3 +299,343 @@ components:
 | Invitations | `ALREADY_MEMBER`      | 409    | User already in org       |
 | Membership  | `LAST_OWNER`          | 400    | Cannot remove last owner  |
 | Membership  | `CANNOT_DEMOTE_OWNER` | 403    | Admin cannot demote owner |
+
+---
+
+## Phase 4 — Documentation Excellence
+
+Phase 4 focuses on API documentation completeness and developer experience. The OpenAPI spec should
+be comprehensive, accurate, and developer-friendly.
+
+### Documentation Completeness Checklist
+
+For every endpoint, ensure:
+
+1. **Clear Summary** — Concise one-line description (50 chars max)
+2. **Detailed Description** — Explains what the endpoint does, when to use it, and any important
+   behaviors
+3. **Complete Parameters** — All path, query, and body parameters documented with types,
+   descriptions, constraints
+4. **All Responses** — Success and all error responses (400, 401, 403, 404, 409, 410, 500)
+5. **Realistic Examples** — Request and response examples that developers can copy-paste
+6. **Security Docs** — Clear indication of auth requirements and required roles
+7. **Tags** — Properly categorized for logical grouping in Scalar UI
+
+### Request/Response Examples
+
+**IMPORTANT:** All endpoints should include realistic examples that developers can use as templates.
+
+Good example:
+
+```yaml
+/api/v1/orgs:
+  post:
+    summary: Create organization
+    description: |
+      Create a new organization and automatically assign the authenticated user as OWNER.
+      The organization slug must be unique across the platform and will be used in URLs.
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/CreateOrganizationRequest'
+          example:
+            name: 'Acme Corporation'
+            slug: 'acme-corp'
+    responses:
+      '201':
+        description: Organization created successfully
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrganizationWithMembership'
+            example:
+              id: 'clx1234567890abcdef'
+              name: 'Acme Corporation'
+              slug: 'acme-corp'
+              createdAt: '2026-05-28T14:30:00.000Z'
+              updatedAt: '2026-05-28T14:30:00.000Z'
+              membership:
+                id: 'clx9876543210zyxwvu'
+                role: 'OWNER'
+                createdAt: '2026-05-28T14:30:00.000Z'
+```
+
+### Error Response Documentation
+
+**Every endpoint must document all possible error responses** with realistic examples:
+
+```yaml
+responses:
+  '400':
+    description: Validation error - request body is invalid
+    content:
+      application/json:
+        schema:
+          $ref: '#/components/schemas/Error'
+        example:
+          error:
+            code: 'VALIDATION_ERROR'
+            message: 'Slug must be between 3 and 63 characters'
+            details:
+              field: 'slug'
+              constraint: 'minLength'
+
+  '401':
+    description: Unauthenticated - missing or invalid access token
+    content:
+      application/json:
+        schema:
+          $ref: '#/components/schemas/Error'
+        example:
+          error:
+            code: 'UNAUTHENTICATED'
+            message: 'Access token is missing or invalid'
+            details: {}
+
+  '403':
+    description: Forbidden - insufficient permissions
+    content:
+      application/json:
+        schema:
+          $ref: '#/components/schemas/Error'
+        example:
+          error:
+            code: 'FORBIDDEN'
+            message: 'This operation requires ADMIN role'
+            details:
+              required: 'ADMIN'
+              actual: 'MEMBER'
+
+  '404':
+    description: Organization not found or not a member
+    content:
+      application/json:
+        schema:
+          $ref: '#/components/schemas/Error'
+        example:
+          error:
+            code: 'ORG_NOT_FOUND'
+            message: 'Organization not found'
+            details: {}
+
+  '409':
+    description: Conflict - organization slug already exists
+    content:
+      application/json:
+        schema:
+          $ref: '#/components/schemas/Error'
+        example:
+          error:
+            code: 'ORG_SLUG_EXISTS'
+            message: 'An organization with this slug already exists'
+            details:
+              slug: 'acme-corp'
+```
+
+### Pagination Documentation
+
+For paginated endpoints, clearly document cursor-based pagination:
+
+```yaml
+parameters:
+  - name: cursor
+    in: query
+    required: false
+    description: |
+      Pagination cursor returned from previous request's `nextCursor` field.
+      Omit this parameter to get the first page of results.
+    schema:
+      type: string
+    example: 'clx1234567890abcdef'
+
+  - name: limit
+    in: query
+    required: false
+    description: Number of items to return per page
+    schema:
+      type: integer
+      minimum: 1
+      maximum: 100
+      default: 20
+    example: 20
+
+responses:
+  '200':
+    description: Paginated list of members
+    content:
+      application/json:
+        schema:
+          type: object
+          required:
+            - data
+            - nextCursor
+          properties:
+            data:
+              type: array
+              items:
+                $ref: '#/components/schemas/Membership'
+            nextCursor:
+              type: string
+              nullable: true
+              description: Cursor for next page, or null if no more pages
+        example:
+          data:
+            - id: 'clx1234567890abcdef'
+              role: 'OWNER'
+              userId: 'clx1111111111111111'
+              user:
+                id: 'clx1111111111111111'
+                name: 'John Doe'
+                email: 'john@acme.com'
+              createdAt: '2026-05-20T10:00:00.000Z'
+            - id: 'clx2345678901bcdefg'
+              role: 'ADMIN'
+              userId: 'clx2222222222222222'
+              user:
+                id: 'clx2222222222222222'
+                name: 'Jane Smith'
+                email: 'jane@acme.com'
+              createdAt: '2026-05-22T15:30:00.000Z'
+          nextCursor: 'clx2345678901bcdefg'
+```
+
+### Security Scheme Documentation
+
+For endpoints with different auth methods:
+
+```yaml
+# JWT-only endpoint
+/api/v1/orgs:
+  post:
+    security:
+      - bearerAuth: []
+    description: Requires JWT access token (user authentication)
+
+# JWT or API key
+/api/v1/orgs/{slug}/members:
+  get:
+    security:
+      - bearerAuth: []
+      - apiKeyAuth: []
+    description: |
+      Authenticate with either a JWT access token or an API key with `members:read` scope.
+
+# Public endpoint (no auth)
+/api/v1/invitations/validate/{token}:
+  get:
+    security: []
+    description: Public endpoint - no authentication required
+```
+
+### Scalar-Specific Optimization
+
+Scalar UI provides interactive documentation. Optimize for it:
+
+1. **Use descriptive summaries** — They appear as endpoint titles in Scalar
+2. **Add markdown to descriptions** — Scalar renders markdown (lists, code blocks, etc.)
+3. **Include code examples** — Scalar shows language-specific examples
+4. **Use meaningful operationIds** — They're used for code generation
+5. **Group with tags** — Scalar organizes endpoints by tags
+
+### Type Safety Guidelines
+
+For TypeScript type generation to work correctly:
+
+1. **Use proper types** — `string`, `integer`, `boolean`, `array`, `object` (not "String")
+2. **Mark required fields** — Use `required: [field1, field2]` at the schema level
+3. **Use `$ref` for reuse** — Don't duplicate schema definitions
+4. **Avoid `additionalProperties: true`** — Unless intentionally allowing arbitrary props
+5. **Use `nullable: true`** — For fields that can be null (not `type: ['string', 'null']`)
+6. **Use enums** — For fixed sets of values (role: OWNER | ADMIN | MEMBER)
+
+### Multi-Tenant URL Consistency
+
+All organization-scoped resources follow this URL structure:
+
+```
+/api/v1/orgs/{slug}/{resource}
+/api/v1/orgs/{slug}/{resource}/{resourceId}
+/api/v1/orgs/{slug}/{resource}/{resourceId}/{subresource}
+```
+
+Examples:
+
+- `/api/v1/orgs/acme/members` — List members
+- `/api/v1/orgs/acme/members/clx123` — Specific member
+- `/api/v1/orgs/acme/invitations` — List invitations
+- `/api/v1/orgs/acme/api-keys` — List API keys
+
+### Developer Experience Best Practices
+
+To create excellent API documentation:
+
+1. **Think like a first-time user** — What would you need to know to use this endpoint?
+2. **Document edge cases** — What happens when the invitation expires? When you're the last owner?
+3. **Provide context** — Why would a developer call this endpoint?
+4. **Show realistic data** — Use plausible IDs, emails, names (not "string", "foo", "bar")
+5. **Explain error codes** — Each error code should have a clear, actionable message
+6. **Include workflows** — Some operations require multiple API calls (document the flow)
+
+### Validation Against Implementation
+
+The OpenAPI spec should match the actual API implementation:
+
+1. **Zod schemas are source of truth** — OpenAPI should reflect Zod validation rules
+2. **Test responses match spec** — Run API calls and compare response shapes
+3. **Error codes match** — AppError codes in codebase should match OpenAPI error examples
+4. **Status codes match** — Controller status codes should match OpenAPI responses
+
+### Commands for Phase 4
+
+Use these commands to maintain documentation quality:
+
+- `/sync-openapi` — Comprehensive workflow to verify spec accuracy
+- `/review` — Pre-PR checklist including OpenAPI validation
+- Validate spec: `pnpm --filter openapi validate`
+- Generate types: `pnpm --filter openapi generate:types`
+- View docs: http://localhost:3001/docs (when API is running)
+
+### Common Phase 4 Tasks
+
+**Adding a new endpoint:**
+
+1. Implement route + controller + Zod validation
+2. Add endpoint to `openapi.yaml` with full documentation
+3. Include request/response examples
+4. Document all error responses
+5. Run `pnpm --filter openapi validate`
+6. Run `pnpm --filter openapi generate:types`
+7. Test in Scalar UI at `/docs`
+
+**Updating an existing endpoint:**
+
+1. Update implementation and Zod schema
+2. Update OpenAPI spec to match
+3. Update examples if needed
+4. Regenerate types
+5. Verify in Scalar UI
+
+**Fixing documentation gaps:**
+
+1. Run `/sync-openapi` to identify issues
+2. Add missing descriptions, examples, or error responses
+3. Validate and regenerate types
+4. Test in Scalar UI
+
+### Phase 4 Quality Standards
+
+Before considering Phase 4 complete, every endpoint should have:
+
+- ✅ Clear, concise summary (< 50 chars)
+- ✅ Detailed description explaining purpose and behavior
+- ✅ All parameters documented with types and constraints
+- ✅ Request body schema with example (if applicable)
+- ✅ Success response(s) with example
+- ✅ All error responses with examples (400, 401, 403, 404, 409, 410)
+- ✅ Proper security scheme(s) applied
+- ✅ Appropriate tag for grouping
+- ✅ Unique operationId
+- ✅ Realistic, copy-pasteable examples
+- ✅ Validation in Scalar UI works correctly

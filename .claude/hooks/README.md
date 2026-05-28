@@ -27,6 +27,20 @@ type issues and can address them.
 - Re-adds formatted files to staging
 - Blocks commit if unfixable lint errors exist
 
+### `validate-openapi.sh`
+
+**Trigger:** Before git commit when OpenAPI spec is modified
+
+**Purpose:** Ensures OpenAPI specification is valid and types are regenerated when the spec changes.
+
+**Behavior:**
+
+- Detects if `packages/openapi/openapi.yaml` was modified
+- Runs `pnpm --filter openapi validate` to check spec validity
+- Verifies that `packages/types/src/generated.ts` was also updated
+- Ensures generated types compile without errors
+- Blocks commit if validation fails or types are out of sync
+
 ## Hook Configuration
 
 Hooks are shell scripts that:
