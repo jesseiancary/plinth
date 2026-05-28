@@ -305,6 +305,1056 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
 
+  /api/v1/orgs:
+    post:
+      summary: Create organization
+      description: Create a new organization and automatically assign caller as OWNER
+      operationId: createOrganization
+      tags:
+        - Organizations
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+                - slug
+              properties:
+                name:
+                  type: string
+                  minLength: 1
+                  maxLength: 255
+                  description: Organization display name
+                slug:
+                  type: string
+                  minLength: 3
+                  maxLength: 63
+                  pattern: '^[a-z0-9]+(?:-[a-z0-9]+)*$'
+                  description: URL-safe unique identifier
+      responses:
+        '201':
+          description: Organization created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - id
+                  - name
+                  - slug
+                  - createdAt
+                  - updatedAt
+                  - membership
+                properties:
+                  id:
+                    type: string
+                  name:
+                    type: string
+                  slug:
+                    type: string
+                  createdAt:
+                    type: string
+                    format: date-time
+                  updatedAt:
+                    type: string
+                    format: date-time
+                  membership:
+                    type: object
+                    required:
+                      - id
+                      - role
+                      - createdAt
+                    properties:
+                      id:
+                        type: string
+                      role:
+                        type: string
+                        enum: [OWNER]
+                      createdAt:
+                        type: string
+                        format: date-time
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Slug already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/v1/orgs/{slug}:
+    get:
+      summary: Get organization details
+      description: Get organization details (requires membership)
+      operationId: getOrganization
+      tags:
+        - Organizations
+      security:
+        - bearerAuth: []
+        - apiKeyAuth: []
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Organization slug
+      responses:
+        '200':
+          description: Organization details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Organization'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Organization not found or not a member
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    patch:
+      summary: Update organization
+      description: Update organization name and/or slug (requires ADMIN role)
+      operationId: updateOrganization
+      tags:
+        - Organizations
+      security:
+        - bearerAuth: []
+        - apiKeyAuth: []
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Organization slug
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  minLength: 1
+                  maxLength: 255
+                  description: Organization display name
+                slug:
+                  type: string
+                  minLength: 3
+                  maxLength: 63
+                  pattern: '^[a-z0-9]+(?:-[a-z0-9]+)*$'
+                  description: URL-safe unique identifier
+      responses:
+        '200':
+          description: Organization updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Organization'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Insufficient permissions (requires ADMIN)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Organization not found or not a member
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Slug already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    delete:
+      summary: Delete organization
+      description: Delete organization and all associated data (requires OWNER role)
+      operationId: deleteOrganization
+      tags:
+        - Organizations
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Organization slug
+      responses:
+        '204':
+          description: Organization deleted successfully
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Insufficient permissions (requires OWNER)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Organization not found or not a member
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/v1/orgs/{slug}/members:
+    get:
+      summary: List organization members
+      description: List all members of an organization with pagination (requires MEMBER role)
+      operationId: listMembers
+      tags:
+        - Members
+      security:
+        - bearerAuth: []
+        - apiKeyAuth: []
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Organization slug
+        - name: cursor
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Pagination cursor
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+          description: Number of items per page
+      responses:
+        '200':
+          description: List of members
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - data
+                  - nextCursor
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Membership'
+                  nextCursor:
+                    oneOf:
+                      - type: string
+                      - type: 'null'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Organization not found or not a member
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/v1/orgs/{slug}/members/{memberId}:
+    patch:
+      summary: Update member role
+      description: Update a member's role (requires ADMIN role, cannot demote OWNER)
+      operationId: updateMemberRole
+      tags:
+        - Members
+      security:
+        - bearerAuth: []
+        - apiKeyAuth: []
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Organization slug
+        - name: memberId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Membership ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - role
+              properties:
+                role:
+                  type: string
+                  enum: [OWNER, ADMIN, MEMBER]
+                  description: New role
+      responses:
+        '200':
+          description: Member role updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Membership'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Insufficient permissions or invalid operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Organization or member not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Cannot remove last OWNER
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    delete:
+      summary: Remove member
+      description: Remove a member from the organization (ADMIN can remove members, members can remove themselves)
+      operationId: removeMember
+      tags:
+        - Members
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Organization slug
+        - name: memberId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Membership ID
+      responses:
+        '204':
+          description: Member removed successfully
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Organization or member not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Cannot remove last OWNER
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/v1/orgs/{slug}/transfer-ownership:
+    post:
+      summary: Transfer ownership
+      description: Transfer OWNER role to another member (requires OWNER role)
+      operationId: transferOwnership
+      tags:
+        - Members
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Organization slug
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - newOwnerId
+              properties:
+                newOwnerId:
+                  type: string
+                  description: User ID of new owner
+      responses:
+        '200':
+          description: Ownership transferred successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - organization
+                  - newOwner
+                  - formerOwner
+                properties:
+                  organization:
+                    $ref: '#/components/schemas/Organization'
+                  newOwner:
+                    $ref: '#/components/schemas/Membership'
+                  formerOwner:
+                    $ref: '#/components/schemas/Membership'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Insufficient permissions (requires OWNER)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Organization or new owner not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/v1/orgs/{slug}/invitations:
+    post:
+      summary: Create invitation
+      description: Create an invitation to join the organization (requires ADMIN role)
+      operationId: createInvitation
+      tags:
+        - Invitations
+      security:
+        - bearerAuth: []
+        - apiKeyAuth: []
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Organization slug
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+              properties:
+                email:
+                  type: string
+                  format: email
+                  description: Invitee email address
+                role:
+                  type: string
+                  enum: [OWNER, ADMIN, MEMBER]
+                  default: MEMBER
+                  description: Role to assign
+      responses:
+        '201':
+          description: Invitation created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - invitation
+                  - token
+                properties:
+                  invitation:
+                    $ref: '#/components/schemas/Invitation'
+                  token:
+                    type: string
+                    description: Invitation token (only returned once)
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Insufficient permissions (requires ADMIN)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Organization not found or not a member
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: User already a member or pending invitation exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    get:
+      summary: List invitations
+      description: List all invitations for the organization (requires ADMIN role)
+      operationId: listInvitations
+      tags:
+        - Invitations
+      security:
+        - bearerAuth: []
+        - apiKeyAuth: []
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Organization slug
+        - name: cursor
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Pagination cursor
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+          description: Number of items per page
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [PENDING, ACCEPTED, REVOKED, EXPIRED]
+          description: Filter by invitation status
+      responses:
+        '200':
+          description: List of invitations
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - data
+                  - nextCursor
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Invitation'
+                  nextCursor:
+                    oneOf:
+                      - type: string
+                      - type: 'null'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Insufficient permissions (requires ADMIN)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Organization not found or not a member
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/v1/orgs/{slug}/invitations/{invitationId}:
+    delete:
+      summary: Revoke invitation
+      description: Revoke a pending invitation (requires ADMIN role)
+      operationId: revokeInvitation
+      tags:
+        - Invitations
+      security:
+        - bearerAuth: []
+        - apiKeyAuth: []
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Organization slug
+        - name: invitationId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Invitation ID
+      responses:
+        '204':
+          description: Invitation revoked successfully
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Insufficient permissions (requires ADMIN)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Organization or invitation not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '410':
+          description: Invitation already accepted or revoked
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/v1/invitations/validate/{token}:
+    get:
+      summary: Validate invitation token
+      description: Validate an invitation token and return invitation details (public endpoint)
+      operationId: validateInvitation
+      tags:
+        - Invitations
+      security: []
+      parameters:
+        - name: token
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Invitation token
+      responses:
+        '200':
+          description: Invitation is valid
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - email
+                  - role
+                  - organization
+                  - expiresAt
+                properties:
+                  email:
+                    type: string
+                    format: email
+                  role:
+                    type: string
+                    enum: [OWNER, ADMIN, MEMBER]
+                  organization:
+                    type: object
+                    required:
+                      - name
+                      - slug
+                    properties:
+                      name:
+                        type: string
+                      slug:
+                        type: string
+                  expiresAt:
+                    type: string
+                    format: date-time
+        '404':
+          description: Invalid token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '410':
+          description: Invitation expired, revoked, or already accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/v1/invitations/accept:
+    post:
+      summary: Accept invitation
+      description: Accept an invitation and join the organization (requires authentication)
+      operationId: acceptInvitation
+      tags:
+        - Invitations
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - token
+              properties:
+                token:
+                  type: string
+                  description: Invitation token
+      responses:
+        '201':
+          description: Invitation accepted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - membership
+                  - organization
+                properties:
+                  membership:
+                    $ref: '#/components/schemas/Membership'
+                  organization:
+                    $ref: '#/components/schemas/Organization'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Invalid token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: User already a member
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '410':
+          description: Invitation expired, revoked, or already accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/v1/orgs/{slug}/api-keys:
+    post:
+      summary: Generate API key
+      description: Generate a new API key for the organization (requires ADMIN role)
+      operationId: createApiKey
+      tags:
+        - API Keys
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Organization slug
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+              properties:
+                name:
+                  type: string
+                  minLength: 1
+                  maxLength: 255
+                  description: Human-readable key name
+                scopes:
+                  type: array
+                  items:
+                    type: string
+                    enum:
+                      - org:read
+                      - org:write
+                      - org:delete
+                      - members:read
+                      - members:write
+                      - invitations:read
+                      - invitations:write
+                      - api-keys:read
+                      - api-keys:write
+                  minItems: 1
+                  description: Array of granted scopes
+                  default: ['org:read']
+      responses:
+        '201':
+          description: API key created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - id
+                  - name
+                  - key
+                  - scopes
+                  - createdAt
+                properties:
+                  id:
+                    type: string
+                  name:
+                    type: string
+                  key:
+                    type: string
+                    description: The API key (only shown once, never stored in plaintext)
+                  scopes:
+                    type: array
+                    items:
+                      type: string
+                  createdAt:
+                    type: string
+                    format: date-time
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Insufficient permissions (requires ADMIN)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Organization not found or not a member
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    get:
+      summary: List API keys
+      description: List all API keys for the organization (requires ADMIN role)
+      operationId: listApiKeys
+      tags:
+        - API Keys
+      security:
+        - bearerAuth: []
+        - apiKeyAuth: []
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Organization slug
+        - name: cursor
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Pagination cursor
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+          description: Number of items per page
+        - name: active
+          in: query
+          required: false
+          schema:
+            type: boolean
+          description: Filter by active keys only (non-revoked)
+      responses:
+        '200':
+          description: List of API keys
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - data
+                  - nextCursor
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ApiKey'
+                  nextCursor:
+                    oneOf:
+                      - type: string
+                      - type: 'null'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Insufficient permissions (requires ADMIN)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Organization not found or not a member
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/v1/orgs/{slug}/api-keys/{keyId}:
+    delete:
+      summary: Revoke API key
+      description: Revoke an API key (soft delete, requires ADMIN role)
+      operationId: revokeApiKey
+      tags:
+        - API Keys
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Organization slug
+        - name: keyId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: API key ID
+      responses:
+        '204':
+          description: API key revoked successfully
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Insufficient permissions (requires ADMIN)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Organization or API key not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
 components:
   schemas:
     Error:
@@ -351,6 +1401,160 @@ components:
           type: string
           format: date-time
           description: Account creation timestamp
+
+    Organization:
+      type: object
+      required:
+        - id
+        - name
+        - slug
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: string
+          description: Organization ID
+        name:
+          type: string
+          description: Organization display name
+        slug:
+          type: string
+          description: URL-safe unique identifier
+        createdAt:
+          type: string
+          format: date-time
+          description: Creation timestamp
+        updatedAt:
+          type: string
+          format: date-time
+          description: Last update timestamp
+
+    Membership:
+      type: object
+      required:
+        - id
+        - role
+        - userId
+        - user
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: string
+          description: Membership ID
+        role:
+          type: string
+          enum: [OWNER, ADMIN, MEMBER]
+          description: Member role
+        userId:
+          type: string
+          description: User ID
+        user:
+          $ref: '#/components/schemas/User'
+        createdAt:
+          type: string
+          format: date-time
+          description: Membership creation timestamp
+        updatedAt:
+          type: string
+          format: date-time
+          description: Last update timestamp
+
+    Invitation:
+      type: object
+      required:
+        - id
+        - email
+        - role
+        - status
+        - expiresAt
+        - createdAt
+      properties:
+        id:
+          type: string
+          description: Invitation ID
+        email:
+          type: string
+          format: email
+          description: Invitee email address
+        role:
+          type: string
+          enum: [OWNER, ADMIN, MEMBER]
+          description: Role to be assigned
+        status:
+          type: string
+          enum: [PENDING, ACCEPTED, REVOKED, EXPIRED]
+          description: Invitation status
+        expiresAt:
+          type: string
+          format: date-time
+          description: Expiration timestamp
+        acceptedAt:
+          oneOf:
+            - type: string
+              format: date-time
+            - type: 'null'
+          description: Acceptance timestamp
+        createdAt:
+          type: string
+          format: date-time
+          description: Creation timestamp
+
+    ApiKey:
+      type: object
+      required:
+        - id
+        - name
+        - scopes
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: string
+          description: API key ID
+        name:
+          type: string
+          description: Human-readable key name
+        scopes:
+          type: array
+          items:
+            type: string
+          description: Array of granted scopes
+        lastUsedAt:
+          oneOf:
+            - type: string
+              format: date-time
+            - type: 'null'
+          description: Last usage timestamp
+        revokedAt:
+          oneOf:
+            - type: string
+              format: date-time
+            - type: 'null'
+          description: Revocation timestamp
+        createdAt:
+          type: string
+          format: date-time
+          description: Creation timestamp
+        updatedAt:
+          type: string
+          format: date-time
+          description: Last update timestamp
+
+    PaginatedResponse:
+      type: object
+      required:
+        - data
+        - nextCursor
+      properties:
+        data:
+          type: array
+          items: {}
+        nextCursor:
+          oneOf:
+            - type: string
+            - type: 'null'
+          description: Cursor for next page (null if no more pages)
 
   securitySchemes:
     bearerAuth:

@@ -13,8 +13,13 @@ import morgan from 'morgan'
 import { authenticateJWT } from './middleware/auth.js'
 import { errorHandler } from './middleware/error-handler.js'
 import { notFound } from './middleware/not-found.js'
+import apiKeysRouter from './routes/api-keys.js'
 import { authRouter } from './routes/auth.js'
 import { healthRouter } from './routes/health.js'
+import invitationsRouter from './routes/invitations.js'
+import membersRouter from './routes/members.js'
+import orgInvitationsRouter from './routes/org-invitations.js'
+import orgsRouter from './routes/orgs.js'
 
 // ESM __dirname/__filename equivalents
 const filename = fileURLToPath(import.meta.url)
@@ -75,6 +80,11 @@ app.use(authenticateJWT)
 // Routes
 app.use('/health', healthRouter)
 app.use('/api/v1/auth', authRouter)
+app.use('/api/v1/orgs', orgsRouter)
+app.use('/api/v1/orgs', membersRouter)
+app.use('/api/v1/orgs', apiKeysRouter)
+app.use('/api/v1/orgs', orgInvitationsRouter)
+app.use('/api/v1/invitations', invitationsRouter)
 
 // 404 handler
 app.use(notFound)
