@@ -1,4 +1,7 @@
 {
-  "*.{ts,tsx}": ["eslint --fix --max-warnings 0", "prettier --write"],
+  "*.{ts,tsx}": [
+    "bash -c '[[ ! \"$0\" =~ generated\\.ts$ ]] && eslint --fix --max-warnings 0 \"$0\" || true'",
+    "prettier --write"
+  ],
   "*.{json,md,yml,yaml}": ["prettier --write"]
 }

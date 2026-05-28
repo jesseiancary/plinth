@@ -8,37 +8,45 @@ datasource db {
 }
 
 enum Role {
-  OWNER
-  ADMIN
-  MEMBER
+  OWNER // Full control, cannot be removed, can transfer ownership
+  ADMIN // Manage members/invitations, cannot demote owner
+  MEMBER // Read access to org resources
+}
+
+enum InvitationStatus {
+  PENDING // Invite created, not yet accepted
+  ACCEPTED // Invite accepted, membership created
+  REVOKED // Invite manually revoked by admin
+  EXPIRED // Invite expired (72h), not accepted in time
 }
 
 model User {
   id           String   @id @default(cuid())
-  email        String   @unique
-  password     String
-  name         String
-  tokenVersion Int      @default(0)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  email        String   @unique @db.VarChar(255)
+  password     String   @db.VarChar(255) // bcrypt hash
+  name         String   @db.VarChar(255)
+  tokenVersion Int      @default(0) // Increment to invalidate all refresh tokens
+  createdAt    DateTime @default(now()) @db.Timestamptz
+  updatedAt    DateTime @updatedAt @db.Timestamptz
 
-  memberships Membership[]
+  memberships        Membership[]
+  createdInvitations Invitation[] @relation("InvitationCreatedBy")
 
+  @@index([email])
   @@map("users")
 }
 
 model Organization {
   id        String   @id @default(cuid())
-  name      String
-  slug      String   @unique
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  name      String   @db.VarChar(255)
+  slug      String   @unique @db.VarChar(255) // Globally unique, URL-safe identifier
+  createdAt DateTime @default(now()) @db.Timestamptz
+  updatedAt DateTime @updatedAt @db.Timestamptz
 
   memberships Membership[]
   invitations Invitation[]
   apiKeys     ApiKey[]
 
-  @@index([slug])
   @@map("organizations")
 }
 
@@ -49,55 +57,63 @@ model Membership {
   user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   organizationId String
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
+  createdAt      DateTime     @default(now()) @db.Timestamptz
+  updatedAt      DateTime     @updatedAt @db.Timestamptz
 
   @@unique([userId, organizationId])
   @@index([organizationId])
   @@index([userId])
+  @@index([organizationId, role])
   @@map("memberships")
 }
 
 model Invitation {
-  id             String       @id @default(cuid())
-  email          String
-  role           Role         @default(MEMBER)
-  token          String       @unique
-  expiresAt      DateTime
+  id             String           @id @default(cuid())
+  email          String           @db.VarChar(255) // Email of invitee
+  role           Role             @default(MEMBER)
+  tokenHash      String           @unique @db.VarChar(64) // SHA-256 hash (64 hex chars)
+  status         InvitationStatus @default(PENDING)
+  expiresAt      DateTime         @db.Timestamptz // 72 hours from creation
+  acceptedAt     DateTime?        @db.Timestamptz // Timestamp when accepted (single-use enforcement)
   organizationId String
-  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  organization   Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   invitedById    String
-  createdAt      DateTime     @default(now())
+  invitedBy      User             @relation("InvitationCreatedBy", fields: [invitedById], references: [id], onDelete: Cascade)
+  createdAt      DateTime         @default(now()) @db.Timestamptz
 
-  @@index([organizationId])
-  @@index([token])
+  @@index([organizationId, status])
+  @@index([email, organizationId, status])
+  @@index([expiresAt])
   @@map("invitations")
 }
 
 model ApiKey {
   id             String       @id @default(cuid())
-  name           String
-  keyHash        String       @unique
-  lastUsedAt     DateTime?
+  name           String       @db.VarChar(255) // Human-readable name (e.g., "Production API", "CI/CD")
+  keyHash        String       @unique @db.VarChar(64) // SHA-256 hash (64 hex chars)
+  scopes         String[]     @default([]) // e.g., ["members:read", "org:read"]
+  lastUsedAt     DateTime?    @db.Timestamptz // Track last usage for security auditing
+  revokedAt      DateTime?    @db.Timestamptz // Soft delete: allows audit trail
   organizationId String
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
+  createdAt      DateTime     @default(now()) @db.Timestamptz
+  updatedAt      DateTime     @updatedAt @db.Timestamptz
 
   @@index([organizationId])
+  @@index([organizationId, revokedAt])
   @@map("api_keys")
 }
 
 model WebhookEvent {
-  id              String   @id @default(cuid())
-  provider        String
-  eventType       String
-  payload         Json
-  idempotencyKey  String   @unique
-  processedAt     DateTime?
-  createdAt       DateTime @default(now())
+  id             String    @id @default(cuid())
+  provider       String    @db.VarChar(50) // e.g., "stripe", "github"
+  eventType      String    @db.VarChar(100) // e.g., "invoice.paid"
+  payload        Json // Full webhook payload
+  idempotencyKey String    @unique @db.VarChar(255) // Provider-specific event ID
+  processedAt    DateTime? @db.Timestamptz // NULL = pending, timestamp = processed
+  createdAt      DateTime  @default(now()) @db.Timestamptz
 
   @@index([provider, eventType])
-  @@index([idempotencyKey])
+  @@index([processedAt])
   @@map("webhook_events")
 }

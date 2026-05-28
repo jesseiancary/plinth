@@ -54,3 +54,103 @@ export async function createTestUser(data?: { email?: string; password?: string;
 
   return { user, password }
 }
+
+/**
+ * Create a test organization
+ */
+export async function createTestOrg(data?: { name?: string; slug?: string }) {
+  const name = data?.name ?? 'Test Organization'
+  const slug = data?.slug ?? 'test-org'
+
+  return await prisma.organization.create({
+    data: {
+      name,
+      slug,
+    },
+  })
+}
+
+/**
+ * Create a test membership
+ */
+export async function createTestMembership(
+  userId: string,
+  organizationId: string,
+  role: 'OWNER' | 'ADMIN' | 'MEMBER' = 'MEMBER',
+) {
+  return await prisma.membership.create({
+    data: {
+      userId,
+      organizationId,
+      role,
+    },
+  })
+}
+
+/**
+ * Generate an access token for testing
+ */
+export async function generateTestAccessToken(userId: string, email: string): Promise<string> {
+  const { signAccessToken } = await import('./jwt.js')
+  return signAccessToken({ userId, email })
+}
+
+/**
+ * Create a test invitation
+ */
+export async function createTestInvitation(data: {
+  email: string
+  organizationId: string
+  invitedById: string
+  role?: 'OWNER' | 'ADMIN' | 'MEMBER'
+  status?: 'PENDING' | 'ACCEPTED' | 'REVOKED' | 'EXPIRED'
+  expiresAt?: Date
+}) {
+  const { generateInvitationToken, sha256 } = await import('./crypto.js')
+
+  const token = generateInvitationToken()
+  const tokenHash = sha256(token)
+
+  const expiresAt = data.expiresAt ?? new Date(Date.now() + 72 * 60 * 60 * 1000)
+
+  const invitation = await prisma.invitation.create({
+    data: {
+      email: data.email,
+      role: data.role ?? 'MEMBER',
+      tokenHash,
+      status: data.status ?? 'PENDING',
+      expiresAt,
+      organizationId: data.organizationId,
+      invitedById: data.invitedById,
+    },
+  })
+
+  return { invitation, token }
+}
+
+/**
+ * Create a test API key
+ */
+export async function createTestApiKey(data: {
+  name: string
+  organizationId: string
+  scopes?: string[]
+  revokedAt?: Date | null
+}) {
+  const { generateApiKey, hashApiKey } = await import('./api-key.js')
+
+  const key = generateApiKey()
+  const keyHash = hashApiKey(key)
+
+  const apiKey = await prisma.apiKey.create({
+    data: {
+      name: data.name,
+      keyHash,
+      scopes: data.scopes ?? ['org:read'],
+      revokedAt: data.revokedAt ?? null,
+      organizationId: data.organizationId,
+    },
+  })
+
+  return { apiKey, key }
+}

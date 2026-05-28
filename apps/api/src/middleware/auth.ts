@@ -107,8 +107,9 @@ export function requireRole(...allowedRoles: string[]) {
 
       const membership = organization.memberships[0]
 
+      // 404 vs 403 decision: Non-members get 404 (don't leak org existence)
       if (!membership) {
-        throw new AppError('Not a member of this organization', 403, 'NOT_ORG_MEMBER')
+        throw new AppError('Organization not found', 404, 'ORG_NOT_FOUND')
       }
 
       if (!allowedRoles.includes(membership.role)) {
@@ -161,6 +162,11 @@ export async function authenticateApiKey(
 
     if (!apiKeyRecord) {
       throw new AppError('Invalid API key', 401, 'INVALID_API_KEY')
+    }
+
+    // Check if key is revoked
+    if (apiKeyRecord.revokedAt) {
+      throw new AppError('API key has been revoked', 401, 'API_KEY_REVOKED')
     }
 
     // Update last used timestamp (fire and forget)

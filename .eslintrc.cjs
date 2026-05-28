@@ -125,6 +125,16 @@ module.exports = {
         '@typescript-eslint/no-non-null-assertion': 'off',
       },
     },
+    {
+      // Generated files should not be linted - they follow external standards
+      files: ['**/generated.ts', '**/generated/**/*.ts'],
+      rules: {
+        '@typescript-eslint/naming-convention': 'off',
+        '@typescript-eslint/no-explicit-any': 'off',
+        'no-unused-vars': 'off',
+        '@typescript-eslint/no-unused-vars': 'off',
+      },
+    },
   ],
   ignorePatterns: [
     'dist',
@@ -134,5 +144,7 @@ module.exports = {
     '*.config.cjs',
     '.eslintrc.cjs',
     'coverage',
+    '**/generated.ts',
+    '**/generated/**',
   ],
 }
