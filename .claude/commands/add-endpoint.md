@@ -88,6 +88,80 @@ describe('GET /api/v1/orgs/:slug/<resources>', () => {
 })
 ```
 
+## RBAC Considerations
+
+When adding organization-scoped endpoints:
+
+1. **Determine required role:**
+   - Member+ (view operations)
+   - Admin+ (manage members, invitations, API keys)
+   - Owner only (delete org, transfer ownership)
+
+2. **Choose correct status codes:**
+   - 404 if org doesn't exist (don't leak existence to non-members)
+   - 403 if user is not org member
+   - 403 if user has insufficient role
+
+3. **Tenant isolation:**
+   - Use `req.tenantId` (set by `requireRole()` middleware)
+   - Filter all Prisma queries by `organizationId: req.tenantId`
+   - Never trust `organizationId` from request body
+
+## Example RBAC Endpoint
+
+```typescript
+// Route with admin role requirement
+router.delete(
+  '/orgs/:slug/members/:userId',
+  authenticateJWT,
+  requireRole('admin', 'owner'),
+  validateRequest({ params: ParamsSchema }),
+  MemberController.remove,
+)
+
+// Controller with RBAC edge case handling
+export const MemberController = {
+  remove: (async (req, res) => {
+    const { userId } = req.params
+    const tenantId = req.tenantId!
+
+    // Get target membership
+    const membership = await prisma.membership.findUnique({
+      where: {
+        userId_organizationId: {
+          userId,
+          organizationId: tenantId,
+        },
+      },
+    })
+
+    if (!membership) {
+      throw new AppError('Member not found', 404, 'MEMBER_NOT_FOUND')
+    }
+
+    // Prevent last owner removal
+    if (membership.role === 'OWNER') {
+      const ownerCount = await prisma.membership.count({
+        where: {
+          organizationId: tenantId,
+          role: 'OWNER',
+        },
+      })
+
+      if (ownerCount === 1) {
+        throw new AppError('Cannot remove last owner', 400, 'LAST_OWNER')
+      }
+    }
+
+    await prisma.membership.delete({
+      where: { id: membership.id },
+    })
+
+    res.status(204).send()
+  }) as RequestHandler,
+}
+```
+
 ## Checklist
 
 - [ ] Route file created
@@ -98,3 +172,6 @@ describe('GET /api/v1/orgs/:slug/<resources>', () => {
 - [ ] Route registered in app
 - [ ] Types regenerated
 - [ ] Tests pass
+- [ ] Required role documented in OpenAPI spec
+- [ ] Tenant isolation verified (uses `req.tenantId`)
+- [ ] RBAC edge cases handled (if applicable)

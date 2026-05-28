@@ -226,3 +226,76 @@ parameters:
       maximum: 100
       default: 20
 ```
+
+## Phase 3 Specific Patterns
+
+### Multi-Tenant Endpoints
+
+All organization-scoped endpoints follow this pattern:
+
+```yaml
+/orgs/{slug}/members:
+  get:
+    summary: List organization members
+    security:
+      - bearerAuth: []
+    parameters:
+      - $ref: '#/components/parameters/OrgSlug'
+    responses:
+      '200':
+        description: Success
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MembersList'
+      '401':
+        $ref: '#/components/responses/Unauthorized'
+      '403':
+        $ref: '#/components/responses/Forbidden'
+      '404':
+        $ref: '#/components/responses/NotFound'
+```
+
+### Role-Based Security
+
+Document required roles using OpenAPI extensions:
+
+```yaml
+/orgs/{slug}/invitations:
+  post:
+    summary: Create invitation
+    x-required-role: admin # Custom extension for documentation
+    security:
+      - bearerAuth: []
+```
+
+### Common Parameters
+
+Define reusable parameters:
+
+```yaml
+components:
+  parameters:
+    OrgSlug:
+      name: slug
+      in: path
+      required: true
+      description: Organization slug (user-friendly identifier)
+      schema:
+        type: string
+        pattern: '^[a-z0-9-]+$'
+        example: 'acme'
+```
+
+### Error Codes for Phase 3
+
+| Endpoint    | Error Code            | Status | Description               |
+| ----------- | --------------------- | ------ | ------------------------- |
+| All         | `UNAUTHENTICATED`     | 401    | No valid auth token       |
+| All         | `NOT_ORG_MEMBER`      | 403    | User not in org           |
+| All         | `FORBIDDEN`           | 403    | Insufficient role         |
+| All         | `ORG_NOT_FOUND`       | 404    | Org doesn't exist         |
+| Invitations | `INVITATION_EXPIRED`  | 400    | Token past expiry         |
+| Invitations | `ALREADY_MEMBER`      | 409    | User already in org       |
+| Membership  | `LAST_OWNER`          | 400    | Cannot remove last owner  |
+| Membership  | `CANNOT_DEMOTE_OWNER` | 403    | Admin cannot demote owner |
