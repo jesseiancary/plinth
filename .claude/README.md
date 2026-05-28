@@ -44,10 +44,12 @@ Rules are always loaded and enforced during development:
 
 Slash commands provide repeatable workflows:
 
-- `/review` — Pre-PR checklist: types, tests, OpenAPI sync, security, edge cases
+- `/review` — Pre-PR checklist: types, tests, OpenAPI sync, security, edge cases, documentation
+- `/review-dx` — Developer experience review: API design, docs quality, error messages
 - `/add-endpoint` — Scaffold new route: controller + schema + OpenAPI + tests
 - `/add-migration` — Prisma schema change workflow with validation
 - `/fix-issue` — Structured bug investigation: reproduce → isolate → fix → test
+- `/sync-openapi` — Verify OpenAPI spec accuracy and regenerate types
 
 ## Skills (Auto-Loaded)
 
@@ -72,6 +74,7 @@ Hooks run in response to specific events:
 
 - **validate-types.sh** — Runs `tsc --noEmit` before Claude edits TypeScript files
 - **lint-staged.sh** — ESLint + Prettier on staged files before commit
+- **validate-openapi.sh** — Validates OpenAPI spec and ensures types are regenerated
 
 All hooks are executable shell scripts that return exit code 0 for success.
 

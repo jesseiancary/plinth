@@ -76,3 +76,29 @@ Run a comprehensive pre-PR checklist before creating a pull request.
 - [ ] Branch name follows conventions
 - [ ] No secrets committed
 - [ ] `.env.example` updated if new vars added
+
+### API Documentation
+
+- [ ] OpenAPI spec validates without errors (`pnpm --filter openapi validate`)
+- [ ] All new/modified endpoints documented in `openapi.yaml`
+- [ ] Request examples are realistic and copy-pasteable
+- [ ] Response examples match actual API responses
+- [ ] All error responses documented with examples (400, 401, 403, 404, 409, 410)
+- [ ] Descriptions explain when/why to use each endpoint
+- [ ] Security requirements clearly stated (bearerAuth, apiKeyAuth, or public)
+- [ ] Required roles documented (OWNER, ADMIN, MEMBER)
+- [ ] Pagination parameters documented for list endpoints
+- [ ] TypeScript types regenerated (`pnpm --filter openapi generate:types`)
+- [ ] Generated types compile without errors (`pnpm typecheck`)
+- [ ] Endpoints tested in Scalar UI at `/docs`
+- [ ] Related endpoints cross-referenced in descriptions
+
+### Developer Experience
+
+- [ ] Error messages are actionable (explain what went wrong and how to fix)
+- [ ] Error codes are descriptive (not generic)
+- [ ] URL patterns consistent with existing endpoints
+- [ ] Field naming consistent across responses (camelCase)
+- [ ] Status codes follow conventions (401 auth, 403 authz, 404 not found, 409 conflict)
+- [ ] Multi-step workflows documented (if applicable)
+- [ ] Edge cases explained in documentation (expiry, last-owner, etc.)
