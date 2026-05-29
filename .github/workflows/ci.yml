@@ -129,17 +129,46 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Check if OpenAPI spec exists
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Validate OpenAPI spec
+        run: pnpm --filter openapi validate
+        continue-on-error: false
+
+      - name: Generate TypeScript types
+        run: pnpm --filter openapi generate:types
+
+      - name: Check for type generation drift
         run: |
-          if [ -f "packages/openapi/openapi.yaml" ]; then
-            echo "OpenAPI spec found"
+          if ! git diff --exit-code packages/types/src/generated.ts; then
+            echo "❌ ERROR: Generated types are out of sync with committed types"
+            echo ""
+            echo "The OpenAPI spec has changed but the generated types were not updated."
+            echo "Please run the following command locally and commit the changes:"
+            echo ""
+            echo "  pnpm --filter openapi generate:types"
+            echo ""
+            echo "Diff:"
+            git diff packages/types/src/generated.ts
+            exit 1
           else
-            echo "OpenAPI spec not found, skipping validation"
-            exit 0
+            echo "✅ Generated types match committed types"
           fi
 
-      - name: Validate OpenAPI spec (manual check)
-        run: echo "OpenAPI validation will be added when openapi-cli is configured"
+      - name: Verify types are valid TypeScript
+        run: pnpm --filter types typecheck
 
   build:
     name: Build

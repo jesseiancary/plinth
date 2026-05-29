@@ -21,8 +21,8 @@ Run a comprehensive pre-PR checklist before creating a pull request.
 ### OpenAPI Sync
 
 - [ ] New endpoints documented in `openapi.yaml`
-- [ ] Types regenerated (`pnpm --filter openapi generate:types`)
-- [ ] Zod schemas regenerated (`pnpm --filter openapi generate:zod`)
+- [ ] Hand-written Zod schemas updated in `apps/api/src/lib/validation/`
+- [ ] Frontend types regenerated (`pnpm --filter openapi generate:types`)
 - [ ] API spec validation passes (`pnpm --filter openapi validate`)
 
 ### Security
