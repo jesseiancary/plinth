@@ -102,3 +102,28 @@ Run a comprehensive pre-PR checklist before creating a pull request.
 - [ ] Status codes follow conventions (401 auth, 403 authz, 404 not found, 409 conflict)
 - [ ] Multi-step workflows documented (if applicable)
 - [ ] Edge cases explained in documentation (expiry, last-owner, etc.)
+
+### Frontend (React)
+
+- [ ] Accessibility: semantic HTML (`<button>`, `<nav>`, not `<div onClick>`), keyboard navigation, focus management
+- [ ] All inputs have labels (`<label htmlFor>` or `aria-label`)
+- [ ] Interactive elements are focusable and have visible focus states
+- [ ] Protected routes enforce authentication (wrapped with `ProtectedRoute`)
+- [ ] Loading states displayed (skeleton or spinner, not blank screen)
+- [ ] Error states displayed with retry action (not just "Something went wrong")
+- [ ] Empty states handled (zero results message)
+- [ ] Forms validate with Zod before submission
+- [ ] Form errors displayed inline with clear messages
+- [ ] Submit buttons disabled during loading
+- [ ] TanStack Query used for server state (NOT `useState` for API data)
+- [ ] Types imported from `@plinth/types` (generated from OpenAPI)
+- [ ] React Query cache invalidated after mutations
+- [ ] Optimistic updates implemented where appropriate (delete, update operations)
+- [ ] Tailwind design tokens used (colors, spacing from `tailwind.config.ts`)
+- [ ] No hardcoded colors or spacing values
+- [ ] Mobile responsive (tested on small screens, mobile-first breakpoints)
+- [ ] Bundle size reasonable (`pnpm build` output reviewed)
+- [ ] Components tested with React Testing Library
+- [ ] Tests query by accessible roles (`getByRole`, `getByLabelText`), not test IDs
+- [ ] API calls mocked with MSW in tests
+- [ ] Loading, error, and empty states tested (not just happy path)
