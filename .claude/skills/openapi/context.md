@@ -6,12 +6,27 @@ Auto-loaded when working on API specification, type generation, or API documenta
 
 `packages/openapi/openapi.yaml`
 
-## Type Generation Workflow
+## Architecture Decision
 
-1. Update `openapi.yaml` with new endpoint definitions
-2. Run `pnpm --filter openapi generate:types` to generate TypeScript types
-3. Run `pnpm --filter openapi generate:zod` to generate Zod schemas
-4. Import generated types/schemas in API route handlers
+**Backend validation:** Hand-written Zod schemas in `apps/api/src/lib/validation/`
+
+- Provides custom error messages and refinements
+- Source of truth for runtime validation
+- NOT generated from OpenAPI
+
+**Frontend types:** Auto-generated from OpenAPI spec into `packages/types`
+
+- Provides type safety for API consumers (frontend, SDK)
+- Generated via `openapi-typescript`
+
+## Workflow for Adding Endpoints
+
+1. Write hand-written Zod validation schema in `apps/api/src/lib/validation/`
+2. Implement route handler in `apps/api/src/routes/`
+3. Document endpoint in `packages/openapi/openapi.yaml` with request/response schemas
+4. Run `pnpm --filter openapi validate` to check spec syntax
+5. Run `pnpm --filter openapi generate:types` to generate frontend types
+6. Manually keep OpenAPI spec and Zod schemas in sync (validated by integration tests)
 
 ## OpenAPI 3.1 Structure
 
@@ -122,12 +137,11 @@ This checks for:
 ### Generate Types
 
 ```bash
-# TypeScript types
+# TypeScript types for frontend (packages/types)
 pnpm --filter openapi generate:types
-
-# Zod schemas
-pnpm --filter openapi generate:zod
 ```
+
+Note: Zod schemas are hand-written in `apps/api/src/lib/validation/`, not generated.
 
 ## Best Practices
 

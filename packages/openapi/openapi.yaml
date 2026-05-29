@@ -8,7 +8,7 @@ info:
     url: https://github.com/jesseiancary/plinth
 
 servers:
-  - url: http://localhost:3001
+  - url: http://localhost:3000
     description: Development
   - url: https://api.plinth.dev
     description: Production
@@ -42,6 +42,13 @@ paths:
                   database:
                     type: string
                     enum: [connected]
+              examples:
+                healthy:
+                  summary: Service healthy
+                  value:
+                    status: ok
+                    timestamp: '2026-05-28T14:32:15.123Z'
+                    database: connected
         '503':
           description: Service is unhealthy
           content:
@@ -62,6 +69,13 @@ paths:
                   database:
                     type: string
                     enum: [disconnected]
+              examples:
+                unhealthy:
+                  summary: Database connection failed
+                  value:
+                    status: error
+                    timestamp: '2026-05-28T14:32:15.123Z'
+                    database: disconnected
 
   /api/v1/auth/register:
     post:
@@ -97,6 +111,13 @@ paths:
                   minLength: 1
                   maxLength: 100
                   description: User full name
+            examples:
+              newUser:
+                summary: Register new user
+                value:
+                  email: sarah.chen@example.com
+                  password: 'MyS3cur3P@ssw0rd!'
+                  name: Sarah Chen
       responses:
         '201':
           description: User created successfully
@@ -118,18 +139,53 @@ paths:
                     description: JWT access token
                   user:
                     $ref: '#/components/schemas/User'
+              examples:
+                userCreated:
+                  summary: User registered successfully
+                  value:
+                    accessToken: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJ1c3JfNGtMOG1OMnBROXZSNndZM3NGN3RYMSIsImlhdCI6MTcxNjg5MzIwMCwiZXhwIjoxNzE2ODk0MTAwfQ.signature
+                    user:
+                      id: usr_4kL8mN2pQ9vR6wY3sF7tX1
+                      email: sarah.chen@example.com
+                      name: Sarah Chen
+                      createdAt: '2026-05-28T14:32:15.123Z'
         '400':
           description: Validation error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+              examples:
+                passwordTooShort:
+                  summary: Password validation failed
+                  value:
+                    error:
+                      code: VALIDATION_ERROR
+                      message: Validation failed
+                      details:
+                        password: Password must be at least 8 characters
+                invalidEmail:
+                  summary: Invalid email format
+                  value:
+                    error:
+                      code: VALIDATION_ERROR
+                      message: Validation failed
+                      details:
+                        email: Invalid email format
         '409':
           description: Email already registered
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+              examples:
+                emailExists:
+                  summary: Email already registered
+                  value:
+                    error:
+                      code: EMAIL_EXISTS
+                      message: Email already registered
+                      details: {}
 
   /api/v1/auth/login:
     post:
@@ -157,6 +213,12 @@ paths:
                   type: string
                   format: password
                   description: User password
+            examples:
+              validLogin:
+                summary: Login with email and password
+                value:
+                  email: sarah.chen@example.com
+                  password: 'MyS3cur3P@ssw0rd!'
       responses:
         '200':
           description: Login successful
@@ -178,17 +240,42 @@ paths:
                     description: JWT access token
                   user:
                     $ref: '#/components/schemas/User'
+              examples:
+                loginSuccess:
+                  summary: Login successful
+                  value:
+                    accessToken: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJ1c3JfNGtMOG1OMnBROXZSNndZM3NGN3RYMSIsImlhdCI6MTcxNjg5MzIwMCwiZXhwIjoxNzE2ODk0MTAwfQ.signature
+                    user:
+                      id: usr_4kL8mN2pQ9vR6wY3sF7tX1
+                      email: sarah.chen@example.com
+                      name: Sarah Chen
+                      createdAt: '2026-05-15T09:23:41.123Z'
         '401':
           description: Invalid credentials
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+              examples:
+                invalidCredentials:
+                  summary: Wrong password or email not found
+                  value:
+                    error:
+                      code: INVALID_CREDENTIALS
+                      message: Invalid credentials
+                      details: {}
 
   /api/v1/auth/refresh:
     post:
       summary: Refresh access token
-      description: Use refresh token cookie to get a new access token
+      description: |
+        Use the httpOnly refresh token cookie to obtain a new access token.
+
+        The refresh token is automatically sent via cookie - no request body required.
+
+        This endpoint rotates the refresh token (issues a new one and invalidates the old one).
+
+        Call this endpoint before your access token expires (15 minute lifetime).
       operationId: refreshToken
       tags:
         - Auth
@@ -211,17 +298,49 @@ paths:
                   accessToken:
                     type: string
                     description: New JWT access token
+              examples:
+                tokenRefreshed:
+                  summary: New access token issued
+                  value:
+                    accessToken: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJ1c3JfNGtMOG1OMnBROXZSNndZM3NGN3RYMSIsImlhdCI6MTcxNjg5NDIwMCwiZXhwIjoxNzE2ODk1MTAwfQ.new_signature
         '401':
           description: Invalid or expired refresh token
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+              examples:
+                missingToken:
+                  summary: No refresh token cookie provided
+                  value:
+                    error:
+                      code: REFRESH_TOKEN_MISSING
+                      message: Refresh token not found
+                      details: {}
+                invalidToken:
+                  summary: Refresh token signature invalid
+                  value:
+                    error:
+                      code: INVALID_REFRESH_TOKEN
+                      message: Invalid refresh token
+                      details: {}
+                expiredToken:
+                  summary: Refresh token has expired (7 day lifetime)
+                  value:
+                    error:
+                      code: REFRESH_TOKEN_EXPIRED
+                      message: Refresh token expired
+                      details: {}
 
   /api/v1/auth/logout:
     post:
       summary: Logout user
-      description: Invalidate refresh token and clear cookie
+      description: |
+        Invalidate the current refresh token and clear the httpOnly cookie.
+
+        The access token remains valid until it expires (15 minutes from issue).
+
+        After logout, the refresh token can no longer be used to obtain new access tokens.
       operationId: logout
       tags:
         - Auth
@@ -298,12 +417,43 @@ paths:
                         createdAt:
                           type: string
                           format: date-time
+              examples:
+                currentUserWithMemberships:
+                  summary: User with multiple organizations
+                  value:
+                    id: usr_4kL8mN2pQ9vR6wY3sF7tX1
+                    email: sarah.chen@example.com
+                    name: Sarah Chen
+                    createdAt: '2026-05-15T09:23:41.123Z'
+                    memberships:
+                      - id: mem_9zX2pL5qK8vN4wR7tY3sF6
+                        role: OWNER
+                        organization:
+                          id: org_2mK9x3pQ7nL4vB8wR1tY6sF5
+                          name: Acme Engineering
+                          slug: acme-engineering
+                        createdAt: '2026-05-15T09:23:41.123Z'
+                      - id: mem_5pL3qK7vN2wR9tY4sF8xB1
+                        role: ADMIN
+                        organization:
+                          id: org_8nM6pQ4vR1wY7sF2tX5kL9
+                          name: Beta Labs
+                          slug: beta-labs
+                        createdAt: '2026-05-20T11:14:52.456Z'
         '401':
           description: Not authenticated
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+              examples:
+                notAuthenticated:
+                  summary: No access token provided or token invalid
+                  value:
+                    error:
+                      code: UNAUTHENTICATED
+                      message: Authentication required
+                      details: {}
 
   /api/v1/orgs:
     post:
@@ -335,6 +485,17 @@ paths:
                   maxLength: 63
                   pattern: '^[a-z0-9]+(?:-[a-z0-9]+)*$'
                   description: URL-safe unique identifier
+            examples:
+              teamOrg:
+                summary: Create team organization
+                value:
+                  name: Acme Engineering
+                  slug: acme-engineering
+              personalWorkspace:
+                summary: Create personal workspace
+                value:
+                  name: Sarah Chen's Workspace
+                  slug: sarah-chen-workspace
       responses:
         '201':
           description: Organization created successfully
@@ -377,24 +538,62 @@ paths:
                       createdAt:
                         type: string
                         format: date-time
+              examples:
+                orgCreated:
+                  summary: Organization created successfully
+                  value:
+                    id: org_2mK9x3pQ7nL4vB8wR1tY6sF5
+                    name: Acme Engineering
+                    slug: acme-engineering
+                    createdAt: '2026-05-28T14:35:22.456Z'
+                    updatedAt: '2026-05-28T14:35:22.456Z'
+                    membership:
+                      id: mem_9zX2pL5qK8vN4wR7tY3sF6
+                      role: OWNER
+                      createdAt: '2026-05-28T14:35:22.456Z'
         '400':
           description: Validation error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+              examples:
+                invalidSlug:
+                  summary: Invalid slug format
+                  value:
+                    error:
+                      code: VALIDATION_ERROR
+                      message: Validation failed
+                      details:
+                        slug: Slug must contain only lowercase letters, numbers, and hyphens
         '401':
           description: Not authenticated
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+              examples:
+                notAuthenticated:
+                  summary: No access token provided
+                  value:
+                    error:
+                      code: UNAUTHENTICATED
+                      message: Authentication required
+                      details: {}
         '409':
           description: Slug already exists
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+              examples:
+                slugExists:
+                  summary: Organization slug already taken
+                  value:
+                    error:
+                      code: ORG_SLUG_EXISTS
+                      message: Organization slug already exists
+                      details: {}
 
   /api/v1/orgs/{slug}:
     get:
@@ -420,18 +619,43 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Organization'
+              examples:
+                orgDetails:
+                  summary: Organization details
+                  value:
+                    id: org_2mK9x3pQ7nL4vB8wR1tY6sF5
+                    name: Acme Engineering
+                    slug: acme-engineering
+                    createdAt: '2026-05-15T09:23:41.123Z'
+                    updatedAt: '2026-05-28T14:35:22.456Z'
         '401':
           description: Not authenticated
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+              examples:
+                notAuthenticated:
+                  summary: No access token provided
+                  value:
+                    error:
+                      code: UNAUTHENTICATED
+                      message: Authentication required
+                      details: {}
         '404':
           description: Organization not found or not a member
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+              examples:
+                orgNotFound:
+                  summary: Organization not found or user not a member
+                  value:
+                    error:
+                      code: ORG_NOT_FOUND
+                      message: Organization not found
+                      details: {}
 
     patch:
       summary: Update organization
@@ -467,6 +691,20 @@ paths:
                   maxLength: 63
                   pattern: '^[a-z0-9]+(?:-[a-z0-9]+)*$'
                   description: URL-safe unique identifier
+            examples:
+              renameOrg:
+                summary: Rename organization
+                value:
+                  name: Acme Corporation
+              changeSlug:
+                summary: Change organization slug
+                value:
+                  slug: acme-corp
+              updateBoth:
+                summary: Update name and slug
+                value:
+                  name: Acme Corporation
+                  slug: acme-corp
       responses:
         '200':
           description: Organization updated successfully
@@ -474,40 +712,99 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Organization'
+              examples:
+                orgUpdated:
+                  summary: Organization updated successfully
+                  value:
+                    id: org_2mK9x3pQ7nL4vB8wR1tY6sF5
+                    name: Acme Corporation
+                    slug: acme-corp
+                    createdAt: '2026-05-15T09:23:41.123Z'
+                    updatedAt: '2026-05-28T15:42:18.789Z'
         '400':
           description: Validation error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+              examples:
+                invalidSlug:
+                  summary: Invalid slug format
+                  value:
+                    error:
+                      code: VALIDATION_ERROR
+                      message: Validation failed
+                      details:
+                        slug: Slug must contain only lowercase letters, numbers, and hyphens
         '401':
           description: Not authenticated
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+              examples:
+                notAuthenticated:
+                  summary: No access token provided
+                  value:
+                    error:
+                      code: UNAUTHENTICATED
+                      message: Authentication required
+                      details: {}
         '403':
           description: Insufficient permissions (requires ADMIN)
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+              examples:
+                forbidden:
+                  summary: User does not have ADMIN role
+                  value:
+                    error:
+                      code: FORBIDDEN
+                      message: Insufficient permissions
+                      details: {}
         '404':
           description: Organization not found or not a member
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+              examples:
+                orgNotFound:
+                  summary: Organization not found
+                  value:
+                    error:
+                      code: ORG_NOT_FOUND
+                      message: Organization not found
+                      details: {}
         '409':
           description: Slug already exists
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+              examples:
+                slugExists:
+                  summary: New slug already taken
+                  value:
+                    error:
+                      code: ORG_SLUG_EXISTS
+                      message: Organization slug already exists
+                      details: {}
 
     delete:
       summary: Delete organization
-      description: Delete organization and all associated data (requires OWNER role)
+      description: |
+        Delete organization and all associated data (requires OWNER role).
+
+        WARNING: This is a destructive operation that will cascade delete:
+        - All memberships
+        - All invitations (pending and accepted)
+        - All API keys
+        - All organization data
+
+        This action cannot be undone.
       operationId: deleteOrganization
       tags:
         - Organizations
@@ -529,18 +826,42 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+              examples:
+                notAuthenticated:
+                  summary: No access token provided
+                  value:
+                    error:
+                      code: UNAUTHENTICATED
+                      message: Authentication required
+                      details: {}
         '403':
           description: Insufficient permissions (requires OWNER)
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+              examples:
+                forbidden:
+                  summary: User does not have OWNER role
+                  value:
+                    error:
+                      code: FORBIDDEN
+                      message: Insufficient permissions
+                      details: {}
         '404':
           description: Organization not found or not a member
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+              examples:
+                orgNotFound:
+                  summary: Organization not found
+                  value:
+                    error:
+                      code: ORG_NOT_FOUND
+                      message: Organization not found
+                      details: {}
 
   /api/v1/orgs/{slug}/members:
     get:
@@ -593,18 +914,75 @@ paths:
                     oneOf:
                       - type: string
                       - type: 'null'
+              examples:
+                firstPage:
+                  summary: First page with 2 members
+                  value:
+                    data:
+                      - id: mem_9zX2pL5qK8vN4wR7tY3sF6
+                        role: OWNER
+                        userId: usr_4kL8mN2pQ9vR6wY3sF7tX1
+                        user:
+                          id: usr_4kL8mN2pQ9vR6wY3sF7tX1
+                          email: sarah.chen@example.com
+                          name: Sarah Chen
+                          createdAt: '2026-05-15T09:23:41.123Z'
+                        createdAt: '2026-05-15T09:23:41.123Z'
+                        updatedAt: '2026-05-15T09:23:41.123Z'
+                      - id: mem_5pL3qK7vN2wR9tY4sF8xB1
+                        role: ADMIN
+                        userId: usr_8nM6pQ4vR1wY7sF2tX5kL9
+                        user:
+                          id: usr_8nM6pQ4vR1wY7sF2tX5kL9
+                          email: alex@acme.com
+                          name: Alex Rivera
+                          createdAt: '2026-05-18T11:45:32.789Z'
+                        createdAt: '2026-05-20T11:14:52.456Z'
+                        updatedAt: '2026-05-20T11:14:52.456Z'
+                    nextCursor: mem_3pL7qK2vN9wR5tY8sF4xB6
+                lastPage:
+                  summary: Last page (no more results)
+                  value:
+                    data:
+                      - id: mem_3pL7qK2vN9wR5tY8sF4xB6
+                        role: MEMBER
+                        userId: usr_2kL9x4pQ6nM8vB1wR5tY3sF7
+                        user:
+                          id: usr_2kL9x4pQ6nM8vB1wR5tY3sF7
+                          email: jordan.lee@example.com
+                          name: Jordan Lee
+                          createdAt: '2026-05-22T08:32:15.234Z'
+                        createdAt: '2026-05-25T16:28:41.567Z'
+                        updatedAt: '2026-05-25T16:28:41.567Z'
+                    nextCursor: null
         '401':
           description: Not authenticated
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+              examples:
+                notAuthenticated:
+                  summary: No access token provided
+                  value:
+                    error:
+                      code: UNAUTHENTICATED
+                      message: Authentication required
+                      details: {}
         '404':
           description: Organization not found or not a member
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+              examples:
+                orgNotFound:
+                  summary: Organization not found
+                  value:
+                    error:
+                      code: ORG_NOT_FOUND
+                      message: Organization not found
+                      details: {}
 
   /api/v1/orgs/{slug}/members/{memberId}:
     patch:
@@ -642,6 +1020,15 @@ paths:
                   type: string
                   enum: [OWNER, ADMIN, MEMBER]
                   description: New role
+            examples:
+              promoteToAdmin:
+                summary: Promote member to admin
+                value:
+                  role: ADMIN
+              demoteToMember:
+                summary: Demote admin to member
+                value:
+                  role: MEMBER
       responses:
         '200':
           description: Member role updated successfully
@@ -649,36 +1036,98 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Membership'
+              examples:
+                roleUpdated:
+                  summary: Member promoted to admin
+                  value:
+                    id: mem_3pL7qK2vN9wR5tY8sF4xB6
+                    role: ADMIN
+                    userId: usr_2kL9x4pQ6nM8vB1wR5tY3sF7
+                    user:
+                      id: usr_2kL9x4pQ6nM8vB1wR5tY3sF7
+                      email: jordan.lee@example.com
+                      name: Jordan Lee
+                      createdAt: '2026-05-22T08:32:15.234Z'
+                    createdAt: '2026-05-25T16:28:41.567Z'
+                    updatedAt: '2026-05-28T16:15:33.891Z'
         '400':
           description: Validation error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+              examples:
+                invalidRole:
+                  summary: Invalid role value
+                  value:
+                    error:
+                      code: VALIDATION_ERROR
+                      message: Validation failed
+                      details:
+                        role: Role must be one of OWNER, ADMIN, MEMBER
         '401':
           description: Not authenticated
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+              examples:
+                notAuthenticated:
+                  summary: No access token provided
+                  value:
+                    error:
+                      code: UNAUTHENTICATED
+                      message: Authentication required
+                      details: {}
         '403':
           description: Insufficient permissions or invalid operation
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+              examples:
+                forbidden:
+                  summary: User does not have ADMIN role
+                  value:
+                    error:
+                      code: FORBIDDEN
+                      message: Insufficient permissions
+                      details: {}
+                cannotDemoteOwner:
+                  summary: Cannot demote organization owner
+                  value:
+                    error:
+                      code: CANNOT_DEMOTE_OWNER
+                      message: Cannot demote owner
+                      details: {}
         '404':
           description: Organization or member not found
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+              examples:
+                memberNotFound:
+                  summary: Member not found
+                  value:
+                    error:
+                      code: MEMBER_NOT_FOUND
+                      message: Member not found
+                      details: {}
         '409':
           description: Cannot remove last OWNER
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+              examples:
+                lastOwnerProtection:
+                  summary: Cannot demote the last owner
+                  value:
+                    error:
+                      code: LAST_OWNER_PROTECTION
+                      message: Cannot remove last owner
+                      details: {}
 
     delete:
       summary: Remove member
@@ -716,6 +1165,21 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+              examples:
+                cannotRemoveOwner:
+                  summary: Cannot remove OWNER role
+                  value:
+                    error:
+                      code: CANNOT_REMOVE_OWNER
+                      message: Cannot remove owner
+                      details: {}
+                insufficientPermissions:
+                  summary: Only ADMIN can remove other members
+                  value:
+                    error:
+                      code: FORBIDDEN
+                      message: Insufficient permissions
+                      details: {}
         '404':
           description: Organization or member not found
           content:
@@ -728,6 +1192,14 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+              examples:
+                lastOwnerProtection:
+                  summary: Cannot remove last OWNER
+                  value:
+                    error:
+                      code: LAST_OWNER_PROTECTION
+                      message: Cannot remove last owner
+                      details: {}
 
   /api/v1/orgs/{slug}/transfer-ownership:
     post:
@@ -781,6 +1253,14 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+              examples:
+                cannotTransferToSelf:
+                  summary: Cannot transfer ownership to yourself
+                  value:
+                    error:
+                      code: CANNOT_TRANSFER_TO_SELF
+                      message: Cannot transfer ownership to yourself
+                      details: {}
         '401':
           description: Not authenticated
           content:
@@ -799,6 +1279,14 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+              examples:
+                newOwnerNotMember:
+                  summary: User is not a member of this organization
+                  value:
+                    error:
+                      code: NEW_OWNER_NOT_MEMBER
+                      message: New owner must be an existing member
+                      details: {}
 
   /api/v1/orgs/{slug}/invitations:
     post:
@@ -881,6 +1369,21 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+              examples:
+                userAlreadyMember:
+                  summary: User is already a member
+                  value:
+                    error:
+                      code: USER_ALREADY_MEMBER
+                      message: User is already a member
+                      details: {}
+                pendingInvitationExists:
+                  summary: Pending invitation already exists
+                  value:
+                    error:
+                      code: INVITATION_ALREADY_EXISTS
+                      message: A pending invitation already exists for this email
+                      details: {}
 
     get:
       summary: List invitations
@@ -1012,7 +1515,16 @@ paths:
   /api/v1/invitations/validate/{token}:
     get:
       summary: Validate invitation token
-      description: Validate an invitation token and return invitation details (public endpoint)
+      description: |
+        Validate an invitation token and return invitation details (public endpoint).
+
+        Use this endpoint to check if an invitation is valid before prompting the user to accept it.
+
+        **Security Note:** This endpoint is public and returns organization information.
+        It is rate-limited to prevent enumeration attacks. Repeated validation attempts
+        may require additional verification.
+
+        No authentication required - the token itself serves as proof of access.
       operationId: validateInvitation
       tags:
         - Invitations
@@ -1062,12 +1574,42 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+              examples:
+                invalidToken:
+                  summary: Token does not exist or is malformed
+                  value:
+                    error:
+                      code: INVALID_TOKEN
+                      message: Invalid invitation token
+                      details: {}
         '410':
           description: Invitation expired, revoked, or already accepted
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+              examples:
+                invitationExpired:
+                  summary: Invitation has expired
+                  value:
+                    error:
+                      code: INVITATION_EXPIRED
+                      message: Invitation has expired
+                      details: {}
+                invitationRevoked:
+                  summary: Invitation was revoked by admin
+                  value:
+                    error:
+                      code: INVITATION_REVOKED
+                      message: Invitation has been revoked
+                      details: {}
+                alreadyAccepted:
+                  summary: Invitation has already been accepted
+                  value:
+                    error:
+                      code: INVITATION_ALREADY_ACCEPTED
+                      message: Invitation has already been accepted
+                      details: {}
 
   /api/v1/invitations/accept:
     post:
@@ -1123,18 +1665,63 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+              examples:
+                invalidToken:
+                  summary: Invitation token not found
+                  value:
+                    error:
+                      code: INVALID_TOKEN
+                      message: Invalid invitation token
+                      details: {}
+                invitationNotFound:
+                  summary: Invitation does not exist
+                  value:
+                    error:
+                      code: INVITATION_NOT_FOUND
+                      message: Invitation not found
+                      details: {}
         '409':
           description: User already a member
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+              examples:
+                userAlreadyMember:
+                  summary: User is already a member of this organization
+                  value:
+                    error:
+                      code: USER_ALREADY_MEMBER
+                      message: User is already a member
+                      details: {}
         '410':
           description: Invitation expired, revoked, or already accepted
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+              examples:
+                invitationExpired:
+                  summary: Invitation has expired
+                  value:
+                    error:
+                      code: INVITATION_EXPIRED
+                      message: Invitation has expired
+                      details: {}
+                invitationRevoked:
+                  summary: Invitation was revoked
+                  value:
+                    error:
+                      code: INVITATION_REVOKED
+                      message: Invitation has been revoked
+                      details: {}
+                alreadyAccepted:
+                  summary: Invitation already accepted
+                  value:
+                    error:
+                      code: INVITATION_ALREADY_ACCEPTED
+                      message: Invitation has already been accepted
+                      details: {}
 
   /api/v1/orgs/{slug}/api-keys:
     post:
@@ -1354,6 +1941,14 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+              examples:
+                apiKeyNotFound:
+                  summary: API key not found
+                  value:
+                    error:
+                      code: API_KEY_NOT_FOUND
+                      message: API key not found
+                      details: {}
 
 components:
   schemas:
