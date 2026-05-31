@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 
@@ -31,6 +31,24 @@ export function OrgSwitcher() {
 
   const currentOrg = user?.memberships.find((m) => m.organization.slug === activeOrgSlug)
 
+  // Handle Escape key to close dropdown
+  useEffect(() => {
+    if (!isOpen) {
+      return
+    }
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setIsOpen(false)
+      }
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+    document.addEventListener('keydown', handleKeyDown)
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-return
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [isOpen])
+
   const handleSelectOrg = async (slug: string) => {
     setActiveOrgSlug(slug)
     setIsOpen(false)
@@ -46,6 +64,9 @@ export function OrgSwitcher() {
       <button
         onClick={() => setIsOpen(!isOpen)}
         className="flex items-center space-x-2 px-3 py-2 rounded-md hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-brand-500"
+        aria-expanded={isOpen}
+        aria-haspopup="true"
+        aria-label="Organization switcher"
       >
         <span className="font-medium text-gray-900">
           {currentOrg ? sanitizeDisplayText(currentOrg.organization.name) : 'Select Organization'}
@@ -55,6 +76,7 @@ export function OrgSwitcher() {
           fill="none"
           viewBox="0 0 24 24"
           stroke="currentColor"
+          aria-hidden="true"
         >
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
         </svg>
@@ -62,8 +84,12 @@ export function OrgSwitcher() {
 
       {isOpen && (
         <>
-          <div className="fixed inset-0 z-10" onClick={() => setIsOpen(false)} />
-          <div className="absolute left-0 mt-2 w-64 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-20">
+          <div className="fixed inset-0 z-10" onClick={() => setIsOpen(false)} aria-hidden="true" />
+          <div
+            className="absolute left-0 mt-2 w-64 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-20"
+            role="menu"
+            aria-orientation="vertical"
+          >
             <div className="py-1">
               {user.memberships.map((membership) => (
                 <button
@@ -72,6 +98,8 @@ export function OrgSwitcher() {
                   className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-100 ${
                     membership.organization.slug === activeOrgSlug ? 'bg-brand-50' : ''
                   }`}
+                  role="menuitem"
+                  aria-current={membership.organization.slug === activeOrgSlug ? 'true' : undefined}
                 >
                   <div className="font-medium">
                     {sanitizeDisplayText(membership.organization.name)}
