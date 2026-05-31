@@ -237,34 +237,80 @@
 
 ## Phase 5 — React Frontend
 
-### Project Setup
+**Status:** In Progress (5a-5f Complete, 5g-5j Remaining)
+**Completion Date (Partial):** 2026-05-29
+**Test Coverage:** Vitest + RTL configured, MSW mocking infrastructure ready
 
-- [ ] Initialize Vite + React + TypeScript in `apps/web`
-- [ ] Configure Tailwind CSS with custom design tokens
-- [ ] Add React Router v6 with layout-based routing
-- [ ] Configure TanStack Query (React Query) with global error/retry defaults
-- [ ] Add Axios instance with interceptors (auth header injection, 401 refresh flow)
-- [ ] Import generated TypeScript types from `packages/types`
+### Project Setup ✅
 
-### Auth UI
+- [x] Initialize Vite + React + TypeScript in `apps/web`
+- [x] Configure Tailwind CSS with custom design tokens
+- [x] Add React Router v6 with layout-based routing
+- [x] Configure TanStack Query (React Query) with global error/retry defaults
+- [x] Add Axios instance with interceptors (auth header injection, 401 refresh flow)
+- [x] Import generated TypeScript types from `packages/types`
 
-- [ ] Register page
-- [ ] Login page
-- [ ] Protected route wrapper (redirect to login if unauthenticated)
-- [ ] Auth context provider (current user, active org, org switching)
+### Core Infrastructure ✅
 
-### Core Dashboard UI
+- [x] API client with automatic token refresh on 401
+- [x] Query client with exponential backoff retry strategy
+- [x] Router skeleton with protected routes
+- [x] Path alias configuration (@/ → src/)
 
-- [ ] Org switcher in nav (list orgs, switch active tenant context)
+### Shared Components ✅
+
+- [x] Button (primary/secondary/danger variants)
+- [x] Input (with label, error, helper text)
+- [x] Modal (portal-based, ARIA compliant)
+- [x] LoadingSpinner, ErrorMessage, EmptyState
+- [x] Card, Badge primitives
+
+### Auth UI ✅
+
+- [x] Register page
+- [x] Login page
+- [x] Protected route wrapper (redirect to login if unauthenticated)
+- [x] Auth context provider (current user, active org, org switching)
+
+### Dashboard Foundation ✅
+
+- [x] Org context provider (active org tracking)
+- [x] Org switcher in nav (list orgs, switch active tenant context)
+- [x] User menu (avatar, dropdown, sign out)
+- [x] Dashboard layout (top nav + sidebar + main content)
+- [x] Dashboard home page (auto-select first org)
+
+### Core Dashboard UI (Remaining)
+
 - [ ] Members page: list, role badges, remove member action
 - [ ] Invite member modal: email + role selector, pending invites list, revoke action
 - [ ] Org settings page: rename org, danger zone (delete org, transfer ownership)
 - [ ] API Keys page: generate key (show once modal), list keys, revoke
 
-### Accept Invitation Flow
+### Accept Invitation Flow (Remaining)
 
 - [ ] Public `/invite/:token` page — shows org name + role, login/register to accept
 - [ ] Handle already-logged-in user accepting invite
+
+**Files Created (5a-5f):**
+
+- Configuration: vite.config.ts, tailwind.config.ts, vitest.config.ts, postcss.config.js
+- Infrastructure: api-client.ts, query-client.ts, router.tsx, main.tsx
+- Shared: 8 UI primitives (Button, Input, Modal, etc.)
+- Auth: AuthContext.tsx, ProtectedRoute.tsx, LoginPage.tsx, RegisterPage.tsx
+- Organizations: OrgContext.tsx, OrgSwitcher.tsx, UserMenu.tsx, DashboardLayout.tsx, DashboardPage.tsx
+- Testing: setup.ts, MSW server/handlers
+- Documentation: docs/FRONTEND_PATTERNS.md (900+ lines)
+
+**Dependencies Added:**
+
+- react@19.2, react-dom@19.2, react-router-dom@7
+- @tanstack/react-query@5, axios@1.7
+- tailwindcss@4.3, @tailwindcss/forms
+- zod@3.25 for form validation
+- vitest@3, @testing-library/react@17, @testing-library/jest-dom@6
+- msw@2 for API mocking
+- @plinth/types (workspace dependency)
 
 ---
 

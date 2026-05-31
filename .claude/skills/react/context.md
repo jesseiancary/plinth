@@ -443,6 +443,7 @@ const router = createBrowserRouter([
 ### Controlled Components with Zod Validation
 
 ```tsx
+import type { FormEvent } from 'react'
 import { useState } from 'react'
 import { z } from 'zod'
 import { useMutation } from '@tanstack/react-query'
@@ -465,7 +466,7 @@ function InviteMemberModal({ orgSlug }: { orgSlug: string }) {
     mutationFn: (data: InviteFormData) => api.post(`/api/v1/orgs/${orgSlug}/invitations`, data),
   })
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
 
     // Validate with Zod before submitting
@@ -584,7 +585,7 @@ function handleChange(e: any) {
 
 ```tsx
 // GOOD
-function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
+function handleChange(e: ChangeEvent<HTMLInputElement>) {
   setEmail(e.target.value)
 }
 ```
