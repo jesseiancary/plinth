@@ -5,6 +5,19 @@ interface RetryableAxiosRequestConfig extends InternalAxiosRequestConfig {
   _retry?: boolean
 }
 
+// Token refresh state management
+let isRefreshing = false
+let refreshSubscribers: Array<(token: string) => void> = []
+
+function subscribeTokenRefresh(callback: (token: string) => void) {
+  refreshSubscribers.push(callback)
+}
+
+function onTokenRefreshed(token: string) {
+  refreshSubscribers.forEach((callback) => callback(token))
+  refreshSubscribers = []
+}
+
 export const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL,
   withCredentials: true, // Send httpOnly cookies for refresh token
@@ -34,6 +47,20 @@ api.interceptors.response.use(
     if (error.response?.status === 401 && originalRequest && !originalRequest._retry) {
       originalRequest._retry = true
 
+      // If already refreshing, queue this request
+      if (isRefreshing) {
+        return new Promise((resolve) => {
+          subscribeTokenRefresh((token: string) => {
+            if (originalRequest.headers) {
+              originalRequest.headers.Authorization = `Bearer ${token}`
+            }
+            resolve(api(originalRequest))
+          })
+        })
+      }
+
+      isRefreshing = true
+
       try {
         // Refresh the token
         const response = await axios.post<{ accessToken: string }>(
@@ -48,6 +75,10 @@ api.interceptors.response.use(
         // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
         localStorage.setItem('accessToken', accessToken)
 
+        // Notify all queued requests
+        onTokenRefreshed(accessToken)
+        isRefreshing = false
+
         // Retry original request with new token
         if (originalRequest.headers) {
           originalRequest.headers.Authorization = `Bearer ${accessToken}`
@@ -55,8 +86,12 @@ api.interceptors.response.use(
         return api(originalRequest)
       } catch (refreshError) {
         // Refresh failed → logout user
+        isRefreshing = false
+        refreshSubscribers = []
         // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
         localStorage.removeItem('accessToken')
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+        localStorage.removeItem('user')
         // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         window.location.href = '/login'
         return Promise.reject(refreshError)

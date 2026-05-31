@@ -5,6 +5,7 @@ import { useQuery } from '@tanstack/react-query'
 import type { components } from '@plinth/types'
 
 import { api } from '../../../lib/api-client'
+import { sanitizeDisplayText } from '../../../lib/sanitize'
 import { useActiveOrg } from '../context/OrgContext'
 
 type User = components['schemas']['User']
@@ -47,7 +48,7 @@ export function OrgSwitcher() {
         className="flex items-center space-x-2 px-3 py-2 rounded-md hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-brand-500"
       >
         <span className="font-medium text-gray-900">
-          {currentOrg ? currentOrg.organization.name : 'Select Organization'}
+          {currentOrg ? sanitizeDisplayText(currentOrg.organization.name) : 'Select Organization'}
         </span>
         <svg
           className="w-4 h-4 text-gray-500"
@@ -72,7 +73,9 @@ export function OrgSwitcher() {
                     membership.organization.slug === activeOrgSlug ? 'bg-brand-50' : ''
                   }`}
                 >
-                  <div className="font-medium">{membership.organization.name}</div>
+                  <div className="font-medium">
+                    {sanitizeDisplayText(membership.organization.name)}
+                  </div>
                   <div className="text-xs text-gray-500">{membership.role}</div>
                 </button>
               ))}

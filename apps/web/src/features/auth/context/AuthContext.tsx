@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { createContext, useContext, useState } from 'react'
+import { createContext, useContext, useEffect, useState } from 'react'
 import { z } from 'zod'
 
 import type { components } from '@plinth/types'
@@ -74,6 +74,68 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
     localStorage.removeItem('user')
   }
+
+  // Synchronize auth state across browser tabs
+  useEffect(() => {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-argument
+    const handleStorageChange = (event: StorageEvent) => {
+      // Only respond to localStorage changes from other tabs
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      if (event.storageArea !== localStorage) {
+        return
+      }
+
+      // Handle accessToken changes
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      if (event.key === 'accessToken') {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-argument
+        setAccessToken(event.newValue)
+      }
+
+      // Handle user changes
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      if (event.key === 'user') {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        if (!event.newValue) {
+          setUser(null)
+          return
+        }
+
+        try {
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-member-access
+          const parsed: unknown = JSON.parse(event.newValue)
+          const result = userSchema.safeParse(parsed)
+
+          if (result.success) {
+            setUser(result.data)
+          } else {
+            setUser(null)
+          }
+        } catch {
+          setUser(null)
+        }
+      }
+
+      // If either token or user is cleared, logout completely
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      if (event.key === 'accessToken' && !event.newValue) {
+        setUser(null)
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+        localStorage.removeItem('user')
+      }
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      if (event.key === 'user' && !event.newValue) {
+        setAccessToken(null)
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+        localStorage.removeItem('accessToken')
+      }
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-return
+    window.addEventListener('storage', handleStorageChange)
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-return
+    return () => window.removeEventListener('storage', handleStorageChange)
+  }, [])
 
   return (
     <AuthContext.Provider
