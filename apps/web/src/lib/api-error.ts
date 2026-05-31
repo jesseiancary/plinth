@@ -1,6 +1,21 @@
 import axios from 'axios'
 
 /**
+ * Type guard for API error response
+ */
+function isApiErrorResponse(data: unknown): data is { error: { message: string } } {
+  return (
+    typeof data === 'object' &&
+    data !== null &&
+    'error' in data &&
+    typeof data.error === 'object' &&
+    data.error !== null &&
+    'message' in data.error &&
+    typeof data.error.message === 'string'
+  )
+}
+
+/**
  * Extract error message from API error response
  *
  * Handles Axios errors and extracts the API error message
@@ -11,9 +26,9 @@ export function getApiErrorMessage(error: unknown): string {
   // Check if it's an Axios error
   if (axios.isAxiosError(error)) {
     // Try to extract our API error format
-    const apiError = error.response?.data?.error
-    if (apiError && typeof apiError === 'object' && 'message' in apiError) {
-      return String(apiError.message)
+    const responseData: unknown = error.response?.data
+    if (isApiErrorResponse(responseData)) {
+      return responseData.error.message
     }
 
     // Fallback to generic HTTP error
