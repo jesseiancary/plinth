@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
 
 interface ModalProps {
@@ -10,27 +10,85 @@ interface ModalProps {
 }
 
 export function Modal({ isOpen, onClose, title, children }: ModalProps) {
-  // Close on Escape key
+  const modalRef = useRef<HTMLDivElement>(null)
+  const previousActiveElement = useRef<Element | null>(null)
+
+  // Focus trap and keyboard handling
   useEffect(() => {
-    const handleEscape = (e: KeyboardEvent) => {
+    if (!isOpen) {
+      return
+    }
+
+    // Store the previously focused element
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment
+    previousActiveElement.current = document.activeElement
+
+    // Focus the modal container
+    if (modalRef.current) {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-call
+      modalRef.current.focus()
+    }
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Handle Escape key
       if (e.key === 'Escape') {
         onClose()
+        return
+      }
+
+      // Handle Tab key for focus trap
+      if (e.key === 'Tab') {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call
+        const focusableElements = modalRef.current?.querySelectorAll(
+          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
+        )
+
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        if (!focusableElements || focusableElements.length === 0) {
+          return
+        }
+
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        const firstElement = focusableElements[0] as HTMLElement
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        const lastElement = focusableElements[focusableElements.length - 1] as HTMLElement
+
+        // Shift + Tab on first element -> focus last element
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        if (e.shiftKey && document.activeElement === firstElement) {
+          e.preventDefault()
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-call
+          lastElement.focus()
+          return
+        }
+
+        // Tab on last element -> focus first element
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        if (!e.shiftKey && document.activeElement === lastElement) {
+          e.preventDefault()
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-call
+          firstElement.focus()
+        }
       }
     }
 
-    if (isOpen) {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-      document.addEventListener('keydown', handleEscape)
-      // Prevent body scroll
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-      document.body.style.overflow = 'hidden'
-    }
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+    document.addEventListener('keydown', handleKeyDown)
+    // Prevent body scroll
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+    document.body.style.overflow = 'hidden'
 
     return () => {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-      document.removeEventListener('keydown', handleEscape)
+      document.removeEventListener('keydown', handleKeyDown)
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       document.body.style.overflow = 'unset'
+
+      // Restore focus to previously focused element
+      if (previousActiveElement.current instanceof HTMLElement) {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-call
+        previousActiveElement.current.focus()
+      }
     }
   }, [isOpen, onClose])
 
@@ -51,8 +109,10 @@ export function Modal({ isOpen, onClose, title, children }: ModalProps) {
 
       {/* Modal content */}
       <div
+        ref={modalRef}
         className="relative bg-white rounded-lg shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
+        tabIndex={-1}
       >
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">

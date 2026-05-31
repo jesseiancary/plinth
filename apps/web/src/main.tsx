@@ -7,6 +7,7 @@ import { AuthProvider } from './features/auth/context/AuthContext'
 import { OrgProvider } from './features/organizations/context/OrgContext'
 import { queryClient } from './lib/query-client'
 import { router } from './lib/router'
+import { ErrorBoundary } from './shared/components/ErrorBoundary'
 
 import './index.css'
 
@@ -19,12 +20,14 @@ if (!rootElement) {
 // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
 createRoot(rootElement).render(
   <StrictMode>
-    <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <OrgProvider>
-          <RouterProvider router={router} />
-        </OrgProvider>
-      </AuthProvider>
-    </QueryClientProvider>
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <AuthProvider>
+          <OrgProvider>
+            <RouterProvider router={router} />
+          </OrgProvider>
+        </AuthProvider>
+      </QueryClientProvider>
+    </ErrorBoundary>
   </StrictMode>,
 )
