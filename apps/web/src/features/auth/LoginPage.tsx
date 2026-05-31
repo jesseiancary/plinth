@@ -107,7 +107,10 @@ export function LoginPage() {
             />
 
             {loginMutation.isError && (
-              <div className="text-sm text-danger">{getApiErrorMessage(loginMutation.error)}</div>
+              <div className="text-sm text-danger">
+                {/* eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-argument */}
+                {getApiErrorMessage(loginMutation.error)}
+              </div>
             )}
 
             <Button type="submit" className="w-full" disabled={loginMutation.isPending}>
