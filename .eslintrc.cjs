@@ -102,6 +102,7 @@ module.exports = {
     'quote-props': ['error', 'as-needed'],
     'curly': ['error', 'all'],
     'eqeqeq': ['error', 'always', { null: 'ignore' }],
+    'arrow-body-style': ['error', 'as-needed'],
     'no-duplicate-imports': 'off', // Handled by import/no-duplicates
     'no-restricted-imports': [
       'error',
@@ -142,6 +143,7 @@ module.exports = {
     'node_modules',
     '*.config.js',
     '*.config.cjs',
+    '*.config.ts',
     '.eslintrc.cjs',
     'coverage',
     '**/generated.ts',

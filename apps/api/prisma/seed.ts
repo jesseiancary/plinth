@@ -84,7 +84,8 @@ async function main() {
   console.log(`Created organization: ${globexOrg.name}`)
 
   // Create memberships
-  const ownerMembership = await prisma.membership.upsert({
+  // Admin user: Owner of Acme, Admin of Globex
+  const acmeOwnerMembership = await prisma.membership.upsert({
     where: {
       userId_organizationId: {
         userId: adminUser.id,
@@ -100,9 +101,32 @@ async function main() {
   })
 
   // eslint-disable-next-line no-console
-  console.log(`Created membership: ${adminUser.email} -> ${acmeOrg.slug} (${ownerMembership.role})`)
+  console.log(
+    `Created membership: ${adminUser.email} -> ${acmeOrg.slug} (${acmeOwnerMembership.role})`,
+  )
 
-  const memberMembership = await prisma.membership.upsert({
+  const globexAdminMembership = await prisma.membership.upsert({
+    where: {
+      userId_organizationId: {
+        userId: adminUser.id,
+        organizationId: globexOrg.id,
+      },
+    },
+    update: {},
+    create: {
+      userId: adminUser.id,
+      organizationId: globexOrg.id,
+      role: 'ADMIN',
+    },
+  })
+
+  // eslint-disable-next-line no-console
+  console.log(
+    `Created membership: ${adminUser.email} -> ${globexOrg.slug} (${globexAdminMembership.role})`,
+  )
+
+  // Member user: Member of Acme only
+  const acmeMemberMembership = await prisma.membership.upsert({
     where: {
       userId_organizationId: {
         userId: memberUser.id,
@@ -119,10 +143,11 @@ async function main() {
 
   // eslint-disable-next-line no-console
   console.log(
-    `Created membership: ${memberUser.email} -> ${acmeOrg.slug} (${memberMembership.role})`,
+    `Created membership: ${memberUser.email} -> ${acmeOrg.slug} (${acmeMemberMembership.role})`,
   )
 
-  const adminMembership = await prisma.membership.upsert({
+  // Guest user: Owner of Globex (to test different user scenarios)
+  const globexOwnerMembership = await prisma.membership.upsert({
     where: {
       userId_organizationId: {
         userId: guestUser.id,
@@ -133,13 +158,13 @@ async function main() {
     create: {
       userId: guestUser.id,
       organizationId: globexOrg.id,
-      role: 'ADMIN',
+      role: 'OWNER',
     },
   })
 
   // eslint-disable-next-line no-console
   console.log(
-    `Created membership: ${guestUser.email} -> ${globexOrg.slug} (${adminMembership.role})`,
+    `Created membership: ${guestUser.email} -> ${globexOrg.slug} (${globexOwnerMembership.role})`,
   )
 
   // Create sample invitations

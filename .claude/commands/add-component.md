@@ -134,6 +134,7 @@ export function MemberList({ organizationSlug }: MemberListProps) {
 ## Example Test
 
 ```tsx
+import type { ReactElement } from 'react'
 import { render, screen } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { MemberList } from './MemberList'
@@ -144,7 +145,7 @@ const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: false } },
 })
 
-function renderWithQuery(ui: React.ReactElement) {
+function renderWithQuery(ui: ReactElement) {
   return render(<QueryClientProvider client={queryClient}>{ui}</QueryClientProvider>)
 }
 

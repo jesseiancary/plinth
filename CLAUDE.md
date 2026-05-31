@@ -40,19 +40,19 @@ but a disciplined workflow using Claude Code agents, skills, commands, and hooks
 
 ## Tech Stack
 
-| Layer           | Choice                                 | Notes                                                       |
-| --------------- | -------------------------------------- | ----------------------------------------------------------- |
-| Database        | PostgreSQL                             | Via Railway or local Docker                                 |
-| ORM             | Prisma                                 | Schema-first, migrations in version control                 |
-| API             | Node.js + Express + TypeScript         | `apps/api`                                                  |
-| Validation      | Zod                                    | All request/response I/O validated at runtime               |
-| Auth            | JWT (access) + httpOnly refresh cookie | Rolled manually — no auth library abstraction               |
-| Frontend        | React + Vite + TypeScript              | `apps/web`                                                  |
-| Styling         | Tailwind CSS                           | Utility-first, custom design tokens in `tailwind.config.ts` |
-| Data fetching   | TanStack Query (React Query)           | All server state                                            |
-| API Docs        | OpenAPI 3.1 + Scalar                   | Spec in `packages/openapi`, served at `/docs`               |
-| Testing         | Vitest + Supertest                     | Integration-first on API; RTL for frontend                  |
-| Package manager | pnpm workspaces                        | Run commands from repo root                                 |
+| Layer           | Choice                                 | Notes                                                 |
+| --------------- | -------------------------------------- | ----------------------------------------------------- |
+| Database        | PostgreSQL                             | Via Railway or local Docker                           |
+| ORM             | Prisma                                 | Schema-first, migrations in version control           |
+| API             | Node.js + Express + TypeScript         | `apps/api`                                            |
+| Validation      | Zod                                    | All request/response I/O validated at runtime         |
+| Auth            | JWT (access) + httpOnly refresh cookie | Rolled manually — no auth library abstraction         |
+| Frontend        | React + Vite + TypeScript              | `apps/web`                                            |
+| Styling         | Tailwind CSS v4                        | CSS-first config: `@theme` + `@plugin` in `index.css` |
+| Data fetching   | TanStack Query (React Query)           | All server state                                      |
+| API Docs        | OpenAPI 3.1 + Scalar                   | Spec in `packages/openapi`, served at `/docs`         |
+| Testing         | Vitest + Supertest                     | Integration-first on API; RTL for frontend            |
+| Package manager | pnpm workspaces                        | Run commands from repo root                           |
 
 ---
 
@@ -126,6 +126,7 @@ rest — the plaintext is returned once on creation and never stored.
 - **TypeScript strict mode on.** No `any`. If you need an escape hatch, use `unknown` + a type
   guard.
 - **`const` only** — never `let` unless reassignment is genuinely required and unavoidable.
+- **Arrow functions** — use implicit returns when possible: `() => value` instead of `() => { return value }`. Enforced by `arrow-body-style` ESLint rule.
 - **Zod for all I/O** — every request body, query param, and env variable validated with Zod. Infer
   TypeScript types from Zod schemas with `z.infer<typeof Schema>` — do not duplicate types.
 - **No barrel files** (`index.ts` re-exports) — import directly from source files.
@@ -133,6 +134,7 @@ rest — the plaintext is returned once on creation and never stored.
 - **Error handling:** use the `AppError` class for all known failure modes. Never throw raw strings.
 - **Async/await** — no `.then()` chains. Always `try/catch` in Express route handlers.
 - **Prisma:** never use `prisma.$queryRaw` unless there is no alternative. Document why if you do.
+- **Tailwind v4 configuration:** All config in CSS using `@theme` for colors and `@plugin` for plugins in `apps/web/src/index.css`. No `tailwind.config.ts` needed. Use `--color-{name}-{shade}` format for color scales (e.g., `--color-brand-500`).
 
 ---
 
@@ -384,8 +386,8 @@ Scalar docs are served at `GET /docs` in development and production.
 
 > Update this section as phases are completed.
 
-**Active:** Phase 5 — Frontend Foundation
-**Next:** Phase 6 — Performance & Production Hardening
+**Active:** Phase 5 — React Frontend (5a-5f Complete, 5g-5j In Progress)
+**Next:** Phase 6 — Claude Code AI Integration Showcase
 **Completed:**
 
 - Phase 0 — Repo & Tooling Setup ✅
@@ -393,6 +395,7 @@ Scalar docs are served at `GET /docs` in development and production.
 - Phase 2 — Authentication ✅
 - Phase 3 — Multi-Tenancy Core ✅ (2026-05-28)
 - Phase 4 — OpenAPI Spec & Scalar Docs ✅ (2026-05-28)
+- Phase 5a-5f — Frontend Foundation ✅ (2026-05-29)
 
 See `docs/ROADMAP.md` for full checklist.
 
@@ -460,6 +463,58 @@ Delivered:
 - `.github/workflows/ci.yml` - OpenAPI validation job
 - `.claude/commands/review.md` - Updated workflow
 - `.claude/skills/openapi/context.md` - Clarified architecture
+
+### Phase 5a-5f Accomplishments ✅
+
+**Completion Date:** 2026-05-29
+**Status:** Foundation Complete (Members/Invitations/Settings/API Keys Remaining)
+**Test Infrastructure:** Vitest + RTL + MSW configured
+
+Delivered:
+
+- ✅ Project setup: Vite 8 + React 19 + TypeScript 5.9 + Tailwind 4.3
+- ✅ API client with automatic token refresh on 401
+- ✅ TanStack Query configured with exponential backoff retry
+- ✅ React Router 7 with protected routes and layout-based structure
+- ✅ 8 shared UI primitives (Button, Input, Modal, LoadingSpinner, ErrorMessage, EmptyState, Card, Badge)
+- ✅ Auth system: Register/Login pages with Zod validation
+- ✅ AuthContext provider with localStorage persistence
+- ✅ ProtectedRoute wrapper with redirect preservation
+- ✅ OrgContext provider for active organization tracking
+- ✅ Dashboard layout with top nav + sidebar
+- ✅ OrgSwitcher component (dropdown, auto-fetch memberships)
+- ✅ UserMenu component (avatar, sign out)
+- ✅ Dashboard home page (auto-select first org)
+- ✅ Testing infrastructure: Vitest + RTL + MSW server/handlers
+- ✅ Complete implementation guide for remaining features (900+ lines)
+
+**Files Created:**
+
+- Configuration: vite.config.ts, tailwind.config.ts, vitest.config.ts, postcss.config.js, vite-env.d.ts
+- Infrastructure: api-client.ts, query-client.ts, router.tsx, main.tsx, App.tsx
+- Shared: 8 UI components in shared/components/
+- Auth: AuthContext.tsx, ProtectedRoute.tsx, LoginPage.tsx, RegisterPage.tsx
+- Organizations: OrgContext.tsx, OrgSwitcher.tsx, UserMenu.tsx, DashboardLayout.tsx, DashboardPage.tsx
+- Testing: setup.ts, server.ts, handlers.ts
+- Documentation: docs/FRONTEND_PATTERNS.md
+
+**Dependencies Added:**
+
+- react@19.2, react-dom@19.2, react-router-dom@7
+- @tanstack/react-query@5.76, axios@1.7
+- tailwindcss@4.3, @tailwindcss/forms@0.5
+- zod@3.25
+- vitest@3, @testing-library/react@17, @testing-library/jest-dom@6
+- msw@2.7
+- @plinth/types (workspace dependency)
+
+**Key Architectural Patterns:**
+
+- State Management: Server state (TanStack Query) + Global client state (Context) + Local UI state (useState)
+- Type Safety: Using generated @plinth/types from OpenAPI spec
+- Accessibility: Semantic HTML, ARIA attributes, keyboard navigation, focus management
+- Design System: Tailwind design tokens (brand-500, success, warning, danger)
+- Testing: MSW for API mocking, RTL for component testing
 
 ---
 
