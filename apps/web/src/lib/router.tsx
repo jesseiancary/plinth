@@ -4,6 +4,9 @@ import { ProtectedRoute } from '@/features/auth/components/ProtectedRoute'
 import { LoginPage } from '@/features/auth/LoginPage'
 import { RegisterPage } from '@/features/auth/RegisterPage'
 import { DashboardPage } from '@/features/organizations/DashboardPage'
+import { ApiKeysPage } from '@/features/organizations/pages/ApiKeysPage'
+import { MembersPage } from '@/features/organizations/pages/MembersPage'
+import { SettingsPage } from '@/features/organizations/pages/SettingsPage'
 import { DashboardLayout } from '@/shared/components/DashboardLayout'
 
 // Placeholder pages - will be created in later phases
@@ -45,15 +48,15 @@ export const router = createBrowserRouter([
       },
       {
         path: '/orgs/:orgSlug/members',
-        element: <PlaceholderPage title="Members" />,
+        element: <MembersPage />,
       },
       {
         path: '/orgs/:orgSlug/settings',
-        element: <PlaceholderPage title="Organization Settings" />,
+        element: <SettingsPage />,
       },
       {
         path: '/orgs/:orgSlug/api-keys',
-        element: <PlaceholderPage title="API Keys" />,
+        element: <ApiKeysPage />,
       },
     ],
   },

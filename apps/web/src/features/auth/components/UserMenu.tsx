@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 
 import { getAvatarInitial, sanitizeDisplayText } from '../../../lib/sanitize'
@@ -8,8 +8,17 @@ export function UserMenu() {
   const navigate = useNavigate()
   const { user, logout } = useAuth()
   const [isOpen, setIsOpen] = useState(false)
+  const signOutButtonRef = useRef<HTMLButtonElement>(null)
 
-  // Handle Escape key to close dropdown
+  // Focus the sign out button when dropdown opens
+  useEffect(() => {
+    if (isOpen && signOutButtonRef.current) {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+      signOutButtonRef.current.focus()
+    }
+  }, [isOpen])
+
+  // Handle keyboard navigation
   useEffect(() => {
     if (!isOpen) {
       return
@@ -18,6 +27,15 @@ export function UserMenu() {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         setIsOpen(false)
+        return
+      }
+
+      // Enter or Space triggers the sign out action
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault()
+        // eslint-disable-next-line @typescript-eslint/no-floating-promises
+        handleLogout()
+        return
       }
     }
 
@@ -67,9 +85,11 @@ export function UserMenu() {
                 </div>
               </div>
               <button
+                ref={signOutButtonRef}
                 onClick={handleLogout}
-                className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 focus:outline-none focus:bg-brand-100"
                 role="menuitem"
+                tabIndex={-1}
               >
                 Sign out
               </button>

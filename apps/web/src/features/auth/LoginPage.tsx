@@ -6,10 +6,11 @@ import { z } from 'zod'
 
 import type { components } from '@plinth/types'
 
-import { api } from '../../lib/api-client'
+import { api, RateLimitError } from '../../lib/api-client'
 import { getApiErrorMessage } from '../../lib/api-error'
 import { Button } from '../../shared/components/Button'
 import { Input } from '../../shared/components/Input'
+import { RateLimitMessage } from '../../shared/components/RateLimitMessage'
 
 import { useAuth } from './context/AuthContext'
 
@@ -88,10 +89,22 @@ export function LoginPage() {
               value={formData.email}
               onChange={(e) => {
                 setFormData({ ...formData, email: String(e.currentTarget.value) })
+                // Clear error when user starts typing
+                if (errors.email) {
+                  setErrors({ ...errors, email: undefined })
+                }
+              }}
+              onBlur={() => {
+                // Validate on blur for early feedback
+                const result = loginSchema.shape.email.safeParse(formData.email)
+                if (!result.success) {
+                  setErrors({ ...errors, email: result.error.issues[0]?.message })
+                }
               }}
               error={errors.email}
               disabled={loginMutation.isPending}
               autoComplete="email"
+              required
             />
 
             <Input
@@ -100,17 +113,31 @@ export function LoginPage() {
               value={formData.password}
               onChange={(e) => {
                 setFormData({ ...formData, password: String(e.currentTarget.value) })
+                // Clear error when user starts typing
+                if (errors.password) {
+                  setErrors({ ...errors, password: undefined })
+                }
               }}
               error={errors.password}
               disabled={loginMutation.isPending}
               autoComplete="current-password"
+              required
             />
 
             {loginMutation.isError && (
-              <div className="text-sm text-danger">
-                {/* eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-argument */}
-                {getApiErrorMessage(loginMutation.error)}
-              </div>
+              <>
+                {loginMutation.error instanceof RateLimitError ? (
+                  <RateLimitMessage
+                    error={loginMutation.error}
+                    onRetry={() => loginMutation.mutate(formData)}
+                  />
+                ) : (
+                  <div className="text-sm text-danger">
+                    {/* eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-argument */}
+                    {getApiErrorMessage(loginMutation.error)}
+                  </div>
+                )}
+              </>
             )}
 
             <Button type="submit" className="w-full" disabled={loginMutation.isPending}>

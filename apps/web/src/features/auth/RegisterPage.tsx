@@ -82,10 +82,22 @@ export function RegisterPage() {
               value={formData.name}
               onChange={(e) => {
                 setFormData({ ...formData, name: String(e.currentTarget.value) })
+                // Clear error when user starts typing
+                if (errors.name) {
+                  setErrors({ ...errors, name: undefined })
+                }
+              }}
+              onBlur={() => {
+                // Validate on blur for early feedback
+                const result = registerSchema.shape.name.safeParse(formData.name)
+                if (!result.success) {
+                  setErrors({ ...errors, name: result.error.issues[0]?.message })
+                }
               }}
               error={errors.name}
               disabled={registerMutation.isPending}
               autoComplete="name"
+              required
             />
 
             <Input
@@ -94,10 +106,22 @@ export function RegisterPage() {
               value={formData.email}
               onChange={(e) => {
                 setFormData({ ...formData, email: String(e.currentTarget.value) })
+                // Clear error when user starts typing
+                if (errors.email) {
+                  setErrors({ ...errors, email: undefined })
+                }
+              }}
+              onBlur={() => {
+                // Validate on blur for early feedback
+                const result = registerSchema.shape.email.safeParse(formData.email)
+                if (!result.success) {
+                  setErrors({ ...errors, email: result.error.issues[0]?.message })
+                }
               }}
               error={errors.email}
               disabled={registerMutation.isPending}
               autoComplete="email"
+              required
             />
 
             <Input
@@ -106,11 +130,23 @@ export function RegisterPage() {
               value={formData.password}
               onChange={(e) => {
                 setFormData({ ...formData, password: String(e.currentTarget.value) })
+                // Clear error when user starts typing
+                if (errors.password) {
+                  setErrors({ ...errors, password: undefined })
+                }
+              }}
+              onBlur={() => {
+                // Validate on blur for early feedback
+                const result = registerSchema.shape.password.safeParse(formData.password)
+                if (!result.success) {
+                  setErrors({ ...errors, password: result.error.issues[0]?.message })
+                }
               }}
               error={errors.password}
               helperText="Must be at least 8 characters"
               disabled={registerMutation.isPending}
               autoComplete="new-password"
+              required
             />
 
             {registerMutation.isError && (
