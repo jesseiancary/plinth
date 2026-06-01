@@ -5,6 +5,17 @@ interface RetryableAxiosRequestConfig extends InternalAxiosRequestConfig {
   _retry?: boolean
 }
 
+// Custom error class for rate limiting
+export class RateLimitError extends Error {
+  retryAfter: number // seconds until retry is allowed
+
+  constructor(retryAfter: number) {
+    super('Rate limit exceeded. Please try again later.')
+    this.name = 'RateLimitError'
+    this.retryAfter = retryAfter
+  }
+}
+
 // Token refresh state management
 let isRefreshing = false
 let refreshSubscribers: Array<(token: string) => void> = []
@@ -36,15 +47,48 @@ api.interceptors.request.use(
   (error: AxiosError) => Promise.reject(error),
 )
 
-// Response interceptor: Refresh token on 401
+// Response interceptor: Refresh token on 401, handle 429
 api.interceptors.response.use(
   // eslint-disable-next-line @typescript-eslint/no-unsafe-return
   (response) => response.data, // Unwrap data automatically
   async (error: AxiosError) => {
     const originalRequest = error.config as RetryableAxiosRequestConfig
 
+    // Handle 429 Rate Limit
+    if (error.response?.status === 429) {
+      // Extract Retry-After header (can be in seconds or HTTP date)
+      const retryAfterHeader = error.response.headers['retry-after'] as string | undefined
+      let retryAfter = 60 // Default to 60 seconds if header is missing
+
+      if (retryAfterHeader) {
+        // Check if it's a number (seconds) or a date
+        const retryAfterNumber = Number.parseInt(retryAfterHeader, 10)
+        if (!Number.isNaN(retryAfterNumber)) {
+          retryAfter = retryAfterNumber
+        } else {
+          // Parse as HTTP date and calculate seconds from now
+          const retryDate = new Date(retryAfterHeader)
+          const now = new Date()
+          retryAfter = Math.max(0, Math.floor((retryDate.getTime() - now.getTime()) / 1000))
+        }
+      }
+
+      throw new RateLimitError(retryAfter)
+    }
+
     // If 401 and not already retrying
-    if (error.response?.status === 401 && originalRequest && !originalRequest._retry) {
+    // IMPORTANT: Don't try to refresh token for login/register endpoints
+    const isAuthEndpoint =
+      originalRequest?.url?.includes('/auth/login') ||
+      originalRequest?.url?.includes('/auth/register') ||
+      originalRequest?.url?.includes('/auth/refresh')
+
+    if (
+      error.response?.status === 401 &&
+      originalRequest &&
+      !originalRequest._retry &&
+      !isAuthEndpoint
+    ) {
       originalRequest._retry = true
 
       // If already refreshing, queue this request

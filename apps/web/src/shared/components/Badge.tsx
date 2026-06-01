@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 
-type BadgeVariant = 'success' | 'warning' | 'danger' | 'info'
+type BadgeVariant = 'success' | 'warning' | 'danger' | 'info' | 'default'
 
 interface BadgeProps {
   variant: BadgeVariant
@@ -13,6 +13,7 @@ export function Badge({ variant, children }: BadgeProps) {
     warning: 'bg-warning-light text-warning-dark',
     danger: 'bg-danger-light text-danger-dark',
     info: 'bg-brand-100 text-brand-800',
+    default: 'bg-gray-100 text-gray-800',
   }
 
   return (

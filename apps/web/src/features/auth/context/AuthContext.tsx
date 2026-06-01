@@ -22,7 +22,7 @@ interface AuthContextValue {
   isAuthenticated: boolean
 }
 
-const AuthContext = createContext<AuthContextValue | undefined>(undefined)
+export const AuthContext = createContext<AuthContextValue | undefined>(undefined)
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(() => {
@@ -58,21 +58,42 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   )
 
   const login = (token: string, user: User) => {
+    // Update state first for immediate UI response
     setAccessToken(token)
     setUser(user)
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-    localStorage.setItem('accessToken', token)
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-    localStorage.setItem('user', JSON.stringify(user))
+
+    try {
+      // Persist to localStorage (with error handling for edge cases)
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+      localStorage.setItem('accessToken', token)
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+      localStorage.setItem('user', JSON.stringify(user))
+    } catch (error) {
+      // If localStorage fails, log but don't break the login flow
+      // The user is still authenticated in memory for this session
+      console.error('Failed to persist auth state to localStorage:', error)
+      // Note: Not throwing here because the user is already logged in via state
+      // They just won't persist across page reloads
+    }
   }
 
   const logout = () => {
-    setAccessToken(null)
-    setUser(null)
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-    localStorage.removeItem('accessToken')
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-    localStorage.removeItem('user')
+    try {
+      // Clear localStorage first (atomically)
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+      localStorage.removeItem('accessToken')
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+      localStorage.removeItem('user')
+
+      // Only update state after successful localStorage clear
+      setAccessToken(null)
+      setUser(null)
+    } catch (error) {
+      // Even if localStorage fails, clear state (user is logging out)
+      setAccessToken(null)
+      setUser(null)
+      console.error('Failed to clear localStorage during logout:', error)
+    }
   }
 
   // Synchronize auth state across browser tabs
