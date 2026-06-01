@@ -51,52 +51,36 @@ describe('AuthContext - Atomic localStorage Sync', () => {
       expect(result.current.isAuthenticated).toBe(true)
     })
 
-    it('rollbacks localStorage on failure', () => {
+    it('logs error but continues when localStorage fails (graceful degradation)', () => {
       const { result } = renderHook(() => useAuth(), { wrapper: AuthProvider })
 
-      // Mock localStorage.setItem to fail on second call (user data)
-      let callCount = 0
-      const originalSetItem = Storage.prototype.setItem
-      vi.spyOn(Storage.prototype, 'setItem').mockImplementation((key, value) => {
-        callCount++
-        if (callCount === 2) {
-          throw new Error('QuotaExceededError')
-        }
-        originalSetItem.call(localStorage, key, value)
-      })
-
-      // Attempt login
-      expect(() =>
-        act(() => {
-          result.current.login('test-token', mockUser)
-        }),
-      ).toThrow('Failed to save authentication state')
-
-      // State should NOT be updated
-      expect(result.current.accessToken).toBeNull()
-      expect(result.current.user).toBeNull()
-      expect(result.current.isAuthenticated).toBe(false)
-
-      // localStorage should be rolled back (cleaned up)
-      expect(localStorage.getItem('accessToken')).toBeNull()
-      expect(localStorage.getItem('user')).toBeNull()
-
-      vi.restoreAllMocks()
-    })
-
-    it('throws error when localStorage write fails', () => {
-      const { result } = renderHook(() => useAuth(), { wrapper: AuthProvider })
-
-      // Mock localStorage to always fail
+      // Mock localStorage.setItem to always fail
       vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
         throw new Error('QuotaExceededError')
       })
 
-      expect(() =>
-        act(() => {
-          result.current.login('test-token', mockUser)
-        }),
-      ).toThrow('Failed to save authentication state')
+      // Spy on console.error to verify error is logged
+      const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+
+      // Attempt login - should NOT throw (graceful degradation)
+      act(() => {
+        result.current.login('test-token', mockUser)
+      })
+
+      // State SHOULD be updated (user is logged in for this session)
+      expect(result.current.accessToken).toBe('test-token')
+      expect(result.current.user).toEqual(mockUser)
+      expect(result.current.isAuthenticated).toBe(true)
+
+      // Error should be logged
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        'Failed to persist auth state to localStorage:',
+        expect.any(Error),
+      )
+
+      // localStorage won't have the data (but that's OK - session-only login)
+      expect(localStorage.getItem('accessToken')).toBeNull()
+      expect(localStorage.getItem('user')).toBeNull()
 
       vi.restoreAllMocks()
     })

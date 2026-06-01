@@ -77,7 +77,18 @@ api.interceptors.response.use(
     }
 
     // If 401 and not already retrying
-    if (error.response?.status === 401 && originalRequest && !originalRequest._retry) {
+    // IMPORTANT: Don't try to refresh token for login/register endpoints
+    const isAuthEndpoint =
+      originalRequest?.url?.includes('/auth/login') ||
+      originalRequest?.url?.includes('/auth/register') ||
+      originalRequest?.url?.includes('/auth/refresh')
+
+    if (
+      error.response?.status === 401 &&
+      originalRequest &&
+      !originalRequest._retry &&
+      !isAuthEndpoint
+    ) {
       originalRequest._retry = true
 
       // If already refreshing, queue this request

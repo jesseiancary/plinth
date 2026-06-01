@@ -58,24 +58,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   )
 
   const login = (token: string, user: User) => {
+    // Update state first for immediate UI response
+    setAccessToken(token)
+    setUser(user)
+
     try {
-      // Write to localStorage first (atomically) - if this fails, state won't update
+      // Persist to localStorage (with error handling for edge cases)
       // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
       localStorage.setItem('accessToken', token)
       // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
       localStorage.setItem('user', JSON.stringify(user))
-
-      // Only update state after successful localStorage write
-      setAccessToken(token)
-      setUser(user)
     } catch (error) {
-      // If localStorage fails (quota exceeded, private mode, etc.), rollback
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-      localStorage.removeItem('accessToken')
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-      localStorage.removeItem('user')
+      // If localStorage fails, log but don't break the login flow
+      // The user is still authenticated in memory for this session
       console.error('Failed to persist auth state to localStorage:', error)
-      throw new Error('Failed to save authentication state')
+      // Note: Not throwing here because the user is already logged in via state
+      // They just won't persist across page reloads
     }
   }
 
