@@ -44,7 +44,8 @@ describe('AuthContext - Atomic localStorage Sync', () => {
       })
 
       // Both localStorage and state should be updated
-      expect(localStorage.getItem('accessToken')).toBe('test-token')
+      // Note: storage wrapper JSON-stringifies all values (including strings)
+      expect(localStorage.getItem('accessToken')).toBe(JSON.stringify('test-token'))
       expect(localStorage.getItem('user')).toBe(JSON.stringify(mockUser))
       expect(result.current.accessToken).toBe('test-token')
       expect(result.current.user).toEqual(mockUser)
@@ -145,10 +146,7 @@ describe('AuthContext - Atomic localStorage Sync', () => {
         throw new Error('Storage access denied')
       })
 
-      // Spy on console.error to verify error is logged
-      const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
-
-      // Logout should not throw
+      // Logout should not throw (storage wrapper handles errors gracefully)
       expect(() =>
         act(() => {
           result.current.logout()
@@ -160,11 +158,8 @@ describe('AuthContext - Atomic localStorage Sync', () => {
       expect(result.current.user).toBeNull()
       expect(result.current.isAuthenticated).toBe(false)
 
-      // Error should be logged
-      expect(consoleErrorSpy).toHaveBeenCalledWith(
-        'Failed to clear localStorage during logout:',
-        expect.any(Error),
-      )
+      // Note: With the typed storage wrapper, errors in removeItem are caught silently
+      // This is by design - logout should always clear state, even if storage is unavailable
 
       vi.restoreAllMocks()
     })
@@ -199,8 +194,8 @@ describe('AuthContext - Atomic localStorage Sync', () => {
 
   describe('initialization from localStorage', () => {
     it('loads valid user and token from localStorage on init', () => {
-      // Pre-populate localStorage
-      localStorage.setItem('accessToken', 'existing-token')
+      // Pre-populate localStorage (storage wrapper expects JSON-stringified values)
+      localStorage.setItem('accessToken', JSON.stringify('existing-token'))
       localStorage.setItem('user', JSON.stringify(mockUser))
 
       const { result } = renderHook(() => useAuth(), { wrapper: AuthProvider })
@@ -212,7 +207,7 @@ describe('AuthContext - Atomic localStorage Sync', () => {
     })
 
     it('rejects invalid user data and clears localStorage', () => {
-      localStorage.setItem('accessToken', 'existing-token')
+      localStorage.setItem('accessToken', JSON.stringify('existing-token'))
       localStorage.setItem('user', JSON.stringify({ invalid: 'data' }))
 
       const { result } = renderHook(() => useAuth(), { wrapper: AuthProvider })
@@ -228,7 +223,7 @@ describe('AuthContext - Atomic localStorage Sync', () => {
     })
 
     it('handles corrupted JSON in localStorage', () => {
-      localStorage.setItem('accessToken', 'existing-token')
+      localStorage.setItem('accessToken', JSON.stringify('existing-token'))
       localStorage.setItem('user', 'not-valid-json{')
 
       const { result } = renderHook(() => useAuth(), { wrapper: AuthProvider })
@@ -254,11 +249,15 @@ describe('AuthContext - Atomic localStorage Sync', () => {
       })
 
       // Simulate another tab updating the token
+      // First update localStorage (simulating the other tab's write)
+      localStorage.setItem('accessToken', JSON.stringify('token-2'))
+
+      // Then trigger the storage event
       act(() => {
         const storageEvent = new StorageEvent('storage', {
           key: 'accessToken',
-          newValue: 'token-2',
-          oldValue: 'token-1',
+          newValue: JSON.stringify('token-2'),
+          oldValue: JSON.stringify('token-1'),
           storageArea: localStorage,
         })
         window.dispatchEvent(storageEvent)
@@ -279,11 +278,15 @@ describe('AuthContext - Atomic localStorage Sync', () => {
       expect(result.current.isAuthenticated).toBe(true)
 
       // Simulate another tab clearing the token
+      // First clear localStorage (simulating the other tab's action)
+      localStorage.removeItem('accessToken')
+
+      // Then trigger the storage event
       act(() => {
         const storageEvent = new StorageEvent('storage', {
           key: 'accessToken',
           newValue: null,
-          oldValue: 'test-token',
+          oldValue: JSON.stringify('test-token'),
           storageArea: localStorage,
         })
         window.dispatchEvent(storageEvent)

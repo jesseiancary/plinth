@@ -1,5 +1,7 @@
 import axios, { type AxiosError, type InternalAxiosRequestConfig } from 'axios'
 
+import { createStorage } from './storage'
+
 // Extend InternalAxiosRequestConfig to include _retry flag
 interface RetryableAxiosRequestConfig extends InternalAxiosRequestConfig {
   _retry?: boolean
@@ -15,6 +17,11 @@ export class RateLimitError extends Error {
     this.retryAfter = retryAfter
   }
 }
+
+// Type-safe localStorage accessor for accessToken
+const tokenStorage = createStorage<string>({
+  key: 'accessToken',
+})
 
 // Token refresh state management
 let isRefreshing = false
@@ -37,8 +44,7 @@ export const api = axios.create({
 // Request interceptor: Add access token to all requests
 api.interceptors.request.use(
   (config) => {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-    const accessToken = localStorage.getItem('accessToken')
+    const accessToken = tokenStorage.get()
     if (accessToken && config.headers) {
       config.headers.Authorization = `Bearer ${accessToken}`
     }
@@ -116,8 +122,7 @@ api.interceptors.response.use(
         const { accessToken } = response.data
 
         // Save new token
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-        localStorage.setItem('accessToken', accessToken)
+        tokenStorage.set(accessToken)
 
         // Notify all queued requests
         onTokenRefreshed(accessToken)
@@ -132,8 +137,7 @@ api.interceptors.response.use(
         // Refresh failed → logout user
         isRefreshing = false
         refreshSubscribers = []
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-        localStorage.removeItem('accessToken')
+        tokenStorage.remove()
         // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
         localStorage.removeItem('user')
         // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
