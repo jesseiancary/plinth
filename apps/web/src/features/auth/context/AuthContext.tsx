@@ -4,6 +4,8 @@ import { z } from 'zod'
 
 import type { components } from '@plinth/types'
 
+import { createStorage, onStorageChange } from '../../../lib/storage'
+
 type User = components['schemas']['User']
 
 // Zod schema for validating user data from localStorage
@@ -12,6 +14,16 @@ const userSchema = z.object({
   email: z.string().email(),
   name: z.string(),
   createdAt: z.string(),
+})
+
+// Type-safe localStorage accessors
+const userStorage = createStorage<User>({
+  key: 'user',
+  schema: userSchema,
+})
+
+const tokenStorage = createStorage<string>({
+  key: 'accessToken',
 })
 
 interface AuthContextValue {
@@ -25,37 +37,8 @@ interface AuthContextValue {
 export const AuthContext = createContext<AuthContextValue | undefined>(undefined)
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(() => {
-    try {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-      const stored = localStorage.getItem('user')
-      if (!stored) {
-        return null
-      }
-
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-      const parsed: unknown = JSON.parse(stored)
-      const result = userSchema.safeParse(parsed)
-
-      if (!result.success) {
-        // Invalid data - remove it from localStorage
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-        localStorage.removeItem('user')
-        return null
-      }
-
-      return result.data
-    } catch {
-      // JSON parse error - remove corrupted data
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-      localStorage.removeItem('user')
-      return null
-    }
-  })
-  const [accessToken, setAccessToken] = useState<string | null>(() =>
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-    localStorage.getItem('accessToken'),
-  )
+  const [user, setUser] = useState<User | null>(() => userStorage.get())
+  const [accessToken, setAccessToken] = useState<string | null>(() => tokenStorage.get())
 
   const login = (token: string, user: User) => {
     // Update state first for immediate UI response
@@ -64,10 +47,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     try {
       // Persist to localStorage (with error handling for edge cases)
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-      localStorage.setItem('accessToken', token)
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-      localStorage.setItem('user', JSON.stringify(user))
+      tokenStorage.set(token)
+      userStorage.set(user)
     } catch (error) {
       // If localStorage fails, log but don't break the login flow
       // The user is still authenticated in memory for this session
@@ -78,84 +59,49 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   const logout = () => {
-    try {
-      // Clear localStorage first (atomically)
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-      localStorage.removeItem('accessToken')
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-      localStorage.removeItem('user')
+    // Clear localStorage first (atomically)
+    // Note: tokenStorage.remove() doesn't throw, so we don't need try/catch here
+    tokenStorage.remove()
+    userStorage.remove()
 
-      // Only update state after successful localStorage clear
-      setAccessToken(null)
-      setUser(null)
-    } catch (error) {
-      // Even if localStorage fails, clear state (user is logging out)
-      setAccessToken(null)
-      setUser(null)
-      console.error('Failed to clear localStorage during logout:', error)
-    }
+    // Update state after localStorage clear
+    setAccessToken(null)
+    setUser(null)
   }
 
   // Synchronize auth state across browser tabs
   useEffect(() => {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-argument
-    const handleStorageChange = (event: StorageEvent) => {
-      // Only respond to localStorage changes from other tabs
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-      if (event.storageArea !== localStorage) {
-        return
-      }
+    // Listen for token changes
+    const unsubscribeToken = onStorageChange(tokenStorage.key, () => {
+      // newValue from onStorageChange is the raw JSON string
+      // Use tokenStorage.get() to parse it properly
+      const token = tokenStorage.get()
+      setAccessToken(token)
 
-      // Handle accessToken changes
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-      if (event.key === 'accessToken') {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-argument
-        setAccessToken(event.newValue)
-      }
-
-      // Handle user changes
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-      if (event.key === 'user') {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-        if (!event.newValue) {
-          setUser(null)
-          return
-        }
-
-        try {
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-member-access
-          const parsed: unknown = JSON.parse(event.newValue)
-          const result = userSchema.safeParse(parsed)
-
-          if (result.success) {
-            setUser(result.data)
-          } else {
-            setUser(null)
-          }
-        } catch {
-          setUser(null)
-        }
-      }
-
-      // If either token or user is cleared, logout completely
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-      if (event.key === 'accessToken' && !event.newValue) {
+      // If token is cleared, logout completely
+      if (!token) {
         setUser(null)
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-        localStorage.removeItem('user')
+        userStorage.remove()
       }
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-      if (event.key === 'user' && !event.newValue) {
-        setAccessToken(null)
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-        localStorage.removeItem('accessToken')
-      }
-    }
+    })
 
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-return
-    window.addEventListener('storage', handleStorageChange)
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-return
-    return () => window.removeEventListener('storage', handleStorageChange)
+    // Listen for user changes
+    const unsubscribeUser = onStorageChange(userStorage.key, () => {
+      // Use userStorage.get() to parse and validate user data
+      const user = userStorage.get()
+      setUser(user)
+
+      // If user is cleared, logout completely
+      if (!user) {
+        setAccessToken(null)
+        tokenStorage.remove()
+      }
+    })
+
+    return () => {
+      unsubscribeToken()
+      unsubscribeUser()
+    }
   }, [])
 
   return (
