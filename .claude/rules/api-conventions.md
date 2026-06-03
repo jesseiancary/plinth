@@ -96,12 +96,55 @@ Roles: `owner | admin | member`
 
 Use the `requireRole()` middleware to enforce permissions.
 
+## Security Headers (A02: Security Misconfiguration)
+
+**CRITICAL:** All HTTP responses MUST include security headers via helmet middleware.
+
+```typescript
+import helmet from 'helmet'
+
+app.use(
+  helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'"],
+        styleSrc: ["'self'"],
+        imgSrc: ["'self'", 'data:', 'https:'],
+        connectSrc: ["'self'"],
+        fontSrc: ["'self'"],
+        objectSrc: ["'none'"],
+        mediaSrc: ["'self'"],
+        frameSrc: ["'none'"],
+      },
+    },
+    hsts: {
+      maxAge: 31536000,
+      includeSubDomains: true,
+      preload: true,
+    },
+    frameguard: { action: 'deny' },
+    noSniff: true,
+    xssFilter: true,
+  }),
+)
+```
+
+**Required Headers:**
+
+- `Content-Security-Policy` - XSS protection
+- `Strict-Transport-Security` - Force HTTPS
+- `X-Frame-Options: DENY` - Clickjacking protection
+- `X-Content-Type-Options: nosniff` - MIME sniffing protection
+- `X-XSS-Protection: 1; mode=block` - Browser XSS filter
+
 ## Response Format
 
 - **Consistent naming:** use camelCase for JSON keys.
 - **ISO 8601 timestamps:** always return dates in UTC.
 - **No null pollution:** prefer omitting keys over setting them to `null`.
 - **Envelope responses** only when pagination metadata is needed.
+- **Security:** NEVER expose stack traces, DB errors, or internal paths in responses.
 
 ## 404 vs 403 Decision Matrix
 

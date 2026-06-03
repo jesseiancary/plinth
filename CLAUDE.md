@@ -303,10 +303,12 @@ This project uses a full `.claude/` directory structure for disciplined AI-assis
 - `.claude/rules/api-conventions.md` — REST design, error shapes, status codes
 - `.claude/rules/testing.md` — test structure, coverage, database reset patterns
 - `.claude/rules/git.md` — conventional commits, branch policy
+- `.claude/rules/security.md` — OWASP Top 10 2025 security controls (A01-A10)
 
 ### Commands (invoke with `/command-name`)
 
-- `/review` — pre-PR checklist: types, tests, OpenAPI sync, security, edge cases
+- `/review` — pre-PR checklist: types, tests, OpenAPI sync, OWASP Top 10 security, edge cases
+- `/security-audit` — comprehensive security audit (OWASP Top 10 2025 + threat modeling)
 - `/add-endpoint` — scaffold a new route: route file + controller + Zod schema + OpenAPI entry +
   test stub
 - `/add-migration` — guided Prisma schema change + migration naming + seed update
@@ -317,10 +319,12 @@ This project uses a full `.claude/` directory structure for disciplined AI-assis
 - `openapi/` — loaded when working on API spec or generating types
 - `prisma/` — loaded when modifying schema or writing migrations
 - `rbac/` — loaded when adding permission-guarded routes or membership logic
+- `security/` — loaded when addressing security vulnerabilities or conducting security reviews
 
 ### Agents (specialized subagents with isolated context)
 
-- `code-reviewer` — security and correctness focused review agent
+- `code-reviewer` — security and correctness focused review agent (OWASP Top 10 2025 enhanced)
+- `security-auditor` — specialized security audit agent (threat modeling, vulnerability analysis)
 - `api-designer` — REST design and OpenAPI spec decisions
 - `db-architect` — schema design, indexing strategy, query optimization
 
@@ -328,6 +332,7 @@ This project uses a full `.claude/` directory structure for disciplined AI-assis
 
 - `validate-types.sh` — runs `tsc --noEmit` before Claude edits TypeScript files
 - `lint-staged.sh` — ESLint + Prettier check triggered pre-commit
+- `security-check.sh` — OWASP Top 10 validation (blocks critical issues, warns on moderate)
 
 ---
 
@@ -369,16 +374,62 @@ Scalar docs are served at `GET /docs` in development and production.
 
 ---
 
-## Security Checklist (for every new endpoint)
+## Security Framework (OWASP Top 10 2025)
 
-- [ ] Is the route behind auth middleware?
-- [ ] Is the `tenantId` sourced from `req.tenantId` (JWT/API key context), never from request body?
-- [ ] Is the role requirement enforced with `requireRole()`?
-- [ ] Are all inputs validated with Zod before touching the database?
-- [ ] Are Prisma queries scoped to the correct `organizationId`?
-- [ ] Does the error response avoid leaking internal details?
-- [ ] Is the endpoint documented in the OpenAPI spec?
-- [ ] Are there integration tests covering the 401, 403, and 404 cases?
+This project implements comprehensive security controls based on the OWASP Top 10 2025 framework with graduated enforcement:
+
+- **🔴 CRITICAL (Block on commit):** A01 Broken Access Control, A02 Security Misconfiguration, A03 Supply Chain Failures
+- **🟡 MODERATE (Warn on commit):** A04 Cryptographic Failures, A05 Injection, A07 Authentication Failures
+- **🔵 ADVISORY (Guidance only):** A06 Insecure Design, A08 Data Integrity, A09 Logging/Alerting, A10 Exception Handling
+
+### Security Workflow Integration
+
+**Always Active:**
+
+- `.claude/rules/security.md` — Enforced during all development activities
+- `.claude/hooks/security-check.sh` — Pre-commit validation blocks critical issues
+- `.claude/agents/code-reviewer.json` — Enhanced with OWASP Top 10 focus
+
+**On-Demand:**
+
+- `/security-audit` command — Deep security review of entire codebase
+- `security-auditor` agent — Specialized threat modeling and vulnerability analysis
+- `.claude/skills/security/` — Comprehensive OWASP Top 10 guidance (auto-loaded for security tasks)
+
+### Security Checklist (for every new endpoint)
+
+**Access Control (A01 - CRITICAL):**
+
+- [ ] Route protected with `authenticate` middleware
+- [ ] `tenantId` sourced from `req.tenantId` (JWT/API key), NEVER from request body/query
+- [ ] Role requirement enforced with `requireRole()` middleware
+- [ ] Prisma queries scoped to `organizationId` where applicable
+- [ ] Horizontal privilege escalation prevented (user A cannot access user B's resources)
+- [ ] 404 vs 403 pattern followed (don't leak org existence to non-members)
+
+**Input Validation (A05 - MODERATE):**
+
+- [ ] All inputs validated with Zod before database operations
+- [ ] No `$queryRawUnsafe` or `$executeRawUnsafe` usage
+- [ ] No `dangerouslySetInnerHTML` without DOMPurify sanitization
+
+**Configuration (A02 - CRITICAL):**
+
+- [ ] Error responses sanitized (no stack traces, internal paths, or sensitive data)
+- [ ] Security headers configured (helmet middleware)
+- [ ] No hardcoded secrets in code
+
+**Testing:**
+
+- [ ] Integration tests covering 401, 403, 404 cases
+- [ ] Horizontal escalation test (access another user's resource)
+- [ ] RBAC edge case tests (owner protection, last owner, etc.)
+
+**Documentation:**
+
+- [ ] Endpoint documented in OpenAPI spec
+- [ ] Required role documented
+- [ ] Security considerations noted (if any)
 
 ---
 

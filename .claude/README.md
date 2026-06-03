@@ -45,7 +45,8 @@ development.
 Rules are always loaded and enforced during development:
 
 - **code-style.md** — TypeScript strict mode, const-only, named exports, type safety
-- **api-conventions.md** — REST design, status codes, error shapes, tenant isolation
+- **api-conventions.md** — REST design, status codes, error shapes, tenant isolation, security headers
+- **security.md** — OWASP Top 10 2025 security controls (A01-A10, graduated enforcement)
 - **frontend.md** — React patterns, feature-based structure, TanStack Query, Tailwind CSS
 - **testing.md** — Integration-first, database reset patterns, coverage requirements
 - **git.md** — Conventional commits, branch naming, PR workflow
@@ -56,7 +57,8 @@ Slash commands provide repeatable workflows:
 
 **Backend:**
 
-- `/review` — Pre-PR checklist: types, tests, OpenAPI sync, security, edge cases, frontend checks
+- `/review` — Pre-PR checklist: types, tests, OpenAPI sync, OWASP Top 10 security, edge cases
+- `/security-audit` — Comprehensive security audit (OWASP Top 10 2025 + threat modeling)
 - `/review-dx` — Developer experience review: API design, docs quality, error messages
 - `/add-endpoint` — Scaffold new API route: controller + schema + OpenAPI + tests
 - `/add-migration` — Prisma schema change workflow with validation
@@ -80,6 +82,7 @@ Skills are automatically loaded based on task context:
 - **openapi/** — API spec structure, type generation, documentation patterns
 - **prisma/** — Schema design, migrations, database queries, indexing
 - **rbac/** — Permissions, roles, membership logic, tenant isolation
+- **security/** — OWASP Top 10 2025 guidance, vulnerability prevention, threat modeling
 
 **Frontend:**
 
@@ -92,7 +95,8 @@ Agents are invoked for specific domains requiring isolated context:
 
 **Backend:**
 
-- **code-reviewer** — Security and correctness (tenant isolation, auth, input validation)
+- **code-reviewer** — Security and correctness (OWASP Top 10 2025 focus, tenant isolation, auth)
+- **security-auditor** — Comprehensive vulnerability assessment and threat modeling (OWASP Top 10 2025)
 - **api-designer** — REST design decisions and OpenAPI spec guidance
 - **db-architect** — Schema design, indexing strategy, query optimization
 - **test-architect** — Test strategy, coverage analysis, test quality
@@ -108,6 +112,7 @@ Hooks run in response to specific events:
 - **validate-types.sh** — Runs `tsc --noEmit` before Claude edits TypeScript files
 - **lint-staged.sh** — ESLint + Prettier on staged files before commit
 - **validate-openapi.sh** — Validates OpenAPI spec and ensures types are regenerated
+- **security-check.sh** — OWASP Top 10 validation (blocks critical issues, warns on moderate)
 
 All hooks are executable shell scripts that return exit code 0 for success.
 
