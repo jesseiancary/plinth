@@ -6,6 +6,7 @@ import { AppError } from '../lib/errors.js'
 import { signAccessToken, signRefreshToken, verifyRefreshToken } from '../lib/jwt.js'
 import { hashPassword, verifyPassword } from '../lib/password.js'
 import { prisma } from '../lib/prisma.js'
+import { rateLimitConfig } from '../lib/security.js'
 import { generateUniqueSlug } from '../lib/slug.js'
 import { loginSchema, registerSchema } from '../lib/validation/auth.js'
 import { requireAuth } from '../middleware/auth.js'
@@ -18,6 +19,7 @@ const router = Router()
  */
 router.post(
   '/register',
+  rateLimitConfig.authEndpoints,
   asyncHandler(async (req: Request, res: Response) => {
     try {
       const body = registerSchema.parse(req.body)
@@ -112,6 +114,7 @@ router.post(
  */
 router.post(
   '/login',
+  rateLimitConfig.authEndpoints,
   asyncHandler(async (req: Request, res: Response) => {
     try {
       const body = loginSchema.parse(req.body)
@@ -180,6 +183,7 @@ router.post(
  */
 router.post(
   '/refresh',
+  rateLimitConfig.apiEndpoints,
   asyncHandler(async (req: Request, res: Response) => {
     try {
       const { refreshToken } = req.cookies as { refreshToken?: string }

@@ -6,10 +6,11 @@ import { apiReference } from '@scalar/express-api-reference'
 import cookieParser from 'cookie-parser'
 import cors from 'cors'
 import express from 'express'
-import { rateLimit } from 'express-rate-limit'
 import helmet from 'helmet'
 import morgan from 'morgan'
 
+import { TIME } from './lib/constants.js'
+import { corsConfig, getHelmetConfig, rateLimitConfig } from './lib/security.js'
 import { authenticateJWT } from './middleware/auth.js'
 import { errorHandler } from './middleware/error-handler.js'
 import { notFound } from './middleware/not-found.js'
@@ -28,25 +29,33 @@ const currentDir = dirname(filename)
 const app = express()
 
 // Security middleware
-app.use(
-  helmet({
-    contentSecurityPolicy: false, // Disable for Scalar docs
-  }),
-)
+app.use(helmet(getHelmetConfig()))
+
+const allowedOrigins: string[] =
+  process.env.NODE_ENV === 'production' ? corsConfig.production : corsConfig.development
+
 app.use(
   cors({
-    origin: process.env.APP_URL || 'http://localhost:5173',
-    credentials: true,
+    origin: (origin, callback) => {
+      // Allow requests with no origin (mobile apps, Postman, curl)
+      if (!origin) {
+        return callback(null, true)
+      }
+
+      if (allowedOrigins.includes(origin)) {
+        callback(null, true)
+      } else {
+        callback(new Error('Not allowed by CORS'))
+      }
+    },
+    credentials: true, // Allow cookies
+    exposedHeaders: ['X-Total-Count', 'X-Next-Cursor'], // Expose pagination headers
+    maxAge: TIME.ONE_DAY_SEC,
   }),
 )
 
 // Rate limiting
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // Limit each IP to 100 requests per windowMs
-  standardHeaders: true,
-  legacyHeaders: false,
-})
+const limiter = rateLimitConfig.apiEndpoints
 app.use('/api', limiter)
 
 // Body parsing middleware
