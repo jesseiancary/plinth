@@ -1,7 +1,5 @@
 import axios, { type AxiosError, type InternalAxiosRequestConfig } from 'axios'
 
-import { createStorage } from './storage'
-
 // Extend InternalAxiosRequestConfig to include _retry flag
 interface RetryableAxiosRequestConfig extends InternalAxiosRequestConfig {
   _retry?: boolean
@@ -18,10 +16,12 @@ export class RateLimitError extends Error {
   }
 }
 
-// Type-safe localStorage accessor for accessToken
-const tokenStorage = createStorage<string>({
-  key: 'accessToken',
-})
+// Access token getter - will be provided by AuthContext
+// This avoids circular dependency while keeping token in memory
+let getAccessTokenFn: (() => string | null) | null = null
+export const setAccessTokenGetter = (fn: () => string | null) => {
+  getAccessTokenFn = fn
+}
 
 // Token refresh state management
 let isRefreshing = false
@@ -36,6 +36,13 @@ function onTokenRefreshed(token: string) {
   refreshSubscribers = []
 }
 
+// Token refresh callback - called when token is refreshed
+// AuthContext will register this callback to update its state
+let onTokenRefreshedCallback: ((token: string) => void) | null = null
+export const setTokenRefreshCallback = (callback: (token: string) => void) => {
+  onTokenRefreshedCallback = callback
+}
+
 export const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL,
   withCredentials: true, // Send httpOnly cookies for refresh token
@@ -44,7 +51,8 @@ export const api = axios.create({
 // Request interceptor: Add access token to all requests
 api.interceptors.request.use(
   (config) => {
-    const accessToken = tokenStorage.get()
+    // Get token from memory via AuthContext getter
+    const accessToken = getAccessTokenFn?.()
     if (accessToken && config.headers) {
       config.headers.Authorization = `Bearer ${accessToken}`
     }
@@ -121,8 +129,10 @@ api.interceptors.response.use(
 
         const { accessToken } = response.data
 
-        // Save new token
-        tokenStorage.set(accessToken)
+        // Notify AuthContext to update token in memory
+        if (onTokenRefreshedCallback) {
+          onTokenRefreshedCallback(accessToken)
+        }
 
         // Notify all queued requests
         onTokenRefreshed(accessToken)
@@ -137,7 +147,8 @@ api.interceptors.response.use(
         // Refresh failed → logout user
         isRefreshing = false
         refreshSubscribers = []
-        tokenStorage.remove()
+
+        // Clear user data and redirect to login
         // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
         localStorage.removeItem('user')
         // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access

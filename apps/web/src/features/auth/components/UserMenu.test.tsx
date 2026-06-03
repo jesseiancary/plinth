@@ -28,6 +28,7 @@ const createWrapper = (user: User | null = mockUser) => {
   const authValue = {
     user,
     accessToken: user ? 'test-token' : null,
+    isInitializing: false,
     login: vi.fn(),
     logout: mockLogout,
     isAuthenticated: !!user,

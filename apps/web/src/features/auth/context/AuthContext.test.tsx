@@ -3,9 +3,12 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
 import { act, renderHook, waitFor } from '@testing-library/react'
+import type { Mock } from 'vitest'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type { components } from '@plinth/types'
+
+import { api } from '../../../lib/api-client'
 
 import { AuthProvider, useAuth } from './AuthContext'
 
@@ -18,7 +21,16 @@ const mockUser: User = {
   createdAt: new Date().toISOString(),
 }
 
-describe('AuthContext - Atomic localStorage Sync', () => {
+// Mock the api module
+vi.mock('../../../lib/api-client', () => ({
+  api: {
+    post: vi.fn(),
+  },
+  setAccessTokenGetter: vi.fn(),
+  setTokenRefreshCallback: vi.fn(),
+}))
+
+describe('AuthContext - Memory-Based Token Storage (XSS Protection)', () => {
   beforeEach(() => {
     // Clear localStorage before each test
     localStorage.clear()
@@ -29,8 +41,58 @@ describe('AuthContext - Atomic localStorage Sync', () => {
     localStorage.clear()
   })
 
+  describe('XSS Protection', () => {
+    it('should NOT store access token in localStorage (security requirement)', () => {
+      const { result } = renderHook(() => useAuth(), { wrapper: AuthProvider })
+
+      // Login
+      act(() => {
+        result.current.login('test-token', mockUser)
+      })
+
+      // Access token should NOT be in localStorage (XSS protection)
+      expect(localStorage.getItem('accessToken')).toBeNull()
+
+      // But should be in memory
+      expect(result.current.accessToken).toBe('test-token')
+      expect(result.current.isAuthenticated).toBe(true)
+    })
+
+    it('should store user profile in localStorage (non-sensitive data)', () => {
+      const { result } = renderHook(() => useAuth(), { wrapper: AuthProvider })
+
+      // Login
+      act(() => {
+        result.current.login('test-token', mockUser)
+      })
+
+      // User profile is safe to store (no sensitive credentials)
+      expect(localStorage.getItem('user')).toBe(JSON.stringify(mockUser))
+      expect(result.current.user).toEqual(mockUser)
+    })
+
+    it('should clear access token from memory on logout', () => {
+      const { result } = renderHook(() => useAuth(), { wrapper: AuthProvider })
+
+      // Login
+      act(() => {
+        result.current.login('test-token', mockUser)
+      })
+      expect(result.current.accessToken).toBe('test-token')
+
+      // Logout
+      act(() => {
+        result.current.logout()
+      })
+
+      // Access token should be cleared from memory
+      expect(result.current.accessToken).toBeNull()
+      expect(result.current.isAuthenticated).toBe(false)
+    })
+  })
+
   describe('login', () => {
-    it('writes to localStorage before updating state', () => {
+    it('stores token in memory and user in localStorage', () => {
       const { result } = renderHook(() => useAuth(), { wrapper: AuthProvider })
 
       // Initially not authenticated
@@ -43,11 +105,12 @@ describe('AuthContext - Atomic localStorage Sync', () => {
         result.current.login('test-token', mockUser)
       })
 
-      // Both localStorage and state should be updated
-      // Note: storage wrapper JSON-stringifies all values (including strings)
-      expect(localStorage.getItem('accessToken')).toBe(JSON.stringify('test-token'))
-      expect(localStorage.getItem('user')).toBe(JSON.stringify(mockUser))
+      // Token in memory only
+      expect(localStorage.getItem('accessToken')).toBeNull()
       expect(result.current.accessToken).toBe('test-token')
+
+      // User in localStorage
+      expect(localStorage.getItem('user')).toBe(JSON.stringify(mockUser))
       expect(result.current.user).toEqual(mockUser)
       expect(result.current.isAuthenticated).toBe(true)
     })
@@ -75,42 +138,19 @@ describe('AuthContext - Atomic localStorage Sync', () => {
 
       // Error should be logged
       expect(consoleErrorSpy).toHaveBeenCalledWith(
-        'Failed to persist auth state to localStorage:',
+        'Failed to persist user profile to localStorage:',
         expect.any(Error),
       )
 
       // localStorage won't have the data (but that's OK - session-only login)
-      expect(localStorage.getItem('accessToken')).toBeNull()
       expect(localStorage.getItem('user')).toBeNull()
-
-      vi.restoreAllMocks()
-    })
-
-    it('maintains atomicity: both token and user are written together', () => {
-      const { result } = renderHook(() => useAuth(), { wrapper: AuthProvider })
-
-      // Track localStorage.setItem calls
-      const setItemCalls: Array<{ key: string; value: string }> = []
-      vi.spyOn(Storage.prototype, 'setItem').mockImplementation((key, value) => {
-        setItemCalls.push({ key, value })
-        localStorage[key] = value
-      })
-
-      act(() => {
-        result.current.login('test-token', mockUser)
-      })
-
-      // Both should be written before state update
-      expect(setItemCalls).toHaveLength(2)
-      expect(setItemCalls[0].key).toBe('accessToken')
-      expect(setItemCalls[1].key).toBe('user')
 
       vi.restoreAllMocks()
     })
   })
 
   describe('logout', () => {
-    it('clears localStorage before updating state', () => {
+    it('clears token from memory and user from localStorage', () => {
       const { result } = renderHook(() => useAuth(), { wrapper: AuthProvider })
 
       // Login first
@@ -124,187 +164,77 @@ describe('AuthContext - Atomic localStorage Sync', () => {
         result.current.logout()
       })
 
-      // Both localStorage and state should be cleared
-      expect(localStorage.getItem('accessToken')).toBeNull()
+      // Token cleared from memory
+      expect(result.current.accessToken).toBeNull()
+
+      // User cleared from localStorage
       expect(localStorage.getItem('user')).toBeNull()
-      expect(result.current.accessToken).toBeNull()
       expect(result.current.user).toBeNull()
       expect(result.current.isAuthenticated).toBe(false)
-    })
-
-    it('still clears state even if localStorage fails', () => {
-      const { result } = renderHook(() => useAuth(), { wrapper: AuthProvider })
-
-      // Login first
-      act(() => {
-        result.current.login('test-token', mockUser)
-      })
-      expect(result.current.isAuthenticated).toBe(true)
-
-      // Mock localStorage.removeItem to fail
-      vi.spyOn(Storage.prototype, 'removeItem').mockImplementation(() => {
-        throw new Error('Storage access denied')
-      })
-
-      // Logout should not throw (storage wrapper handles errors gracefully)
-      expect(() =>
-        act(() => {
-          result.current.logout()
-        }),
-      ).not.toThrow()
-
-      // State should be cleared (user intent is to log out)
-      expect(result.current.accessToken).toBeNull()
-      expect(result.current.user).toBeNull()
-      expect(result.current.isAuthenticated).toBe(false)
-
-      // Note: With the typed storage wrapper, errors in removeItem are caught silently
-      // This is by design - logout should always clear state, even if storage is unavailable
-
-      vi.restoreAllMocks()
-    })
-
-    it('maintains atomicity: both token and user are removed together', () => {
-      const { result } = renderHook(() => useAuth(), { wrapper: AuthProvider })
-
-      // Login first
-      act(() => {
-        result.current.login('test-token', mockUser)
-      })
-
-      // Track localStorage.removeItem calls
-      const removeItemCalls: string[] = []
-      vi.spyOn(Storage.prototype, 'removeItem').mockImplementation((key) => {
-        removeItemCalls.push(key)
-        delete localStorage[key]
-      })
-
-      act(() => {
-        result.current.logout()
-      })
-
-      // Both should be removed before state update
-      expect(removeItemCalls).toHaveLength(2)
-      expect(removeItemCalls).toContain('accessToken')
-      expect(removeItemCalls).toContain('user')
-
-      vi.restoreAllMocks()
     })
   })
 
   describe('initialization from localStorage', () => {
-    it('loads valid user and token from localStorage on init', () => {
-      // Pre-populate localStorage (storage wrapper expects JSON-stringified values)
-      localStorage.setItem('accessToken', JSON.stringify('existing-token'))
+    it('attempts auto-refresh when user exists but no token', async () => {
+      // Pre-populate localStorage with user (but no token)
       localStorage.setItem('user', JSON.stringify(mockUser))
+
+      // Mock successful refresh
+      ;(api.post as Mock).mockResolvedValueOnce({ accessToken: 'refreshed-token' })
 
       const { result } = renderHook(() => useAuth(), { wrapper: AuthProvider })
 
-      // Should initialize with stored values
-      expect(result.current.accessToken).toBe('existing-token')
+      // Should be initializing
+      expect(result.current.isInitializing).toBe(true)
+
+      // Wait for auto-refresh to complete
+      await waitFor(() => {
+        expect(result.current.isInitializing).toBe(false)
+      })
+
+      // Should have refreshed token
+      expect((api.post as Mock).mock.calls[0]).toEqual(['/api/v1/auth/refresh'])
+      expect(result.current.accessToken).toBe('refreshed-token')
       expect(result.current.user).toEqual(mockUser)
       expect(result.current.isAuthenticated).toBe(true)
     })
 
-    it('rejects invalid user data and clears localStorage', () => {
-      localStorage.setItem('accessToken', JSON.stringify('existing-token'))
-      localStorage.setItem('user', JSON.stringify({ invalid: 'data' }))
+    it('clears stale user when refresh fails', async () => {
+      // Pre-populate localStorage with user
+      localStorage.setItem('user', JSON.stringify(mockUser))
+
+      // Mock failed refresh
+      ;(api.post as Mock).mockRejectedValueOnce(new Error('Unauthorized'))
 
       const { result } = renderHook(() => useAuth(), { wrapper: AuthProvider })
 
-      // Should not load invalid user
-      expect(result.current.user).toBeNull()
-      // Token is still present, so isAuthenticated is true (token-based)
-      expect(result.current.accessToken).toBe('existing-token')
-      expect(result.current.isAuthenticated).toBe(true)
+      // Wait for initialization to complete
+      await waitFor(() => {
+        expect(result.current.isInitializing).toBe(false)
+      })
 
-      // Should clean up invalid data
+      // Should have cleared stale user data
+      expect(result.current.user).toBeNull()
+      expect(result.current.accessToken).toBeNull()
+      expect(result.current.isAuthenticated).toBe(false)
       expect(localStorage.getItem('user')).toBeNull()
     })
 
-    it('handles corrupted JSON in localStorage', () => {
-      localStorage.setItem('accessToken', JSON.stringify('existing-token'))
-      localStorage.setItem('user', 'not-valid-json{')
-
+    it('completes initialization immediately when no user in localStorage', async () => {
       const { result } = renderHook(() => useAuth(), { wrapper: AuthProvider })
 
-      // Should not crash
-      expect(result.current.user).toBeNull()
-      // Token is still present, so isAuthenticated is true (token-based)
-      expect(result.current.accessToken).toBe('existing-token')
-      expect(result.current.isAuthenticated).toBe(true)
+      // Should complete initialization without refresh attempt
+      await waitFor(() => {
+        expect(result.current.isInitializing).toBe(false)
+      })
 
-      // Should clean up corrupted data
-      expect(localStorage.getItem('user')).toBeNull()
+      expect((api.post as Mock).mock.calls.length).toBe(0)
+      expect(result.current.isAuthenticated).toBe(false)
     })
   })
 
   describe('cross-tab synchronization', () => {
-    it('updates state when accessToken changes in another tab', async () => {
-      const { result } = renderHook(() => useAuth(), { wrapper: AuthProvider })
-
-      // Login
-      act(() => {
-        result.current.login('token-1', mockUser)
-      })
-
-      // Simulate another tab updating the token
-      // First update localStorage (simulating the other tab's write)
-      localStorage.setItem('accessToken', JSON.stringify('token-2'))
-
-      // Then trigger the storage event
-      act(() => {
-        const storageEvent = new StorageEvent('storage', {
-          key: 'accessToken',
-          newValue: JSON.stringify('token-2'),
-          oldValue: JSON.stringify('token-1'),
-          storageArea: localStorage,
-        })
-        window.dispatchEvent(storageEvent)
-      })
-
-      await waitFor(() => {
-        expect(result.current.accessToken).toBe('token-2')
-      })
-    })
-
-    it('logs out when accessToken is cleared in another tab', async () => {
-      const { result } = renderHook(() => useAuth(), { wrapper: AuthProvider })
-
-      // Login
-      act(() => {
-        result.current.login('test-token', mockUser)
-      })
-      expect(result.current.isAuthenticated).toBe(true)
-
-      // Simulate another tab clearing the token
-      // First clear localStorage (simulating the other tab's action)
-      localStorage.removeItem('accessToken')
-
-      // Then trigger the storage event
-      act(() => {
-        const storageEvent = new StorageEvent('storage', {
-          key: 'accessToken',
-          newValue: null,
-          oldValue: JSON.stringify('test-token'),
-          storageArea: localStorage,
-        })
-        window.dispatchEvent(storageEvent)
-      })
-
-      await waitFor(() => {
-        expect(result.current.accessToken).toBeNull()
-        expect(result.current.user).toBeNull()
-        expect(result.current.isAuthenticated).toBe(false)
-      })
-
-      // User should also be cleared from localStorage
-      expect(localStorage.getItem('user')).toBeNull()
-    })
-
-    // Note: This test has known timing issues in jsdom due to async storage event handling
-    // The implementation is correct but the test environment has limitations
-    it.skip('logs out when user is cleared in another tab', async () => {
+    it('logs out when user is cleared in another tab', async () => {
       const { result } = renderHook(() => useAuth(), { wrapper: AuthProvider })
 
       // Login
@@ -314,6 +244,9 @@ describe('AuthContext - Atomic localStorage Sync', () => {
       expect(result.current.isAuthenticated).toBe(true)
 
       // Simulate another tab clearing the user
+      localStorage.removeItem('user')
+
+      // Trigger storage event
       act(() => {
         const storageEvent = new StorageEvent('storage', {
           key: 'user',
@@ -324,25 +257,48 @@ describe('AuthContext - Atomic localStorage Sync', () => {
         window.dispatchEvent(storageEvent)
       })
 
-      // User should be cleared first (happens on line 123 of implementation)
-      await waitFor(
-        () => {
-          expect(result.current.user).toBeNull()
-        },
-        { timeout: 1000 },
+      await waitFor(() => {
+        expect(result.current.user).toBeNull()
+        expect(result.current.accessToken).toBeNull()
+        expect(result.current.isAuthenticated).toBe(false)
+      })
+    })
+  })
+
+  describe('initialization state', () => {
+    it('starts with isInitializing: true when user exists in localStorage', () => {
+      // Set user in localStorage to trigger async initialization
+      localStorage.setItem('user', JSON.stringify(mockUser))
+      ;(api.post as Mock).mockImplementation(
+        () => new Promise(() => {}), // Never resolve to keep initializing
       )
 
-      // Then accessToken should be cleared (happens on line 151 of implementation)
-      await waitFor(
-        () => {
-          expect(result.current.accessToken).toBeNull()
-          expect(result.current.isAuthenticated).toBe(false)
-        },
-        { timeout: 3000 },
-      )
+      const { result } = renderHook(() => useAuth(), { wrapper: AuthProvider })
 
-      // Token should also be cleared from localStorage
-      expect(localStorage.getItem('accessToken')).toBeNull()
+      // Should be initializing on mount (and stay that way since we never resolve)
+      expect(result.current.isInitializing).toBe(true)
+    })
+
+    it('sets isInitializing: false after auto-refresh completes', async () => {
+      localStorage.setItem('user', JSON.stringify(mockUser))
+      ;(api.post as Mock).mockResolvedValueOnce({ accessToken: 'refreshed-token' })
+
+      const { result } = renderHook(() => useAuth(), { wrapper: AuthProvider })
+
+      await waitFor(() => {
+        expect(result.current.isInitializing).toBe(false)
+      })
+    })
+
+    it('sets isInitializing: false even when refresh fails', async () => {
+      localStorage.setItem('user', JSON.stringify(mockUser))
+      ;(api.post as Mock).mockRejectedValueOnce(new Error('Unauthorized'))
+
+      const { result } = renderHook(() => useAuth(), { wrapper: AuthProvider })
+
+      await waitFor(() => {
+        expect(result.current.isInitializing).toBe(false)
+      })
     })
   })
 })

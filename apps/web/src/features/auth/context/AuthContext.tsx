@@ -4,6 +4,11 @@ import { z } from 'zod'
 
 import type { components } from '@plinth/types'
 
+import {
+  api,
+  setAccessTokenGetter,
+  setTokenRefreshCallback as setApiTokenRefreshCallback,
+} from '../../../lib/api-client'
 import { createStorage, onStorageChange } from '../../../lib/storage'
 
 type User = components['schemas']['User']
@@ -16,19 +21,17 @@ const userSchema = z.object({
   createdAt: z.string(),
 })
 
-// Type-safe localStorage accessors
+// Type-safe localStorage accessor for user profile (non-sensitive data)
+// Access token is stored in memory only (React state) for XSS protection
 const userStorage = createStorage<User>({
   key: 'user',
   schema: userSchema,
 })
 
-const tokenStorage = createStorage<string>({
-  key: 'accessToken',
-})
-
 interface AuthContextValue {
   user: User | null
   accessToken: string | null
+  isInitializing: boolean
   login: (token: string, user: User) => void
   logout: () => void
   isAuthenticated: boolean
@@ -38,68 +41,85 @@ export const AuthContext = createContext<AuthContextValue | undefined>(undefined
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(() => userStorage.get())
-  const [accessToken, setAccessToken] = useState<string | null>(() => tokenStorage.get())
+  const [accessToken, setAccessToken] = useState<string | null>(null)
+  const [isInitializing, setIsInitializing] = useState(true)
 
   const login = (token: string, user: User) => {
-    // Update state first for immediate UI response
+    // Update access token in memory only (XSS protection)
     setAccessToken(token)
     setUser(user)
 
     try {
-      // Persist to localStorage (with error handling for edge cases)
-      tokenStorage.set(token)
+      // Persist only user profile to localStorage (non-sensitive data)
+      // Access token is NOT persisted - it lives in memory only
       userStorage.set(user)
     } catch (error) {
       // If localStorage fails, log but don't break the login flow
-      // The user is still authenticated in memory for this session
-      console.error('Failed to persist auth state to localStorage:', error)
-      // Note: Not throwing here because the user is already logged in via state
-      // They just won't persist across page reloads
+      console.error('Failed to persist user profile to localStorage:', error)
     }
   }
 
   const logout = () => {
-    // Clear localStorage first (atomically)
-    // Note: tokenStorage.remove() doesn't throw, so we don't need try/catch here
-    tokenStorage.remove()
-    userStorage.remove()
-
-    // Update state after localStorage clear
+    // Clear memory token and localStorage user
     setAccessToken(null)
+    userStorage.remove()
     setUser(null)
   }
 
-  // Synchronize auth state across browser tabs
+  // Register token getter with api-client (runs once on mount)
   useEffect(() => {
-    // Listen for token changes
-    const unsubscribeToken = onStorageChange(tokenStorage.key, () => {
-      // newValue from onStorageChange is the raw JSON string
-      // Use tokenStorage.get() to parse it properly
-      const token = tokenStorage.get()
-      setAccessToken(token)
+    setAccessTokenGetter(() => accessToken)
+  }, [accessToken])
 
-      // If token is cleared, logout completely
-      if (!token) {
-        setUser(null)
-        userStorage.remove()
+  // Auto-refresh on mount: if user exists but no token, attempt refresh via httpOnly cookie
+  useEffect(() => {
+    const initAuth = async () => {
+      const storedUser = userStorage.get()
+
+      // If user profile exists but no token, attempt auto-refresh
+      if (storedUser && !accessToken) {
+        try {
+          // Call refresh endpoint - uses httpOnly refresh cookie automatically
+          // Note: api response interceptor unwraps response.data automatically
+          const data = (await api.post('/api/v1/auth/refresh')) as unknown as {
+            accessToken: string
+          }
+          setAccessToken(data.accessToken)
+          setUser(storedUser)
+        } catch {
+          // Refresh failed - clear stale user data and require re-login
+          userStorage.remove()
+          setUser(null)
+        }
       }
-    })
 
-    // Listen for user changes
+      setIsInitializing(false)
+    }
+
+    void initAuth() // Intentionally not awaited - runs in background
+  }, []) // Run only on mount
+
+  // Set up token refresh callback for api-client
+  useEffect(() => {
+    setApiTokenRefreshCallback((newToken: string) => {
+      setAccessToken(newToken)
+    })
+  }, [])
+
+  // Synchronize auth state across browser tabs (user logout only)
+  useEffect(() => {
+    // Listen for user changes in other tabs
     const unsubscribeUser = onStorageChange(userStorage.key, () => {
-      // Use userStorage.get() to parse and validate user data
       const user = userStorage.get()
       setUser(user)
 
-      // If user is cleared, logout completely
+      // If user is cleared in another tab, logout completely
       if (!user) {
         setAccessToken(null)
-        tokenStorage.remove()
       }
     })
 
     return () => {
-      unsubscribeToken()
       unsubscribeUser()
     }
   }, [])
@@ -109,6 +129,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       value={{
         user,
         accessToken,
+        isInitializing,
         login,
         logout,
         isAuthenticated: !!accessToken,
