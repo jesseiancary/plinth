@@ -385,3 +385,29 @@ describe('GET /api/v1/auth/me', () => {
     expect(response.body.error.code).toBe('UNAUTHENTICATED')
   })
 })
+
+describe('Security Headers', () => {
+  it('sets security headers on all responses', async () => {
+    const response = await request(app).get('/api/v1/auth/me')
+
+    // Helmet sets these security headers
+    expect(response.headers['x-dns-prefetch-control']).toBeDefined()
+    expect(response.headers['x-frame-options']).toBeDefined()
+    expect(response.headers['x-content-type-options']).toBeDefined()
+    expect(response.headers['x-xss-protection']).toBeDefined()
+  })
+
+  it('does not set HSTS in test/dev environment', async () => {
+    const response = await request(app).get('/api/v1/auth/me')
+
+    // HSTS should not be set in development/test
+    expect(response.headers['strict-transport-security']).toBeUndefined()
+  })
+
+  it('does not set CSP in test/dev environment', async () => {
+    const response = await request(app).get('/api/v1/auth/me')
+
+    // CSP should be disabled in development/test for easier debugging
+    expect(response.headers['content-security-policy']).toBeUndefined()
+  })
+})
