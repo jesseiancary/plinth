@@ -20,7 +20,7 @@ export async function createTestUser(data?: { email?: string; password?: string;
   const { generateUniqueSlug } = await import('./slug.js')
 
   const email = data?.email ?? 'test@example.com'
-  const password = data?.password ?? 'password123'
+  const password = data?.password ?? 'P@ssword123'
   const name = data?.name ?? 'Test User'
 
   const passwordHash = await hashPassword(password)

@@ -21,6 +21,7 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
+    "@plinth/validation": "workspace:*",
     "@prisma/client": "^5.8.1",
     "@scalar/express-api-reference": "^0.3.23",
     "bcrypt": "^5.1.1",

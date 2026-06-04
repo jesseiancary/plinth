@@ -44,6 +44,9 @@ importers:
 
   apps/api:
     dependencies:
+      '@plinth/validation':
+        specifier: workspace:*
+        version: link:../../packages/validation
       '@prisma/client':
         specifier: ^5.8.1
         version: 5.22.0(prisma@5.22.0)
@@ -126,6 +129,9 @@ importers:
       '@plinth/types':
         specifier: workspace:*
         version: link:../../packages/types
+      '@plinth/validation':
+        specifier: workspace:*
+        version: link:../../packages/validation
       '@tanstack/react-query':
         specifier: ^5.100.14
         version: 5.100.14(react@19.2.6)
@@ -204,6 +210,12 @@ importers:
         version: 6.7.6
 
   packages/types: {}
+
+  packages/validation:
+    dependencies:
+      zod:
+        specifier: ^3.22.4
+        version: 3.25.76
 
 packages:
 
