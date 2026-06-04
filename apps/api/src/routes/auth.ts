@@ -1,6 +1,8 @@
 import type { Request, Response } from 'express'
 import { Router } from 'express'
 
+import { loginSchema, registerSchema } from '@plinth/validation'
+
 import { asyncHandler } from '../lib/async-handler.js'
 import { AppError } from '../lib/errors.js'
 import { signAccessToken, signRefreshToken, verifyRefreshToken } from '../lib/jwt.js'
@@ -8,7 +10,6 @@ import { hashPassword, verifyPassword } from '../lib/password.js'
 import { prisma } from '../lib/prisma.js'
 import { rateLimitConfig } from '../lib/security.js'
 import { generateUniqueSlug } from '../lib/slug.js'
-import { loginSchema, registerSchema } from '../lib/validation/auth.js'
 import { requireAuth } from '../middleware/auth.js'
 
 const router = Router()

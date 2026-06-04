@@ -17,7 +17,7 @@ describe('POST /api/v1/auth/register', () => {
   it('creates a new user and returns access token', async () => {
     const response = await request(app).post('/api/v1/auth/register').send({
       email: 'newuser@example.com',
-      password: 'securePassword123',
+      password: 'SecureP@ss123',
       name: 'New User',
     })
 
@@ -33,7 +33,7 @@ describe('POST /api/v1/auth/register', () => {
   it('sets refresh token as httpOnly cookie', async () => {
     const response = await request(app).post('/api/v1/auth/register').send({
       email: 'newuser@example.com',
-      password: 'securePassword123',
+      password: 'SecureP@ss123',
       name: 'New User',
     })
 
@@ -48,7 +48,7 @@ describe('POST /api/v1/auth/register', () => {
   it('creates personal organization for new user', async () => {
     const response = await request(app).post('/api/v1/auth/register').send({
       email: 'newuser@example.com',
-      password: 'securePassword123',
+      password: 'SecureP@ss123',
       name: 'New User',
     })
 
@@ -75,7 +75,7 @@ describe('POST /api/v1/auth/register', () => {
 
     const response = await request(app).post('/api/v1/auth/register').send({
       email: 'existing@example.com',
-      password: 'password123',
+      password: 'P@ssword123',
       name: 'Another User',
     })
 
@@ -86,7 +86,7 @@ describe('POST /api/v1/auth/register', () => {
   it('returns 400 for invalid email', async () => {
     const response = await request(app).post('/api/v1/auth/register').send({
       email: 'invalid-email',
-      password: 'password123',
+      password: 'P@ssword123',
       name: 'Test User',
     })
 
@@ -101,6 +101,54 @@ describe('POST /api/v1/auth/register', () => {
     })
 
     expect(response.status).toBe(400)
+  })
+
+  it('returns 400 for password without uppercase letter', async () => {
+    const response = await request(app).post('/api/v1/auth/register').send({
+      email: 'test@example.com',
+      password: 'p@ssword123',
+      name: 'Test User',
+    })
+
+    expect(response.status).toBe(400)
+    expect(response.body.error.code).toBe('VALIDATION_ERROR')
+    expect(JSON.stringify(response.body.error.details)).toContain('uppercase')
+  })
+
+  it('returns 400 for password without lowercase letter', async () => {
+    const response = await request(app).post('/api/v1/auth/register').send({
+      email: 'test@example.com',
+      password: 'P@SSWORD123',
+      name: 'Test User',
+    })
+
+    expect(response.status).toBe(400)
+    expect(response.body.error.code).toBe('VALIDATION_ERROR')
+    expect(JSON.stringify(response.body.error.details)).toContain('lowercase')
+  })
+
+  it('returns 400 for password without number', async () => {
+    const response = await request(app).post('/api/v1/auth/register').send({
+      email: 'test@example.com',
+      password: 'P@sswordABC',
+      name: 'Test User',
+    })
+
+    expect(response.status).toBe(400)
+    expect(response.body.error.code).toBe('VALIDATION_ERROR')
+    expect(JSON.stringify(response.body.error.details)).toContain('number')
+  })
+
+  it('returns 400 for password without special character', async () => {
+    const response = await request(app).post('/api/v1/auth/register').send({
+      email: 'test@example.com',
+      password: 'Password123',
+      name: 'Test User',
+    })
+
+    expect(response.status).toBe(400)
+    expect(response.body.error.code).toBe('VALIDATION_ERROR')
+    expect(JSON.stringify(response.body.error.details)).toContain('special')
   })
 })
 
@@ -152,7 +200,7 @@ describe('POST /api/v1/auth/login', () => {
   it('returns 401 for non-existent user', async () => {
     const response = await request(app).post('/api/v1/auth/login').send({
       email: 'nonexistent@example.com',
-      password: 'password123',
+      password: 'P@ssword123',
     })
 
     expect(response.status).toBe(401)
@@ -187,13 +235,13 @@ describe('POST /api/v1/auth/refresh', () => {
   it('returns new access token when refresh token is valid', async () => {
     await createTestUser({
       email: 'user@example.com',
-      password: 'password123',
+      password: 'P@ssword123',
     })
 
     // Login to get refresh token
     const loginResponse = await request(app).post('/api/v1/auth/login').send({
       email: 'user@example.com',
-      password: 'password123',
+      password: 'P@ssword123',
     })
 
     const cookies = loginResponse.headers['set-cookie'] as unknown as string[]
@@ -224,13 +272,13 @@ describe('POST /api/v1/auth/refresh', () => {
   it('returns 401 when token version is outdated', async () => {
     await createTestUser({
       email: 'user@example.com',
-      password: 'password123',
+      password: 'P@ssword123',
     })
 
     // Login to get refresh token
     const loginResponse = await request(app).post('/api/v1/auth/login').send({
       email: 'user@example.com',
-      password: 'password123',
+      password: 'P@ssword123',
     })
 
     const cookies = loginResponse.headers['set-cookie'] as unknown as string[]
@@ -265,13 +313,13 @@ describe('POST /api/v1/auth/logout', () => {
   it('invalidates refresh token by incrementing token version', async () => {
     await createTestUser({
       email: 'user@example.com',
-      password: 'password123',
+      password: 'P@ssword123',
     })
 
     // Login
     const loginResponse = await request(app).post('/api/v1/auth/login').send({
       email: 'user@example.com',
-      password: 'password123',
+      password: 'P@ssword123',
     })
 
     const cookies = loginResponse.headers['set-cookie'] as unknown as string[]
@@ -295,12 +343,12 @@ describe('POST /api/v1/auth/logout', () => {
   it('clears refresh token cookie', async () => {
     await createTestUser({
       email: 'user@example.com',
-      password: 'password123',
+      password: 'P@ssword123',
     })
 
     const loginResponse = await request(app).post('/api/v1/auth/login').send({
       email: 'user@example.com',
-      password: 'password123',
+      password: 'P@ssword123',
     })
 
     const cookies = loginResponse.headers['set-cookie'] as unknown as string[]
@@ -342,13 +390,13 @@ describe('GET /api/v1/auth/me', () => {
   it('returns current user with memberships when authenticated', async () => {
     await createTestUser({
       email: 'user@example.com',
-      password: 'password123',
+      password: 'P@ssword123',
     })
 
     // Login to get access token
     const loginResponse = await request(app).post('/api/v1/auth/login').send({
       email: 'user@example.com',
-      password: 'password123',
+      password: 'P@ssword123',
     })
 
     const { accessToken } = loginResponse.body

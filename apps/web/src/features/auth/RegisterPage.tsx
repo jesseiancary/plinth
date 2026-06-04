@@ -2,9 +2,10 @@ import type { SubmitEvent } from 'react'
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useMutation } from '@tanstack/react-query'
-import { z } from 'zod'
+import type { z } from 'zod'
 
 import type { components } from '@plinth/types'
+import { registerSchema } from '@plinth/validation'
 
 import { api } from '../../lib/api-client'
 import { getApiErrorMessage } from '../../lib/api-error'
@@ -14,13 +15,6 @@ import { Input } from '../../shared/components/Input'
 import { useAuth } from './context/AuthContext'
 
 type User = components['schemas']['User']
-
-const registerSchema = z.object({
-  email: z.string().email('Invalid email address'),
-  password: z.string().min(8, 'Password must be at least 8 characters'),
-  name: z.string().min(1, 'Name is required'),
-})
-
 type RegisterFormData = z.infer<typeof registerSchema>
 
 export function RegisterPage() {
@@ -143,7 +137,7 @@ export function RegisterPage() {
                 }
               }}
               error={errors.password}
-              helperText="Must be at least 8 characters"
+              helperText="Must be 8+ characters with uppercase, lowercase, number, and special character"
               disabled={registerMutation.isPending}
               autoComplete="new-password"
               required

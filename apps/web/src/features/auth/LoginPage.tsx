@@ -2,9 +2,10 @@ import type { SubmitEvent } from 'react'
 import { useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useMutation } from '@tanstack/react-query'
-import { z } from 'zod'
+import type { z } from 'zod'
 
 import type { components } from '@plinth/types'
+import { loginSchema } from '@plinth/validation'
 
 import { api, RateLimitError } from '../../lib/api-client'
 import { getApiErrorMessage } from '../../lib/api-error'
@@ -15,12 +16,6 @@ import { RateLimitMessage } from '../../shared/components/RateLimitMessage'
 import { useAuth } from './context/AuthContext'
 
 type User = components['schemas']['User']
-
-const loginSchema = z.object({
-  email: z.string().email('Invalid email address'),
-  password: z.string().min(1, 'Password is required'),
-})
-
 type LoginFormData = z.infer<typeof loginSchema>
 
 export function LoginPage() {
@@ -78,7 +73,7 @@ export function LoginPage() {
             <p className="text-sm font-medium text-brand-900 mb-1">Demo Account</p>
             <p className="text-sm text-brand-700">
               <span className="font-mono">admin@example.com</span> /{' '}
-              <span className="font-mono">password123</span>
+              <span className="font-mono">P@ssword123</span>
             </p>
           </div>
 
