@@ -235,10 +235,20 @@ ci(github): add codecov upload step
 
 Managed via `.env` (gitignored) and `.env.example` (committed).
 
+**Root `.env` (for Docker Compose)**
+
+```
+POSTGRES_USER=plinth_dev
+POSTGRES_PASSWORD=<generated-via-openssl-rand-base64-32>
+POSTGRES_DB=plinth_dev
+POSTGRES_PORT=5432
+```
+
 **`apps/api/.env`**
 
 ```
-DATABASE_URL=postgresql://...
+# Must match credentials in root .env
+DATABASE_URL=postgresql://plinth_dev:<password>@localhost:5432/plinth_dev
 JWT_SECRET=
 JWT_REFRESH_SECRET=
 JWT_ACCESS_EXPIRY=15m
@@ -261,6 +271,8 @@ VITE_API_URL=http://localhost:3000
 
 All env vars validated at startup using Zod. App fails fast with a clear error if any required
 variable is missing.
+
+**Security Note:** Database credentials are randomly generated using `openssl rand -base64 32` for local development. This follows security best practices even in local environments and prevents accidental use of default credentials in production.
 
 ---
 
