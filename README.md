@@ -217,9 +217,16 @@ cd plinth
 pnpm install
 
 # Set up environment variables
+cp .env.example .env
 cp apps/api/.env.example apps/api/.env
 cp apps/web/.env.example apps/web/.env
-# Edit .env files with your configuration if needed
+
+# Generate secure database password
+POSTGRES_PASSWORD=$(openssl rand -base64 32)
+echo "POSTGRES_PASSWORD=$POSTGRES_PASSWORD" >> .env
+
+# Update DATABASE_URL in apps/api/.env with the generated password
+# Edit other configuration values if needed
 
 # Run database migrations (database will be started automatically)
 docker compose up -d db
