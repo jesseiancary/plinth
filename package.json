@@ -4,7 +4,8 @@
   "private": true,
   "description": "Production-grade multi-tenant SaaS starter",
   "scripts": {
-    "dev": "pnpm --parallel --filter api --filter web dev",
+    "dev": "./scripts/dev.sh",
+    "stop": "docker compose down",
     "build": "pnpm --recursive build",
     "typecheck": "pnpm --recursive typecheck",
     "lint": "eslint apps --ext .ts,.tsx --max-warnings 0",

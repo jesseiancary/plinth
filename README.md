@@ -217,28 +217,27 @@ cd plinth
 pnpm install
 
 # Set up environment variables
-cp .env.example .env
-# Edit .env with your configuration
+cp apps/api/.env.example apps/api/.env
+cp apps/web/.env.example apps/web/.env
+# Edit .env files with your configuration if needed
 
-# Start PostgreSQL (using Docker)
+# Run database migrations (database will be started automatically)
 docker compose up -d db
-
-# Run database migrations
 pnpm --filter api db:migrate
 
 # Seed the database
 pnpm --filter api db:seed
 
-# Start development servers (API + Web)
+# Start all services (database + API + Web)
 pnpm dev
 ```
 
 **Services will be running at:**
 
-- API: `http://localhost:3001`
-- API Docs: `http://localhost:3001/docs`
-- PostgreSQL: `localhost:5433`
-- Web (future): `http://localhost:5173`
+- API: `http://localhost:3000`
+- API Docs: `http://localhost:3000/docs`
+- PostgreSQL: `localhost:5432`
+- Web: `http://localhost:5173`
 
 ### Test Data
 
@@ -259,22 +258,83 @@ _More endpoints coming in Phase 2 (Authentication) and Phase 3 (Organizations)_
 
 ## Development
 
+### Quick Start
+
 ```bash
-# Start all apps in development mode
+# Start all services (database + API + web)
 pnpm dev
 
-# Run tests
-pnpm test
+# Or use Make (alternative interface)
+make dev
 
-# Type check all packages
-pnpm typecheck
-
-# Lint all packages
-pnpm lint
-
-# Build for production
-pnpm build
+# Stop services when done
+pnpm stop        # or: make stop
 ```
+
+### Using Make (Optional)
+
+This project includes a **Makefile** for convenient development commands. All `pnpm` commands still work as before—the Makefile is an optional, polyglot-friendly interface.
+
+```bash
+# View all available commands
+make help
+
+# Common workflows
+make dev          # Start all services
+make stop         # Stop all services
+make test         # Run tests
+make check        # Run lint + format + typecheck
+make db-migrate   # Run database migrations
+make db-seed      # Seed database
+
+# First-time setup (one command does everything)
+make setup
+```
+
+**When to use Make:**
+
+- Coming from Go/Python/Rust background
+- Adding non-Node.js services in the future
+- Prefer conventional Unix-style commands
+- Want self-documenting help menu (`make help`)
+
+**When to use pnpm:**
+
+- Prefer Node.js ecosystem conventions
+- Using IDE npm script panels
+- Writing CI/CD workflows (explicit dependencies)
+
+See [docs/MAKEFILE.md](docs/MAKEFILE.md) for detailed Makefile documentation and patterns for adding Go/Python services.
+
+---
+
+### All Development Commands
+
+**Using pnpm:**
+
+```bash
+pnpm dev          # Start all services
+pnpm test         # Run tests
+pnpm typecheck    # Type check
+pnpm lint         # Run linters
+pnpm build        # Build for production
+pnpm stop         # Stop services
+```
+
+**Using Make:**
+
+```bash
+make dev          # Start all services
+make test         # Run tests
+make check        # Lint + format + typecheck
+make build        # Build for production
+make stop         # Stop services
+make help         # Show all commands
+```
+
+Both interfaces call the same underlying scripts—use whichever you prefer.
+
+---
 
 ### Database Management
 

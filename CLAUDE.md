@@ -266,6 +266,8 @@ variable is missing.
 
 ## Local Development
 
+### Using pnpm (Node.js-native)
+
 ```bash
 # Install dependencies
 pnpm install
@@ -280,6 +282,9 @@ pnpm --filter api db:seed
 # Start API (port 3000) + Web (port 5173) in parallel
 pnpm dev
 
+# Stop services when done
+pnpm stop
+
 # Run tests
 pnpm --filter api test
 pnpm --filter web test
@@ -290,6 +295,62 @@ pnpm typecheck
 # Lint all packages
 pnpm lint
 ```
+
+### Using Make (Polyglot-friendly alternative)
+
+A Makefile is provided as an optional, ops-style interface for development commands. All `pnpm` commands continue to work—the Makefile is additive, not a replacement.
+
+```bash
+# View all available commands
+make help
+
+# First-time setup (creates .env files, starts db, runs migrations, seeds data)
+make setup
+
+# Daily development
+make dev          # Start all services (db + api + web)
+make stop         # Stop all services
+make restart      # Restart all services
+
+# Database management
+make db-migrate   # Run Prisma migrations
+make db-seed      # Seed database with test data
+make db-studio    # Open Prisma Studio GUI
+
+# Testing
+make test         # Run all tests
+make test-api     # API tests only
+make test-web     # Web tests only
+
+# Code quality
+make lint         # Run ESLint
+make format       # Format with Prettier
+make typecheck    # Run TypeScript type checking
+make check        # Run ALL checks (lint + format + typecheck)
+
+# Build
+make build        # Build for production
+make clean        # Remove build artifacts and stop services
+```
+
+**When to use Make vs pnpm:**
+
+- **Use Make when:**
+  - Working with multi-language services (Go, Python, Node.js)
+  - Coming from backend/ops background
+  - Adding non-Node.js services in future phases
+  - Want conventional Unix-style commands (`make dev`, `make test`)
+  - Prefer self-documenting help menu (`make help`)
+
+- **Use pnpm when:**
+  - Pure Node.js workflow
+  - Prefer Node.js ecosystem conventions
+  - Using IDE npm script panels
+  - Writing CI/CD workflows (explicit, auditable)
+
+- **CI/CD uses pnpm** for explicit dependency management and auditability
+
+Both interfaces call the same underlying scripts. See [docs/MAKEFILE.md](docs/MAKEFILE.md) for comprehensive documentation and patterns for adding Go/Python services.
 
 ---
 
