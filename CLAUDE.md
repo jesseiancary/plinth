@@ -370,6 +370,26 @@ Both interfaces call the same underlying scripts. See [docs/MAKEFILE.md](docs/MA
 
 This project uses a full `.claude/` directory structure for disciplined AI-assisted development.
 
+### Personal Overrides (CLAUDE.local.md)
+
+You can create a **CLAUDE.local.md** file at the project root for personal preferences and local-only instructions. This file is gitignored and will not be committed.
+
+**Use CLAUDE.local.md for:**
+
+- Personal coding preferences (e.g., "Always add JSDoc comments to exported functions")
+- Local environment details (e.g., "I use VS Code with Vim keybindings")
+- Workflow customizations (e.g., "Run tests after every file edit")
+- Temporary project context (e.g., "I'm currently working on the billing dashboard")
+- Personal reminders (e.g., "Always ask before making database schema changes")
+
+**What NOT to put in CLAUDE.local.md:**
+
+- Project conventions (those belong in CLAUDE.md or `.claude/rules/`)
+- Team-wide guidelines (those belong in the main codebase)
+- Sensitive information (use environment variables instead)
+
+Both CLAUDE.md and CLAUDE.local.md (if present) are loaded at session start. CLAUDE.local.md instructions take precedence over CLAUDE.md when there's a conflict.
+
 ### Rules (always active)
 
 - `.claude/rules/code-style.md` — TypeScript and code quality rules
