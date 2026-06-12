@@ -97,8 +97,6 @@ Examples:
 - [ ] Manual test: login and refresh token
 - [ ] Integration tests pass
 - [ ] No breaking changes to existing endpoints
-
-🤖 Generated with [Claude Code](https://claude.com/claude-code)
 ```
 
 ## Git Hooks

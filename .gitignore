@@ -42,3 +42,6 @@ prisma/migrations/**/migration.sql.bak
 tmp/
 temp/
 *.tmp
+
+# Claude Code personal overrides
+CLAUDE.local.md
