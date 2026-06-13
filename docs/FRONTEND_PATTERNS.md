@@ -70,7 +70,7 @@ const [user, setUser] = useState<User | null>(() => {
     }
 
     return result.data
-  } catch {
+  } catch (_error) {
     localStorage.removeItem('user')
     return null
   }
