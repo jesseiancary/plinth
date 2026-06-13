@@ -459,3 +459,406 @@ describe('Security Headers', () => {
     expect(response.headers['content-security-policy']).toBeUndefined()
   })
 })
+
+describe('PATCH /api/v1/auth/password', () => {
+  beforeEach(async () => {
+    await clearDatabase()
+  })
+
+  afterEach(async () => {
+    await clearDatabase()
+  })
+
+  it('changes password and invalidates all sessions', async () => {
+    // Create user with known password
+    const { user } = await createTestUser({
+      email: 'user@example.com',
+      password: 'OldP@ssword123',
+    })
+
+    // Login to get tokens
+    const loginResponse = await request(app).post('/api/v1/auth/login').send({
+      email: 'user@example.com',
+      password: 'OldP@ssword123',
+    })
+
+    const accessToken = loginResponse.body.accessToken as string
+    const cookies = loginResponse.headers['set-cookie'] as unknown as string[]
+
+    // Get initial token version
+    const userBefore = await prisma.user.findUnique({
+      where: { id: user.id },
+      select: { tokenVersion: true },
+    })
+
+    // Change password
+    const changeResponse = await request(app)
+      .patch('/api/v1/auth/password')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .send({
+        currentPassword: 'OldP@ssword123',
+        newPassword: 'NewP@ssword456',
+      })
+
+    expect(changeResponse.status).toBe(204)
+
+    // Verify token version was incremented
+    const userAfter = await prisma.user.findUnique({
+      where: { id: user.id },
+      select: { tokenVersion: true },
+    })
+
+    expect(userAfter?.tokenVersion).toBe((userBefore?.tokenVersion ?? 0) + 1)
+
+    // Old refresh token should now be invalid
+    const refreshResponse = await request(app).post('/api/v1/auth/refresh').set('Cookie', cookies)
+
+    expect(refreshResponse.status).toBe(401)
+    expect(refreshResponse.body.error.code).toBe('INVALID_REFRESH_TOKEN')
+  })
+
+  it('allows login with new password immediately', async () => {
+    const { user } = await createTestUser({
+      email: 'user@example.com',
+      password: 'OldP@ssword123',
+    })
+
+    // Login to get access token
+    const loginResponse = await request(app).post('/api/v1/auth/login').send({
+      email: 'user@example.com',
+      password: 'OldP@ssword123',
+    })
+
+    const accessToken = loginResponse.body.accessToken as string
+
+    // Change password
+    await request(app)
+      .patch('/api/v1/auth/password')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .send({
+        currentPassword: 'OldP@ssword123',
+        newPassword: 'NewP@ssword456',
+      })
+
+    // Login with new password should work
+    const newLoginResponse = await request(app).post('/api/v1/auth/login').send({
+      email: 'user@example.com',
+      password: 'NewP@ssword456',
+    })
+
+    expect(newLoginResponse.status).toBe(200)
+    expect(newLoginResponse.body).toHaveProperty('accessToken')
+    expect(newLoginResponse.body.user.id).toBe(user.id)
+  })
+
+  it('prevents login with old password after change', async () => {
+    await createTestUser({
+      email: 'user@example.com',
+      password: 'OldP@ssword123',
+    })
+
+    const loginResponse = await request(app).post('/api/v1/auth/login').send({
+      email: 'user@example.com',
+      password: 'OldP@ssword123',
+    })
+
+    const accessToken = loginResponse.body.accessToken as string
+
+    // Change password
+    await request(app)
+      .patch('/api/v1/auth/password')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .send({
+        currentPassword: 'OldP@ssword123',
+        newPassword: 'NewP@ssword456',
+      })
+
+    // Login with old password should fail
+    const oldLoginResponse = await request(app).post('/api/v1/auth/login').send({
+      email: 'user@example.com',
+      password: 'OldP@ssword123',
+    })
+
+    expect(oldLoginResponse.status).toBe(401)
+    expect(oldLoginResponse.body.error.code).toBe('INVALID_CREDENTIALS')
+  })
+
+  it('returns 401 when current password is incorrect', async () => {
+    await createTestUser({
+      email: 'user@example.com',
+      password: 'CorrectP@ssword123',
+    })
+
+    const loginResponse = await request(app).post('/api/v1/auth/login').send({
+      email: 'user@example.com',
+      password: 'CorrectP@ssword123',
+    })
+
+    const accessToken = loginResponse.body.accessToken as string
+
+    const response = await request(app)
+      .patch('/api/v1/auth/password')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .send({
+        currentPassword: 'WrongP@ssword123',
+        newPassword: 'NewP@ssword456',
+      })
+
+    expect(response.status).toBe(401)
+    expect(response.body.error.code).toBe('INVALID_PASSWORD')
+    expect(response.body.error.message).toContain('Current password is incorrect')
+  })
+
+  it('returns 400 when new password is weak', async () => {
+    await createTestUser({
+      email: 'user@example.com',
+      password: 'OldP@ssword123',
+    })
+
+    const loginResponse = await request(app).post('/api/v1/auth/login').send({
+      email: 'user@example.com',
+      password: 'OldP@ssword123',
+    })
+
+    const accessToken = loginResponse.body.accessToken as string
+
+    // Try weak password (no special character)
+    const response = await request(app)
+      .patch('/api/v1/auth/password')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .send({
+        currentPassword: 'OldP@ssword123',
+        newPassword: 'weakpassword',
+      })
+
+    expect(response.status).toBe(400)
+    expect(response.body.error.code).toBe('VALIDATION_ERROR')
+  })
+
+  it('returns 401 when not authenticated', async () => {
+    const response = await request(app).patch('/api/v1/auth/password').send({
+      currentPassword: 'OldP@ssword123',
+      newPassword: 'NewP@ssword456',
+    })
+
+    expect(response.status).toBe(401)
+  })
+
+  it('invalidates multiple active sessions', async () => {
+    await createTestUser({
+      email: 'user@example.com',
+      password: 'OldP@ssword123',
+    })
+
+    // Create two sessions (simulate two devices)
+    const session1 = await request(app).post('/api/v1/auth/login').send({
+      email: 'user@example.com',
+      password: 'OldP@ssword123',
+    })
+
+    const session2 = await request(app).post('/api/v1/auth/login').send({
+      email: 'user@example.com',
+      password: 'OldP@ssword123',
+    })
+
+    const accessToken1 = session1.body.accessToken as string
+    const cookies1 = session1.headers['set-cookie'] as unknown as string[]
+    const cookies2 = session2.headers['set-cookie'] as unknown as string[]
+
+    // Change password using session 1
+    const changeResponse = await request(app)
+      .patch('/api/v1/auth/password')
+      .set('Authorization', `Bearer ${accessToken1}`)
+      .send({
+        currentPassword: 'OldP@ssword123',
+        newPassword: 'NewP@ssword456',
+      })
+
+    expect(changeResponse.status).toBe(204)
+
+    // Both refresh tokens should now be invalid
+    const refresh1 = await request(app).post('/api/v1/auth/refresh').set('Cookie', cookies1)
+
+    const refresh2 = await request(app).post('/api/v1/auth/refresh').set('Cookie', cookies2)
+
+    expect(refresh1.status).toBe(401)
+    expect(refresh2.status).toBe(401)
+  })
+
+  it('enforces strong password policy', async () => {
+    await createTestUser({
+      email: 'user@example.com',
+      password: 'OldP@ssword123',
+    })
+
+    const loginResponse = await request(app).post('/api/v1/auth/login').send({
+      email: 'user@example.com',
+      password: 'OldP@ssword123',
+    })
+
+    const accessToken = loginResponse.body.accessToken as string
+
+    // Test missing uppercase
+    const noUppercase = await request(app)
+      .patch('/api/v1/auth/password')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .send({
+        currentPassword: 'OldP@ssword123',
+        newPassword: 'newp@ssword123',
+      })
+    expect(noUppercase.status).toBe(400)
+
+    // Test missing lowercase
+    const noLowercase = await request(app)
+      .patch('/api/v1/auth/password')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .send({
+        currentPassword: 'OldP@ssword123',
+        newPassword: 'NEWP@SSWORD123',
+      })
+    expect(noLowercase.status).toBe(400)
+
+    // Test missing number
+    const noNumber = await request(app)
+      .patch('/api/v1/auth/password')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .send({
+        currentPassword: 'OldP@ssword123',
+        newPassword: 'NewP@ssword',
+      })
+    expect(noNumber.status).toBe(400)
+
+    // Test missing special character
+    const noSpecial = await request(app)
+      .patch('/api/v1/auth/password')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .send({
+        currentPassword: 'OldP@ssword123',
+        newPassword: 'NewPassword123',
+      })
+    expect(noSpecial.status).toBe(400)
+
+    // Test too short
+    const tooShort = await request(app)
+      .patch('/api/v1/auth/password')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .send({
+        currentPassword: 'OldP@ssword123',
+        newPassword: 'Np@ss1',
+      })
+    expect(tooShort.status).toBe(400)
+  })
+
+  it('clears refresh token cookie on success', async () => {
+    await createTestUser({
+      email: 'user@example.com',
+      password: 'OldP@ssword123',
+    })
+
+    const loginResponse = await request(app).post('/api/v1/auth/login').send({
+      email: 'user@example.com',
+      password: 'OldP@ssword123',
+    })
+
+    const accessToken = loginResponse.body.accessToken as string
+
+    const response = await request(app)
+      .patch('/api/v1/auth/password')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .send({
+        currentPassword: 'OldP@ssword123',
+        newPassword: 'NewP@ssword456',
+      })
+
+    expect(response.status).toBe(204)
+
+    // Check that cookie is cleared
+    const cookies = response.headers['set-cookie'] as unknown as string[]
+    expect(cookies).toBeDefined()
+    expect(
+      Array.isArray(cookies) && cookies.some((cookie: string) => cookie.includes('refreshToken=;')),
+    ).toBe(true)
+  })
+
+  it('invalidates active access token immediately after password change', async () => {
+    await createTestUser({
+      email: 'user@example.com',
+      password: 'OldP@ssword123',
+    })
+
+    // Login to get access token
+    const loginResponse = await request(app).post('/api/v1/auth/login').send({
+      email: 'user@example.com',
+      password: 'OldP@ssword123',
+    })
+
+    const accessToken = loginResponse.body.accessToken as string
+
+    // Verify token works before password change
+    const beforeChange = await request(app)
+      .get('/api/v1/auth/me')
+      .set('Authorization', `Bearer ${accessToken}`)
+
+    expect(beforeChange.status).toBe(200)
+    expect(beforeChange.body.email).toBe('user@example.com')
+
+    // Change password
+    await request(app)
+      .patch('/api/v1/auth/password')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .send({
+        currentPassword: 'OldP@ssword123',
+        newPassword: 'NewP@ssword456',
+      })
+
+    // Old access token should now be INVALID (token version mismatch)
+    const afterChange = await request(app)
+      .get('/api/v1/auth/me')
+      .set('Authorization', `Bearer ${accessToken}`)
+
+    expect(afterChange.status).toBe(401)
+    expect(afterChange.body.error.code).toBe('UNAUTHENTICATED')
+  })
+
+  it('prevents setting new password to same as current password', async () => {
+    const { user } = await createTestUser({
+      email: 'user@example.com',
+      password: 'SecureP@ss123',
+    })
+
+    const loginResponse = await request(app).post('/api/v1/auth/login').send({
+      email: 'user@example.com',
+      password: 'SecureP@ss123',
+    })
+
+    const accessToken = loginResponse.body.accessToken as string
+
+    // Get initial token version
+    const userBefore = await prisma.user.findUnique({
+      where: { id: user.id },
+      select: { tokenVersion: true, password: true },
+    })
+
+    // Attempt to change password to same value
+    const response = await request(app)
+      .patch('/api/v1/auth/password')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .send({
+        currentPassword: 'SecureP@ss123',
+        newPassword: 'SecureP@ss123', // Same password
+      })
+
+    expect(response.status).toBe(400)
+    expect(response.body.error.code).toBe('SAME_PASSWORD')
+    expect(response.body.error.message).toContain('must be different')
+
+    // Verify password and tokenVersion were NOT changed
+    const userAfter = await prisma.user.findUnique({
+      where: { id: user.id },
+      select: { tokenVersion: true, password: true },
+    })
+
+    expect(userAfter?.password).toBe(userBefore?.password)
+    expect(userAfter?.tokenVersion).toBe(userBefore?.tokenVersion)
+  })
+})

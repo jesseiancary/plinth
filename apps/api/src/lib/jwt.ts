@@ -5,6 +5,7 @@ import { env } from './env.js'
 export interface AccessTokenPayload {
   userId: string
   email: string
+  tokenVersion: number
 }
 
 export interface RefreshTokenPayload {

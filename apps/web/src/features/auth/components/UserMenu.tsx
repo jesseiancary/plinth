@@ -33,8 +33,7 @@ export function UserMenu() {
       // Enter or Space triggers the sign out action
       if (e.key === 'Enter' || e.key === ' ') {
         e.preventDefault()
-        // eslint-disable-next-line @typescript-eslint/no-floating-promises
-        handleLogout()
+        void handleLogout()
         return
       }
     }
@@ -84,6 +83,16 @@ export function UserMenu() {
                   {sanitizeDisplayText(user.email)}
                 </div>
               </div>
+              <button
+                onClick={() => {
+                  setIsOpen(false)
+                  void navigate('/security')
+                }}
+                className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 focus:outline-none focus:bg-brand-100"
+                role="menuitem"
+              >
+                Security Settings
+              </button>
               <button
                 ref={signOutButtonRef}
                 onClick={handleLogout}

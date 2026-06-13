@@ -2,6 +2,7 @@ import { createBrowserRouter } from 'react-router-dom'
 
 import { ProtectedRoute } from '@/features/auth/components/ProtectedRoute'
 import { LoginPage } from '@/features/auth/LoginPage'
+import { SecurityPage } from '@/features/auth/pages/SecurityPage'
 import { RegisterPage } from '@/features/auth/RegisterPage'
 import { DashboardPage } from '@/features/organizations/DashboardPage'
 import { ApiKeysPage } from '@/features/organizations/pages/ApiKeysPage'
@@ -57,6 +58,10 @@ export const router = createBrowserRouter([
       {
         path: '/orgs/:orgSlug/api-keys',
         element: <ApiKeysPage />,
+      },
+      {
+        path: '/security',
+        element: <SecurityPage />,
       },
     ],
   },

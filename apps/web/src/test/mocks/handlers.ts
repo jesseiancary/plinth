@@ -10,4 +10,15 @@ export const handlers = [
       database: 'connected',
     }),
   ),
+
+  http.get('/api/v1/auth/me', () =>
+    HttpResponse.json({
+      id: 'test-user-id',
+      email: 'test@example.com',
+      name: 'Test User',
+      createdAt: new Date().toISOString(),
+    }),
+  ),
+
+  http.patch('/api/v1/auth/password', () => new HttpResponse(null, { status: 204 })),
 ]

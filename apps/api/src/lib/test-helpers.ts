@@ -92,7 +92,7 @@ export async function createTestMembership(
  */
 export async function generateTestAccessToken(userId: string, email: string): Promise<string> {
   const { signAccessToken } = await import('./jwt.js')
-  return signAccessToken({ userId, email })
+  return signAccessToken({ userId, email, tokenVersion: 0 })
 }
 
 /**

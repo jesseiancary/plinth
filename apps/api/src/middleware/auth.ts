@@ -47,6 +47,11 @@ export async function authenticateJWT(
       return next()
     }
 
+    // Verify token version matches (invalidates access tokens on password change)
+    if (user.tokenVersion !== payload.tokenVersion) {
+      return next()
+    }
+
     // Attach user to request
     req.user = {
       id: user.id,
