@@ -59,7 +59,7 @@ export async function authenticateJWT(
     }
 
     next()
-  } catch (error) {
+  } catch {
     // Invalid token - just continue without setting req.user
     next()
   }

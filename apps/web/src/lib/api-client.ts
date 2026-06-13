@@ -153,7 +153,7 @@ api.interceptors.response.use(
         localStorage.removeItem('user')
         // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         window.location.href = '/login'
-        return Promise.reject(refreshError)
+        return Promise.reject(new Error('Refresh token failed', { cause: refreshError }))
       }
     }
 

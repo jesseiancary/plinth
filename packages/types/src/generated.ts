@@ -5,192 +5,419 @@
 
 export interface paths {
   '/health': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
     /**
      * Health check
      * @description Check API and database connectivity status
      */
     get: operations['healthCheck']
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
   }
   '/api/v1/auth/register': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
     /**
      * Register new user
      * @description Create a new user account and personal organization
      */
     post: operations['register']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
   }
   '/api/v1/auth/login': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
     /**
      * Login user
      * @description Authenticate user and return access token
      */
     post: operations['login']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
   }
   '/api/v1/auth/refresh': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
     /**
      * Refresh access token
      * @description Use the httpOnly refresh token cookie to obtain a new access token.
      *
-     * The refresh token is automatically sent via cookie - no request body required.
+     *     The refresh token is automatically sent via cookie - no request body required.
      *
-     * This endpoint rotates the refresh token (issues a new one and invalidates the old one).
+     *     This endpoint rotates the refresh token (issues a new one and invalidates the old one).
      *
-     * Call this endpoint before your access token expires (15 minute lifetime).
+     *     Call this endpoint before your access token expires (15 minute lifetime).
      */
     post: operations['refreshToken']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
   }
   '/api/v1/auth/logout': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
     /**
      * Logout user
      * @description Invalidate the current refresh token and clear the httpOnly cookie.
      *
-     * The access token remains valid until it expires (15 minutes from issue).
+     *     The access token remains valid until it expires (15 minutes from issue).
      *
-     * After logout, the refresh token can no longer be used to obtain new access tokens.
+     *     After logout, the refresh token can no longer be used to obtain new access tokens.
      */
     post: operations['logout']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
   }
   '/api/v1/auth/me': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
     /**
      * Get current user
      * @description Get currently authenticated user with their memberships
      */
     get: operations['getCurrentUser']
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
   }
   '/api/v1/auth/password': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
     /**
      * Change password
      * @description Change the user's password. This operation:
-     * - Validates the current password
-     * - Enforces strong password policy (8+ chars, uppercase, lowercase, number, special char)
-     * - Increments tokenVersion to invalidate ALL existing sessions across all devices
-     * - Clears the refresh token cookie
+     *     - Validates the current password
+     *     - Enforces strong password policy (8+ chars, uppercase, lowercase, number, special char)
+     *     - Increments tokenVersion to invalidate ALL existing sessions across all devices
+     *     - Clears the refresh token cookie
      *
-     * **Security Note:** All active sessions will be terminated. User must log in again with the new password.
+     *     **Security Note:** All active sessions will be terminated. User must log in again with the new password.
      */
     patch: operations['changePassword']
+    trace?: never
   }
   '/api/v1/orgs': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
     /**
      * Create organization
      * @description Create a new organization and automatically assign caller as OWNER
      */
     post: operations['createOrganization']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
   }
   '/api/v1/orgs/{slug}': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
     /**
      * Get organization details
      * @description Get organization details (requires membership)
      */
     get: operations['getOrganization']
+    put?: never
+    post?: never
     /**
      * Delete organization
      * @description Delete organization and all associated data (requires OWNER role).
      *
-     * WARNING: This is a destructive operation that will cascade delete:
-     * - All memberships
-     * - All invitations (pending and accepted)
-     * - All API keys
-     * - All organization data
+     *     WARNING: This is a destructive operation that will cascade delete:
+     *     - All memberships
+     *     - All invitations (pending and accepted)
+     *     - All API keys
+     *     - All organization data
      *
-     * This action cannot be undone.
+     *     This action cannot be undone.
      */
     delete: operations['deleteOrganization']
+    options?: never
+    head?: never
     /**
      * Update organization
      * @description Update organization name and/or slug (requires ADMIN role)
      */
     patch: operations['updateOrganization']
+    trace?: never
   }
   '/api/v1/orgs/{slug}/members': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
     /**
      * List organization members
      * @description List all members of an organization with pagination (requires MEMBER role)
      */
     get: operations['listMembers']
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
   }
   '/api/v1/orgs/{slug}/members/{memberId}': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    post?: never
     /**
      * Remove member
      * @description Remove a member from the organization (ADMIN can remove members, members can remove themselves)
      */
     delete: operations['removeMember']
+    options?: never
+    head?: never
     /**
      * Update member role
      * @description Update a member's role (requires ADMIN role, cannot demote OWNER)
      */
     patch: operations['updateMemberRole']
+    trace?: never
   }
   '/api/v1/orgs/{slug}/transfer-ownership': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
     /**
      * Transfer ownership
      * @description Transfer OWNER role to another member (requires OWNER role)
      */
     post: operations['transferOwnership']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
   }
   '/api/v1/orgs/{slug}/invitations': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
     /**
      * List invitations
      * @description List all invitations for the organization (requires ADMIN role)
      */
     get: operations['listInvitations']
+    put?: never
     /**
      * Create invitation
      * @description Create an invitation to join the organization (requires ADMIN role)
      */
     post: operations['createInvitation']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
   }
   '/api/v1/orgs/{slug}/invitations/{invitationId}': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    post?: never
     /**
      * Revoke invitation
      * @description Revoke a pending invitation (requires ADMIN role)
      */
     delete: operations['revokeInvitation']
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
   }
   '/api/v1/invitations/validate/{token}': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
     /**
      * Validate invitation token
      * @description Validate an invitation token and return invitation details (public endpoint).
      *
-     * Use this endpoint to check if an invitation is valid before prompting the user to accept it.
+     *     Use this endpoint to check if an invitation is valid before prompting the user to accept it.
      *
-     * **Security Note:** This endpoint is public and returns organization information.
-     * It is rate-limited to prevent enumeration attacks. Repeated validation attempts
-     * may require additional verification.
+     *     **Security Note:** This endpoint is public and returns organization information.
+     *     It is rate-limited to prevent enumeration attacks. Repeated validation attempts
+     *     may require additional verification.
      *
-     * No authentication required - the token itself serves as proof of access.
+     *     No authentication required - the token itself serves as proof of access.
      */
     get: operations['validateInvitation']
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
   }
   '/api/v1/invitations/accept': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
     /**
      * Accept invitation
      * @description Accept an invitation and join the organization (requires authentication)
      */
     post: operations['acceptInvitation']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
   }
   '/api/v1/orgs/{slug}/api-keys': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
     /**
      * List API keys
      * @description List all API keys for the organization (requires ADMIN role)
      */
     get: operations['listApiKeys']
+    put?: never
     /**
      * Generate API key
      * @description Generate a new API key for the organization (requires ADMIN role)
      */
     post: operations['createApiKey']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
   }
   '/api/v1/orgs/{slug}/api-keys/{keyId}': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    post?: never
     /**
      * Revoke API key
      * @description Revoke an API key (soft delete, requires ADMIN role)
      */
     delete: operations['revokeApiKey']
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
   }
 }
-
 export type webhooks = Record<string, never>
-
 export interface components {
   schemas: {
     Error: {
@@ -326,20 +553,22 @@ export interface components {
   headers: never
   pathItems: never
 }
-
 export type $defs = Record<string, never>
-
-export type external = Record<string, never>
-
 export interface operations {
-  /**
-   * Health check
-   * @description Check API and database connectivity status
-   */
   healthCheck: {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    requestBody?: never
     responses: {
       /** @description Service is healthy */
       200: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/json': {
             /** @enum {string} */
@@ -353,6 +582,9 @@ export interface operations {
       }
       /** @description Service is unhealthy */
       503: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/json': {
             /** @enum {string} */
@@ -366,11 +598,13 @@ export interface operations {
       }
     }
   }
-  /**
-   * Register new user
-   * @description Create a new user account and personal organization
-   */
   register: {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
     requestBody: {
       content: {
         'application/json': {
@@ -394,6 +628,7 @@ export interface operations {
       201: {
         headers: {
           'Set-Cookie'?: string
+          [name: string]: unknown
         }
         content: {
           'application/json': {
@@ -405,23 +640,31 @@ export interface operations {
       }
       /** @description Validation error */
       400: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/json': components['schemas']['Error']
         }
       }
       /** @description Email already registered */
       409: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/json': components['schemas']['Error']
         }
       }
     }
   }
-  /**
-   * Login user
-   * @description Authenticate user and return access token
-   */
   login: {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
     requestBody: {
       content: {
         'application/json': {
@@ -443,6 +686,7 @@ export interface operations {
       200: {
         headers: {
           'Set-Cookie'?: string
+          [name: string]: unknown
         }
         content: {
           'application/json': {
@@ -454,28 +698,29 @@ export interface operations {
       }
       /** @description Invalid credentials */
       401: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/json': components['schemas']['Error']
         }
       }
     }
   }
-  /**
-   * Refresh access token
-   * @description Use the httpOnly refresh token cookie to obtain a new access token.
-   *
-   * The refresh token is automatically sent via cookie - no request body required.
-   *
-   * This endpoint rotates the refresh token (issues a new one and invalidates the old one).
-   *
-   * Call this endpoint before your access token expires (15 minute lifetime).
-   */
   refreshToken: {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    requestBody?: never
     responses: {
       /** @description Token refreshed successfully */
       200: {
         headers: {
           'Set-Cookie'?: string
+          [name: string]: unknown
         }
         content: {
           'application/json': {
@@ -486,36 +731,47 @@ export interface operations {
       }
       /** @description Invalid or expired refresh token */
       401: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/json': components['schemas']['Error']
         }
       }
     }
   }
-  /**
-   * Logout user
-   * @description Invalidate the current refresh token and clear the httpOnly cookie.
-   *
-   * The access token remains valid until it expires (15 minutes from issue).
-   *
-   * After logout, the refresh token can no longer be used to obtain new access tokens.
-   */
   logout: {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    requestBody?: never
     responses: {
       /** @description Logout successful */
       204: {
-        content: never
+        headers: {
+          [name: string]: unknown
+        }
+        content?: never
       }
     }
   }
-  /**
-   * Get current user
-   * @description Get currently authenticated user with their memberships
-   */
   getCurrentUser: {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    requestBody?: never
     responses: {
       /** @description Current user details */
       200: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/json': {
             /** @description User ID */
@@ -549,23 +805,22 @@ export interface operations {
       }
       /** @description Not authenticated */
       401: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/json': components['schemas']['Error']
         }
       }
     }
   }
-  /**
-   * Change password
-   * @description Change the user's password. This operation:
-   * - Validates the current password
-   * - Enforces strong password policy (8+ chars, uppercase, lowercase, number, special char)
-   * - Increments tokenVersion to invalidate ALL existing sessions across all devices
-   * - Clears the refresh token cookie
-   *
-   * **Security Note:** All active sessions will be terminated. User must log in again with the new password.
-   */
   changePassword: {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
     requestBody: {
       content: {
         'application/json': {
@@ -579,27 +834,38 @@ export interface operations {
     responses: {
       /** @description Password changed successfully, all sessions invalidated */
       204: {
-        content: never
+        headers: {
+          [name: string]: unknown
+        }
+        content?: never
       }
       /** @description Validation error (weak password) */
       400: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/json': components['schemas']['Error']
         }
       }
       /** @description Current password is incorrect or not authenticated */
       401: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/json': components['schemas']['Error']
         }
       }
     }
   }
-  /**
-   * Create organization
-   * @description Create a new organization and automatically assign caller as OWNER
-   */
   createOrganization: {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
     requestBody: {
       content: {
         'application/json': {
@@ -613,6 +879,9 @@ export interface operations {
     responses: {
       /** @description Organization created successfully */
       201: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/json': {
             id: string
@@ -634,110 +903,131 @@ export interface operations {
       }
       /** @description Validation error */
       400: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/json': components['schemas']['Error']
         }
       }
       /** @description Not authenticated */
       401: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/json': components['schemas']['Error']
         }
       }
       /** @description Slug already exists */
       409: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/json': components['schemas']['Error']
         }
       }
     }
   }
-  /**
-   * Get organization details
-   * @description Get organization details (requires membership)
-   */
   getOrganization: {
     parameters: {
+      query?: never
+      header?: never
       path: {
         /** @description Organization slug */
         slug: string
       }
+      cookie?: never
     }
+    requestBody?: never
     responses: {
       /** @description Organization details */
       200: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/json': components['schemas']['Organization']
         }
       }
       /** @description Not authenticated */
       401: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/json': components['schemas']['Error']
         }
       }
       /** @description Organization not found or not a member */
       404: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/json': components['schemas']['Error']
         }
       }
     }
   }
-  /**
-   * Delete organization
-   * @description Delete organization and all associated data (requires OWNER role).
-   *
-   * WARNING: This is a destructive operation that will cascade delete:
-   * - All memberships
-   * - All invitations (pending and accepted)
-   * - All API keys
-   * - All organization data
-   *
-   * This action cannot be undone.
-   */
   deleteOrganization: {
     parameters: {
+      query?: never
+      header?: never
       path: {
         /** @description Organization slug */
         slug: string
       }
+      cookie?: never
     }
+    requestBody?: never
     responses: {
       /** @description Organization deleted successfully */
       204: {
-        content: never
+        headers: {
+          [name: string]: unknown
+        }
+        content?: never
       }
       /** @description Not authenticated */
       401: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/json': components['schemas']['Error']
         }
       }
       /** @description Insufficient permissions (requires OWNER) */
       403: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/json': components['schemas']['Error']
         }
       }
       /** @description Organization not found or not a member */
       404: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/json': components['schemas']['Error']
         }
       }
     }
   }
-  /**
-   * Update organization
-   * @description Update organization name and/or slug (requires ADMIN role)
-   */
   updateOrganization: {
     parameters: {
+      query?: never
+      header?: never
       path: {
         /** @description Organization slug */
         slug: string
       }
+      cookie?: never
     }
     requestBody: {
       content: {
@@ -752,46 +1042,60 @@ export interface operations {
     responses: {
       /** @description Organization updated successfully */
       200: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/json': components['schemas']['Organization']
         }
       }
       /** @description Validation error */
       400: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/json': components['schemas']['Error']
         }
       }
       /** @description Not authenticated */
       401: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/json': components['schemas']['Error']
         }
       }
       /** @description Insufficient permissions (requires ADMIN) */
       403: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/json': components['schemas']['Error']
         }
       }
       /** @description Organization not found or not a member */
       404: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/json': components['schemas']['Error']
         }
       }
       /** @description Slug already exists */
       409: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/json': components['schemas']['Error']
         }
       }
     }
   }
-  /**
-   * List organization members
-   * @description List all members of an organization with pagination (requires MEMBER role)
-   */
   listMembers: {
     parameters: {
       query?: {
@@ -800,14 +1104,20 @@ export interface operations {
         /** @description Number of items per page */
         limit?: number
       }
+      header?: never
       path: {
         /** @description Organization slug */
         slug: string
       }
+      cookie?: never
     }
+    requestBody?: never
     responses: {
       /** @description List of members */
       200: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/json': {
             data: components['schemas']['Membership'][]
@@ -817,74 +1127,94 @@ export interface operations {
       }
       /** @description Not authenticated */
       401: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/json': components['schemas']['Error']
         }
       }
       /** @description Organization not found or not a member */
       404: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/json': components['schemas']['Error']
         }
       }
     }
   }
-  /**
-   * Remove member
-   * @description Remove a member from the organization (ADMIN can remove members, members can remove themselves)
-   */
   removeMember: {
     parameters: {
+      query?: never
+      header?: never
       path: {
         /** @description Organization slug */
         slug: string
         /** @description Membership ID */
         memberId: string
       }
+      cookie?: never
     }
+    requestBody?: never
     responses: {
       /** @description Member removed successfully */
       204: {
-        content: never
+        headers: {
+          [name: string]: unknown
+        }
+        content?: never
       }
       /** @description Not authenticated */
       401: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/json': components['schemas']['Error']
         }
       }
       /** @description Insufficient permissions */
       403: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/json': components['schemas']['Error']
         }
       }
       /** @description Organization or member not found */
       404: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/json': components['schemas']['Error']
         }
       }
       /** @description Cannot remove last OWNER */
       409: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/json': components['schemas']['Error']
         }
       }
     }
   }
-  /**
-   * Update member role
-   * @description Update a member's role (requires ADMIN role, cannot demote OWNER)
-   */
   updateMemberRole: {
     parameters: {
+      query?: never
+      header?: never
       path: {
         /** @description Organization slug */
         slug: string
         /** @description Membership ID */
         memberId: string
       }
+      cookie?: never
     }
     requestBody: {
       content: {
@@ -900,52 +1230,69 @@ export interface operations {
     responses: {
       /** @description Member role updated successfully */
       200: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/json': components['schemas']['Membership']
         }
       }
       /** @description Validation error */
       400: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/json': components['schemas']['Error']
         }
       }
       /** @description Not authenticated */
       401: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/json': components['schemas']['Error']
         }
       }
       /** @description Insufficient permissions or invalid operation */
       403: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/json': components['schemas']['Error']
         }
       }
       /** @description Organization or member not found */
       404: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/json': components['schemas']['Error']
         }
       }
       /** @description Cannot remove last OWNER */
       409: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/json': components['schemas']['Error']
         }
       }
     }
   }
-  /**
-   * Transfer ownership
-   * @description Transfer OWNER role to another member (requires OWNER role)
-   */
   transferOwnership: {
     parameters: {
+      query?: never
+      header?: never
       path: {
         /** @description Organization slug */
         slug: string
       }
+      cookie?: never
     }
     requestBody: {
       content: {
@@ -958,6 +1305,9 @@ export interface operations {
     responses: {
       /** @description Ownership transferred successfully */
       200: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/json': {
             organization: components['schemas']['Organization']
@@ -968,34 +1318,42 @@ export interface operations {
       }
       /** @description Validation error */
       400: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/json': components['schemas']['Error']
         }
       }
       /** @description Not authenticated */
       401: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/json': components['schemas']['Error']
         }
       }
       /** @description Insufficient permissions (requires OWNER) */
       403: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/json': components['schemas']['Error']
         }
       }
       /** @description Organization or new owner not found */
       404: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/json': components['schemas']['Error']
         }
       }
     }
   }
-  /**
-   * List invitations
-   * @description List all invitations for the organization (requires ADMIN role)
-   */
   listInvitations: {
     parameters: {
       query?: {
@@ -1006,14 +1364,20 @@ export interface operations {
         /** @description Filter by invitation status */
         status?: 'PENDING' | 'ACCEPTED' | 'REVOKED' | 'EXPIRED'
       }
+      header?: never
       path: {
         /** @description Organization slug */
         slug: string
       }
+      cookie?: never
     }
+    requestBody?: never
     responses: {
       /** @description List of invitations */
       200: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/json': {
             data: components['schemas']['Invitation'][]
@@ -1023,34 +1387,42 @@ export interface operations {
       }
       /** @description Not authenticated */
       401: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/json': components['schemas']['Error']
         }
       }
       /** @description Insufficient permissions (requires ADMIN) */
       403: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/json': components['schemas']['Error']
         }
       }
       /** @description Organization not found or not a member */
       404: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/json': components['schemas']['Error']
         }
       }
     }
   }
-  /**
-   * Create invitation
-   * @description Create an invitation to join the organization (requires ADMIN role)
-   */
   createInvitation: {
     parameters: {
+      query?: never
+      header?: never
       path: {
         /** @description Organization slug */
         slug: string
       }
+      cookie?: never
     }
     requestBody: {
       content: {
@@ -1072,6 +1444,9 @@ export interface operations {
     responses: {
       /** @description Invitation created successfully */
       201: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/json': {
             invitation: components['schemas']['Invitation']
@@ -1082,102 +1457,127 @@ export interface operations {
       }
       /** @description Validation error */
       400: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/json': components['schemas']['Error']
         }
       }
       /** @description Not authenticated */
       401: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/json': components['schemas']['Error']
         }
       }
       /** @description Insufficient permissions (requires ADMIN) */
       403: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/json': components['schemas']['Error']
         }
       }
       /** @description Organization not found or not a member */
       404: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/json': components['schemas']['Error']
         }
       }
       /** @description User already a member or pending invitation exists */
       409: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/json': components['schemas']['Error']
         }
       }
     }
   }
-  /**
-   * Revoke invitation
-   * @description Revoke a pending invitation (requires ADMIN role)
-   */
   revokeInvitation: {
     parameters: {
+      query?: never
+      header?: never
       path: {
         /** @description Organization slug */
         slug: string
         /** @description Invitation ID */
         invitationId: string
       }
+      cookie?: never
     }
+    requestBody?: never
     responses: {
       /** @description Invitation revoked successfully */
       204: {
-        content: never
+        headers: {
+          [name: string]: unknown
+        }
+        content?: never
       }
       /** @description Not authenticated */
       401: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/json': components['schemas']['Error']
         }
       }
       /** @description Insufficient permissions (requires ADMIN) */
       403: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/json': components['schemas']['Error']
         }
       }
       /** @description Organization or invitation not found */
       404: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/json': components['schemas']['Error']
         }
       }
       /** @description Invitation already accepted or revoked */
       410: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/json': components['schemas']['Error']
         }
       }
     }
   }
-  /**
-   * Validate invitation token
-   * @description Validate an invitation token and return invitation details (public endpoint).
-   *
-   * Use this endpoint to check if an invitation is valid before prompting the user to accept it.
-   *
-   * **Security Note:** This endpoint is public and returns organization information.
-   * It is rate-limited to prevent enumeration attacks. Repeated validation attempts
-   * may require additional verification.
-   *
-   * No authentication required - the token itself serves as proof of access.
-   */
   validateInvitation: {
     parameters: {
+      query?: never
+      header?: never
       path: {
         /** @description Invitation token */
         token: string
       }
+      cookie?: never
     }
+    requestBody?: never
     responses: {
       /** @description Invitation is valid */
       200: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/json': {
             /** Format: email */
@@ -1195,23 +1595,31 @@ export interface operations {
       }
       /** @description Invalid token */
       404: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/json': components['schemas']['Error']
         }
       }
       /** @description Invitation expired, revoked, or already accepted */
       410: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/json': components['schemas']['Error']
         }
       }
     }
   }
-  /**
-   * Accept invitation
-   * @description Accept an invitation and join the organization (requires authentication)
-   */
   acceptInvitation: {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
     requestBody: {
       content: {
         'application/json': {
@@ -1223,6 +1631,9 @@ export interface operations {
     responses: {
       /** @description Invitation accepted successfully */
       201: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/json': {
             membership: components['schemas']['Membership']
@@ -1232,40 +1643,51 @@ export interface operations {
       }
       /** @description Validation error */
       400: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/json': components['schemas']['Error']
         }
       }
       /** @description Not authenticated */
       401: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/json': components['schemas']['Error']
         }
       }
       /** @description Invalid token */
       404: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/json': components['schemas']['Error']
         }
       }
       /** @description User already a member */
       409: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/json': components['schemas']['Error']
         }
       }
       /** @description Invitation expired, revoked, or already accepted */
       410: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/json': components['schemas']['Error']
         }
       }
     }
   }
-  /**
-   * List API keys
-   * @description List all API keys for the organization (requires ADMIN role)
-   */
   listApiKeys: {
     parameters: {
       query?: {
@@ -1276,14 +1698,20 @@ export interface operations {
         /** @description Filter by active keys only (non-revoked) */
         active?: boolean
       }
+      header?: never
       path: {
         /** @description Organization slug */
         slug: string
       }
+      cookie?: never
     }
+    requestBody?: never
     responses: {
       /** @description List of API keys */
       200: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/json': {
             data: components['schemas']['ApiKey'][]
@@ -1293,34 +1721,42 @@ export interface operations {
       }
       /** @description Not authenticated */
       401: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/json': components['schemas']['Error']
         }
       }
       /** @description Insufficient permissions (requires ADMIN) */
       403: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/json': components['schemas']['Error']
         }
       }
       /** @description Organization not found or not a member */
       404: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/json': components['schemas']['Error']
         }
       }
     }
   }
-  /**
-   * Generate API key
-   * @description Generate a new API key for the organization (requires ADMIN role)
-   */
   createApiKey: {
     parameters: {
+      query?: never
+      header?: never
       path: {
         /** @description Organization slug */
         slug: string
       }
+      cookie?: never
     }
     requestBody: {
       content: {
@@ -1330,8 +1766,8 @@ export interface operations {
           /**
            * @description Array of granted scopes
            * @default [
-           *   "org:read"
-           * ]
+           *       "org:read"
+           *     ]
            */
           scopes?: (
             | 'org:read'
@@ -1350,6 +1786,9 @@ export interface operations {
     responses: {
       /** @description API key created successfully */
       201: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/json': {
             id: string
@@ -1364,62 +1803,86 @@ export interface operations {
       }
       /** @description Validation error */
       400: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/json': components['schemas']['Error']
         }
       }
       /** @description Not authenticated */
       401: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/json': components['schemas']['Error']
         }
       }
       /** @description Insufficient permissions (requires ADMIN) */
       403: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/json': components['schemas']['Error']
         }
       }
       /** @description Organization not found or not a member */
       404: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/json': components['schemas']['Error']
         }
       }
     }
   }
-  /**
-   * Revoke API key
-   * @description Revoke an API key (soft delete, requires ADMIN role)
-   */
   revokeApiKey: {
     parameters: {
+      query?: never
+      header?: never
       path: {
         /** @description Organization slug */
         slug: string
         /** @description API key ID */
         keyId: string
       }
+      cookie?: never
     }
+    requestBody?: never
     responses: {
       /** @description API key revoked successfully */
       204: {
-        content: never
+        headers: {
+          [name: string]: unknown
+        }
+        content?: never
       }
       /** @description Not authenticated */
       401: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/json': components['schemas']['Error']
         }
       }
       /** @description Insufficient permissions (requires ADMIN) */
       403: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/json': components['schemas']['Error']
         }
       }
       /** @description Organization or API key not found */
       404: {
+        headers: {
+          [name: string]: unknown
+        }
         content: {
           'application/json': components['schemas']['Error']
         }

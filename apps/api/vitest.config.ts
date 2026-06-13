@@ -5,16 +5,10 @@ export default defineConfig({
     globals: true,
     environment: 'node',
     setupFiles: ['./src/lib/test-setup.ts'],
+    include: ['src/**/*.test.ts'],
+    exclude: ['node_modules/**', 'dist/**'],
     // Run tests sequentially to avoid database isolation issues
-    pool: 'forks',
-    poolOptions: {
-      forks: {
-        singleFork: true,
-      },
-    },
-    sequence: {
-      concurrent: false,
-    },
+    fileParallelism: false,
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],

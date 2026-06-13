@@ -283,7 +283,7 @@ router.post(
       // Clear cookie
       res.clearCookie('refreshToken')
       res.status(204).send()
-    } catch (error) {
+    } catch {
       // Even if token is invalid, clear the cookie
       res.clearCookie('refreshToken')
       res.status(204).send()
