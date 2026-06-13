@@ -56,14 +56,14 @@ export const rateLimitConfig = {
     windowMs: RATE_LIMIT.AUTH_WINDOW_MS,
     max: RATE_LIMIT.AUTH_MAX_REQUESTS,
     message: 'Too many login attempts, please try again later',
-    standardHeaders: true,
+    standardHeaders: 'draft-7', // Use draft-7 to include Retry-After header
     legacyHeaders: false,
     skip: () => isTestEnv, // Skip rate limiting in tests
   }),
   apiEndpoints: rateLimit({
     windowMs: RATE_LIMIT.API_WINDOW_MS,
     max: RATE_LIMIT.API_MAX_REQUESTS,
-    standardHeaders: true,
+    standardHeaders: 'draft-7', // Use draft-7 to include Retry-After header
     legacyHeaders: false,
     skip: () => isTestEnv, // Skip rate limiting in tests
   }),

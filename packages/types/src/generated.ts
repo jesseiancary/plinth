@@ -56,6 +56,19 @@ export interface paths {
      */
     get: operations['getCurrentUser']
   }
+  '/api/v1/auth/password': {
+    /**
+     * Change password
+     * @description Change the user's password. This operation:
+     * - Validates the current password
+     * - Enforces strong password policy (8+ chars, uppercase, lowercase, number, special char)
+     * - Increments tokenVersion to invalidate ALL existing sessions across all devices
+     * - Clears the refresh token cookie
+     *
+     * **Security Note:** All active sessions will be terminated. User must log in again with the new password.
+     */
+    patch: operations['changePassword']
+  }
   '/api/v1/orgs': {
     /**
      * Create organization
@@ -535,6 +548,46 @@ export interface operations {
         }
       }
       /** @description Not authenticated */
+      401: {
+        content: {
+          'application/json': components['schemas']['Error']
+        }
+      }
+    }
+  }
+  /**
+   * Change password
+   * @description Change the user's password. This operation:
+   * - Validates the current password
+   * - Enforces strong password policy (8+ chars, uppercase, lowercase, number, special char)
+   * - Increments tokenVersion to invalidate ALL existing sessions across all devices
+   * - Clears the refresh token cookie
+   *
+   * **Security Note:** All active sessions will be terminated. User must log in again with the new password.
+   */
+  changePassword: {
+    requestBody: {
+      content: {
+        'application/json': {
+          /** @description User's current password for verification */
+          currentPassword: string
+          /** @description New password (must contain uppercase, lowercase, number, special character) */
+          newPassword: string
+        }
+      }
+    }
+    responses: {
+      /** @description Password changed successfully, all sessions invalidated */
+      204: {
+        content: never
+      }
+      /** @description Validation error (weak password) */
+      400: {
+        content: {
+          'application/json': components['schemas']['Error']
+        }
+      }
+      /** @description Current password is incorrect or not authenticated */
       401: {
         content: {
           'application/json': components['schemas']['Error']

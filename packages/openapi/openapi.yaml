@@ -455,6 +455,91 @@ paths:
                       message: Authentication required
                       details: {}
 
+  /api/v1/auth/password:
+    patch:
+      summary: Change password
+      description: |
+        Change the user's password. This operation:
+        - Validates the current password
+        - Enforces strong password policy (8+ chars, uppercase, lowercase, number, special char)
+        - Increments tokenVersion to invalidate ALL existing sessions across all devices
+        - Clears the refresh token cookie
+
+        **Security Note:** All active sessions will be terminated. User must log in again with the new password.
+      operationId: changePassword
+      tags:
+        - Auth
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - currentPassword
+                - newPassword
+              properties:
+                currentPassword:
+                  type: string
+                  minLength: 1
+                  description: User's current password for verification
+                newPassword:
+                  type: string
+                  minLength: 8
+                  maxLength: 128
+                  pattern: '^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$'
+                  description: New password (must contain uppercase, lowercase, number, special character)
+            examples:
+              passwordChange:
+                summary: Change password request
+                value:
+                  currentPassword: OldP@ssword123
+                  newPassword: NewSecureP@ss456
+      responses:
+        '204':
+          description: Password changed successfully, all sessions invalidated
+        '400':
+          description: Validation error (weak password)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                weakPassword:
+                  summary: New password doesn't meet requirements
+                  value:
+                    error:
+                      code: VALIDATION_ERROR
+                      message: Validation failed
+                      details:
+                        issues:
+                          - code: invalid_string
+                            message: Password must contain at least one uppercase letter
+                            path: ['newPassword']
+        '401':
+          description: Current password is incorrect or not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                invalidPassword:
+                  summary: Current password is incorrect
+                  value:
+                    error:
+                      code: INVALID_PASSWORD
+                      message: Current password is incorrect
+                      details: {}
+                notAuthenticated:
+                  summary: No access token provided
+                  value:
+                    error:
+                      code: UNAUTHENTICATED
+                      message: Authentication required
+                      details: {}
+
   /api/v1/orgs:
     post:
       summary: Create organization

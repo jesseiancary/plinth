@@ -1,12 +1,17 @@
 import type { Request, Response } from 'express'
 import { Router } from 'express'
 
-import { loginSchema, registerSchema } from '@plinth/validation'
+import {
+  type ChangePasswordInput,
+  changePasswordSchema,
+  loginSchema,
+  registerSchema,
+} from '@plinth/validation'
 
 import { asyncHandler } from '../lib/async-handler.js'
 import { AppError } from '../lib/errors.js'
 import { signAccessToken, signRefreshToken, verifyRefreshToken } from '../lib/jwt.js'
-import { hashPassword, verifyPassword } from '../lib/password.js'
+import { hashPassword, normalizeAuthTiming, verifyPassword } from '../lib/password.js'
 import { prisma } from '../lib/prisma.js'
 import { rateLimitConfig } from '../lib/security.js'
 import { generateUniqueSlug } from '../lib/slug.js'
@@ -71,6 +76,7 @@ router.post(
       const accessToken = signAccessToken({
         userId: user.id,
         email: user.email,
+        tokenVersion: user.tokenVersion,
       })
 
       const refreshToken = signRefreshToken({
@@ -140,6 +146,7 @@ router.post(
       const accessToken = signAccessToken({
         userId: user.id,
         email: user.email,
+        tokenVersion: user.tokenVersion,
       })
 
       const refreshToken = signRefreshToken({
@@ -209,6 +216,7 @@ router.post(
       const newAccessToken = signAccessToken({
         userId: user.id,
         email: user.email,
+        tokenVersion: user.tokenVersion,
       })
 
       const newRefreshToken = signRefreshToken({
@@ -329,6 +337,81 @@ router.get(
         createdAt: membership.createdAt,
       })),
     })
+  }),
+)
+
+/**
+ * PATCH /api/v1/auth/password
+ * Change user password and invalidate all sessions
+ */
+router.patch(
+  '/password',
+  requireAuth,
+  rateLimitConfig.authEndpoints,
+  asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    // Record start time for timing attack prevention
+    const startTime = Date.now()
+
+    try {
+      const userId = req.user?.id
+      if (!userId) {
+        throw new AppError('User not found', 404, 'USER_NOT_FOUND')
+      }
+
+      const body: ChangePasswordInput = changePasswordSchema.parse(req.body)
+
+      const user = await prisma.user.findUnique({ where: { id: userId } })
+      if (!user) {
+        throw new AppError('User not found', 404, 'USER_NOT_FOUND')
+      }
+
+      const isCurrentPasswordValid = await verifyPassword(body.currentPassword, user.password)
+      if (!isCurrentPasswordValid) {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-call
+        await normalizeAuthTiming(startTime)
+        throw new AppError('Current password is incorrect', 401, 'INVALID_PASSWORD')
+      }
+
+      const isSamePassword = await verifyPassword(body.newPassword, user.password)
+      if (isSamePassword) {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-call
+        await normalizeAuthTiming(startTime)
+        throw new AppError(
+          'New password must be different from current password',
+          400,
+          'SAME_PASSWORD',
+        )
+      }
+
+      const newPasswordHash = await hashPassword(body.newPassword)
+
+      await prisma.$transaction(async (tx) => {
+        await tx.user.update({
+          where: { id: userId },
+          data: {
+            password: newPasswordHash,
+            tokenVersion: {
+              increment: 1,
+            },
+          },
+        })
+      })
+
+      // Clear refresh token cookie
+      res.clearCookie('refreshToken')
+
+      res.status(204).send()
+    } catch (error) {
+      if (error instanceof AppError) {
+        throw error
+      }
+      if (error instanceof Error && error.name === 'ZodError') {
+        throw new AppError('Validation failed', 400, 'VALIDATION_ERROR', {
+          errors: error,
+        })
+      }
+      throw error
+    }
   }),
 )
 
