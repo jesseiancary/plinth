@@ -11,6 +11,8 @@ import { OrgProvider } from '../context/OrgContext'
 
 import { OrgSwitcher } from './OrgSwitcher'
 
+import { api } from '@/lib/api-client'
+
 const mockMemberships = [
   {
     id: 'mem-1',
@@ -77,6 +79,7 @@ const createWrapper = () => {
 describe('OrgSwitcher - Keyboard Navigation', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    vi.mocked(api.get).mockResolvedValue(mockUser)
   })
 
   it('opens dropdown on click', async () => {
