@@ -23,6 +23,24 @@ export const setAccessTokenGetter = (fn: () => string | null) => {
   getAccessTokenFn = fn
 }
 
+/**
+ * Get CSRF token from cookie
+ * The backend sets this cookie on GET requests with httpOnly=false
+ * so we can read it and send it back in the X-CSRF-Token header
+ */
+const getCsrfToken = (): string | null => {
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+  const cookies: string[] = document.cookie.split(';')
+  for (const cookie of cookies) {
+    const parts: string[] = cookie.trim().split('=')
+    const [name, value] = parts
+    if (name === 'csrf-token' && value) {
+      return decodeURIComponent(value)
+    }
+  }
+  return null
+}
+
 // Token refresh state management
 let isRefreshing = false
 let refreshSubscribers: Array<(token: string) => void> = []
@@ -48,14 +66,24 @@ export const api = axios.create({
   withCredentials: true, // Send httpOnly cookies for refresh token
 })
 
-// Request interceptor: Add access token to all requests
+// Request interceptor: Add access token and CSRF token to all requests
 api.interceptors.request.use(
   (config) => {
-    // Get token from memory via AuthContext getter
+    // Get access token from memory via AuthContext getter
     const accessToken = getAccessTokenFn?.()
     if (accessToken && config.headers) {
       config.headers.Authorization = `Bearer ${accessToken}`
     }
+
+    // Add CSRF token to state-changing requests
+    const method = config.method?.toUpperCase()
+    if (method && ['POST', 'PATCH', 'DELETE', 'PUT'].includes(method) && config.headers) {
+      const csrfToken = getCsrfToken()
+      if (csrfToken) {
+        config.headers['X-CSRF-Token'] = csrfToken
+      }
+    }
+
     return config
   },
   (error: AxiosError) => Promise.reject(error),
