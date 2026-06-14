@@ -146,3 +146,143 @@ describe('api-client - Rate Limit Handling', () => {
     }
   })
 })
+
+describe('api-client - CSRF Token Handling', () => {
+  it('reads CSRF token from cookie and attaches to POST request', async () => {
+    // Set CSRF token cookie
+    document.cookie = 'csrf-token=test-csrf-token-123; path=/'
+
+    let csrfHeaderValue: string | null = null
+
+    server.use(
+      http.post(`${import.meta.env.VITE_API_URL}/test`, ({ request }) => {
+        csrfHeaderValue = request.headers.get('X-CSRF-Token')
+        return HttpResponse.json({ success: true })
+      }),
+    )
+
+    await api.post('/test', { data: 'test' })
+
+    expect(csrfHeaderValue).toBe('test-csrf-token-123')
+
+    // Cleanup
+    document.cookie = 'csrf-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
+  })
+
+  it('attaches CSRF token to PATCH request', async () => {
+    document.cookie = 'csrf-token=test-csrf-patch-token; path=/'
+
+    let csrfHeaderValue: string | null = null
+
+    server.use(
+      http.patch(`${import.meta.env.VITE_API_URL}/test`, ({ request }) => {
+        csrfHeaderValue = request.headers.get('X-CSRF-Token')
+        return HttpResponse.json({ success: true })
+      }),
+    )
+
+    await api.patch('/test', { data: 'test' })
+
+    expect(csrfHeaderValue).toBe('test-csrf-patch-token')
+
+    document.cookie = 'csrf-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
+  })
+
+  it('attaches CSRF token to DELETE request', async () => {
+    document.cookie = 'csrf-token=test-csrf-delete-token; path=/'
+
+    let csrfHeaderValue: string | null = null
+
+    server.use(
+      http.delete(`${import.meta.env.VITE_API_URL}/test`, ({ request }) => {
+        csrfHeaderValue = request.headers.get('X-CSRF-Token')
+        return HttpResponse.json({ success: true }, { status: 204 })
+      }),
+    )
+
+    await api.delete('/test')
+
+    expect(csrfHeaderValue).toBe('test-csrf-delete-token')
+
+    document.cookie = 'csrf-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
+  })
+
+  it('attaches CSRF token to PUT request', async () => {
+    document.cookie = 'csrf-token=test-csrf-put-token; path=/'
+
+    let csrfHeaderValue: string | null = null
+
+    server.use(
+      http.put(`${import.meta.env.VITE_API_URL}/test`, ({ request }) => {
+        csrfHeaderValue = request.headers.get('X-CSRF-Token')
+        return HttpResponse.json({ success: true })
+      }),
+    )
+
+    await api.put('/test', { data: 'test' })
+
+    expect(csrfHeaderValue).toBe('test-csrf-put-token')
+
+    document.cookie = 'csrf-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
+  })
+
+  it('does not attach CSRF token to GET request', async () => {
+    document.cookie = 'csrf-token=test-csrf-get-token; path=/'
+
+    let csrfHeaderValue: string | null = null
+
+    server.use(
+      http.get(`${import.meta.env.VITE_API_URL}/test`, ({ request }) => {
+        csrfHeaderValue = request.headers.get('X-CSRF-Token')
+        return HttpResponse.json({ success: true })
+      }),
+    )
+
+    await api.get('/test')
+
+    // CSRF token should NOT be attached to GET requests
+    expect(csrfHeaderValue).toBeNull()
+
+    document.cookie = 'csrf-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
+  })
+
+  it('handles missing CSRF cookie gracefully on POST', async () => {
+    // Ensure no CSRF cookie
+    document.cookie = 'csrf-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
+
+    let csrfHeaderValue: string | null = 'not-set'
+
+    server.use(
+      http.post(`${import.meta.env.VITE_API_URL}/test`, ({ request }) => {
+        csrfHeaderValue = request.headers.get('X-CSRF-Token')
+        return HttpResponse.json({ success: true })
+      }),
+    )
+
+    await api.post('/test', { data: 'test' })
+
+    // Should not set header if cookie is missing
+    expect(csrfHeaderValue).toBeNull()
+  })
+
+  it('handles URL-encoded CSRF token', async () => {
+    // Set URL-encoded CSRF token
+    document.cookie = 'csrf-token=test%2Bcsrf%2Ftoken%3D123; path=/'
+
+    let csrfHeaderValue: string | null = null
+
+    server.use(
+      http.post(`${import.meta.env.VITE_API_URL}/test`, ({ request }) => {
+        csrfHeaderValue = request.headers.get('X-CSRF-Token')
+        return HttpResponse.json({ success: true })
+      }),
+    )
+
+    await api.post('/test', { data: 'test' })
+
+    // Should decode the URL-encoded token
+    expect(csrfHeaderValue).toBe('test+csrf/token=123')
+
+    document.cookie = 'csrf-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
+  })
+})

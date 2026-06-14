@@ -12,6 +12,7 @@ import morgan from 'morgan'
 import { TIME } from './lib/constants.js'
 import { corsConfig, getHelmetConfig, rateLimitConfig } from './lib/security.js'
 import { authenticateJWT } from './middleware/auth.js'
+import { csrfProtection } from './middleware/csrf.js'
 import { errorHandler } from './middleware/error-handler.js'
 import { notFound } from './middleware/not-found.js'
 import apiKeysRouter from './routes/api-keys.js'
@@ -85,6 +86,10 @@ app.use(
 
 // Global JWT authentication middleware (does not enforce auth, just parses token)
 app.use(authenticateJWT)
+
+// Global CSRF protection middleware
+// Sets CSRF token cookie on GET requests, validates on state-changing requests
+app.use(csrfProtection)
 
 // Routes
 app.use('/health', healthRouter)
