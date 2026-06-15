@@ -5,6 +5,7 @@ import { PrismaClient } from '@prisma/client'
 import * as bcrypt from 'bcrypt'
 import * as crypto from 'crypto'
 
+import { TIME } from '../src/lib/constants.js'
 import { logger } from '../src/lib/logger.js'
 
 const prisma = new PrismaClient()
@@ -177,7 +178,7 @@ async function main() {
       role: 'MEMBER',
       tokenHash: sha256(pendingInviteToken),
       status: 'PENDING',
-      expiresAt: new Date(Date.now() + 72 * 60 * 60 * 1000), // 72 hours from now
+      expiresAt: new Date(Date.now() + TIME.THREE_DAYS_MS),
       organizationId: acmeOrg.id,
       invitedById: adminUser.id,
     },
@@ -198,7 +199,7 @@ async function main() {
       role: 'MEMBER',
       tokenHash: sha256(expiredInviteToken),
       status: 'EXPIRED',
-      expiresAt: new Date(Date.now() - 24 * 60 * 60 * 1000), // 24 hours ago
+      expiresAt: new Date(Date.now() - TIME.ONE_DAY_MS),
       organizationId: acmeOrg.id,
       invitedById: adminUser.id,
     },
@@ -247,7 +248,7 @@ async function main() {
       name: 'Revoked API Key',
       keyHash: sha256(revokedApiKey),
       scopes: ['org:read', 'members:read'],
-      revokedAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000), // 7 days ago
+      revokedAt: new Date(Date.now() - TIME.ONE_WEEK_MS),
       organizationId: acmeOrg.id,
     },
   })

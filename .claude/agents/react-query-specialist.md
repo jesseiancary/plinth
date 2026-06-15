@@ -71,8 +71,8 @@ function MemberList({ orgSlug }: { orgSlug: string }) {
   const { data, isLoading, error } = useQuery({
     queryKey: ['organizations', orgSlug, 'members'],
     queryFn: () => api.get<{ data: Member[] }>(`/api/v1/orgs/${orgSlug}/members`),
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    gcTime: 10 * 60 * 1000, // 10 minutes (was cacheTime in v4)
+    staleTime: TIME.FIVE_MINUTES_MS,
+    gcTime: TIME.TEN_MINUTES_MS,
   })
 
   if (isLoading) return <LoadingSpinner />
@@ -266,7 +266,7 @@ function OrgSwitcher({ orgs }: { orgs: Organization[] }) {
     queryClient.prefetchQuery({
       queryKey: ['organizations', orgSlug, 'members'],
       queryFn: () => api.get(`/api/v1/orgs/${orgSlug}/members`),
-      staleTime: 5 * 60 * 1000, // 5 minutes
+      staleTime: TIME.FIVE_MINUTES_MS,
     })
   }
 
@@ -291,8 +291,8 @@ export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       // Stale-while-revalidate strategy
-      staleTime: 5 * 60 * 1000, // 5 minutes (data considered fresh)
-      gcTime: 10 * 60 * 1000, // 10 minutes (was cacheTime in v4)
+      staleTime: TIME.FIVE_MINUTES_MS, // (data considered fresh)
+      gcTime: TIME.TEN_MINUTES_MS,
 
       // Retry on failure
       retry: (failureCount, error: any) => {

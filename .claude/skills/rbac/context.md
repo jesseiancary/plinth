@@ -208,7 +208,7 @@ export const createInvitation = async (
 ) => {
   // Generate unique token
   const token = crypto.randomBytes(32).toString('hex')
-  const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // 7 days
+  const expiresAt = new Date(Date.now() + TIME.ONE_WEEK_MS)
 
   const invitation = await prisma.invitation.create({
     data: {
