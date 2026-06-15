@@ -5,6 +5,7 @@ import { generateApiKey, hashApiKey } from '../lib/api-key.js'
 import { asyncHandler } from '../lib/async-handler.js'
 import { AppError } from '../lib/errors.js'
 import { prisma } from '../lib/prisma.js'
+import { rateLimitConfig } from '../lib/security.js'
 import {
   apiKeyIdParamSchema,
   createApiKeySchema,
@@ -23,6 +24,7 @@ router.use(authenticateJWT)
  */
 router.post(
   '/:slug/api-keys',
+  rateLimitConfig.apiKeyCreate,
   requireRole('OWNER', 'ADMIN'),
   asyncHandler(async (req: Request, res: Response) => {
     const body = createApiKeySchema.parse(req.body)
@@ -61,6 +63,7 @@ router.post(
  */
 router.get(
   '/:slug/api-keys',
+  rateLimitConfig.readOperations,
   requireRole('OWNER', 'ADMIN'),
   asyncHandler(async (req: Request, res: Response) => {
     const query = listApiKeysQuerySchema.parse(req.query)
@@ -107,6 +110,7 @@ router.get(
  */
 router.delete(
   '/:slug/api-keys/:keyId',
+  rateLimitConfig.writeOperations,
   requireRole('OWNER', 'ADMIN'),
   asyncHandler(async (req: Request, res: Response) => {
     const { keyId } = apiKeyIdParamSchema.parse(req.params)

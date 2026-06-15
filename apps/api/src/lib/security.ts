@@ -52,20 +52,194 @@ export const getHelmetConfig = (): HelmetOptions =>
 const isTestEnv = process.env.NODE_ENV === 'test'
 
 export const rateLimitConfig = {
-  authEndpoints: rateLimit({
-    windowMs: RATE_LIMIT.AUTH_WINDOW_MS,
-    max: RATE_LIMIT.AUTH_MAX_REQUESTS,
-    message: 'Too many login attempts, please try again later',
-    standardHeaders: 'draft-7', // Use draft-7 to include Retry-After header
+  authLogin: rateLimit({
+    windowMs: RATE_LIMIT.AUTH_LOGIN_WINDOW_MS,
+    max: RATE_LIMIT.AUTH_LOGIN_MAX,
+    standardHeaders: 'draft-7',
     legacyHeaders: false,
-    skip: () => isTestEnv, // Skip rate limiting in tests
+    skip: () => isTestEnv,
+    handler: (_req, res) => {
+      res.status(429).json({
+        error: {
+          code: 'RATE_LIMIT_EXCEEDED',
+          message: 'Too many login attempts. Please try again in 1 minute.',
+          details: {
+            retryAfter: Math.ceil(RATE_LIMIT.AUTH_LOGIN_WINDOW_MS / 1000),
+          },
+        },
+      })
+    },
   }),
+
+  authRegister: rateLimit({
+    windowMs: RATE_LIMIT.AUTH_REGISTER_WINDOW_MS,
+    max: RATE_LIMIT.AUTH_REGISTER_MAX,
+    standardHeaders: 'draft-7',
+    legacyHeaders: false,
+    skip: () => isTestEnv,
+    handler: (_req, res) => {
+      res.status(429).json({
+        error: {
+          code: 'RATE_LIMIT_EXCEEDED',
+          message: 'Too many registration attempts. Please try again in 1 hour.',
+          details: {
+            retryAfter: Math.ceil(RATE_LIMIT.AUTH_REGISTER_WINDOW_MS / 1000),
+          },
+        },
+      })
+    },
+  }),
+
+  authPassword: rateLimit({
+    windowMs: RATE_LIMIT.AUTH_PASSWORD_WINDOW_MS,
+    max: RATE_LIMIT.AUTH_PASSWORD_MAX,
+    standardHeaders: 'draft-7',
+    legacyHeaders: false,
+    skip: () => isTestEnv,
+    handler: (_req, res) => {
+      res.status(429).json({
+        error: {
+          code: 'RATE_LIMIT_EXCEEDED',
+          message: 'Too many password change attempts. Please try again in 15 minutes.',
+          details: {
+            retryAfter: Math.ceil(RATE_LIMIT.AUTH_PASSWORD_WINDOW_MS / 1000),
+          },
+        },
+      })
+    },
+  }),
+
+  authRefresh: rateLimit({
+    windowMs: RATE_LIMIT.AUTH_REFRESH_WINDOW_MS,
+    max: RATE_LIMIT.AUTH_REFRESH_MAX,
+    standardHeaders: 'draft-7',
+    legacyHeaders: false,
+    skip: () => isTestEnv,
+    handler: (_req, res) => {
+      res.status(429).json({
+        error: {
+          code: 'RATE_LIMIT_EXCEEDED',
+          message: 'Too many refresh token requests. Please try again later.',
+          details: {
+            retryAfter: Math.ceil(RATE_LIMIT.AUTH_REFRESH_WINDOW_MS / 1000),
+          },
+        },
+      })
+    },
+  }),
+
+  invitationCreate: rateLimit({
+    windowMs: RATE_LIMIT.INVITATION_CREATE_WINDOW_MS,
+    max: RATE_LIMIT.INVITATION_CREATE_MAX,
+    standardHeaders: 'draft-7',
+    legacyHeaders: false,
+    skip: () => isTestEnv,
+    handler: (_req, res) => {
+      res.status(429).json({
+        error: {
+          code: 'RATE_LIMIT_EXCEEDED',
+          message: 'Invitation limit reached. Please try again later.',
+          details: {
+            retryAfter: Math.ceil(RATE_LIMIT.INVITATION_CREATE_WINDOW_MS / 1000),
+          },
+        },
+      })
+    },
+  }),
+
+  invitationAccept: rateLimit({
+    windowMs: RATE_LIMIT.INVITATION_ACCEPT_WINDOW_MS,
+    max: RATE_LIMIT.INVITATION_ACCEPT_MAX,
+    standardHeaders: 'draft-7',
+    legacyHeaders: false,
+    skip: () => isTestEnv,
+    handler: (_req, res) => {
+      res.status(429).json({
+        error: {
+          code: 'RATE_LIMIT_EXCEEDED',
+          message: 'Too many invitation accept attempts. Please try again later.',
+          details: {
+            retryAfter: Math.ceil(RATE_LIMIT.INVITATION_ACCEPT_WINDOW_MS / 1000),
+          },
+        },
+      })
+    },
+  }),
+
+  apiKeyCreate: rateLimit({
+    windowMs: RATE_LIMIT.API_KEY_CREATE_WINDOW_MS,
+    max: RATE_LIMIT.API_KEY_CREATE_MAX,
+    standardHeaders: 'draft-7',
+    legacyHeaders: false,
+    skip: () => isTestEnv,
+    handler: (_req, res) => {
+      res.status(429).json({
+        error: {
+          code: 'RATE_LIMIT_EXCEEDED',
+          message: 'API key creation limit reached. Please try again later.',
+          details: {
+            retryAfter: Math.ceil(RATE_LIMIT.API_KEY_CREATE_WINDOW_MS / 1000),
+          },
+        },
+      })
+    },
+  }),
+
+  readOperations: rateLimit({
+    windowMs: RATE_LIMIT.READ_WINDOW_MS,
+    max: RATE_LIMIT.READ_MAX,
+    standardHeaders: 'draft-7',
+    legacyHeaders: false,
+    skip: () => isTestEnv,
+    handler: (_req, res) => {
+      res.status(429).json({
+        error: {
+          code: 'RATE_LIMIT_EXCEEDED',
+          message: 'Too many requests. Please slow down.',
+          details: {
+            retryAfter: Math.ceil(RATE_LIMIT.READ_WINDOW_MS / 1000),
+          },
+        },
+      })
+    },
+  }),
+
+  writeOperations: rateLimit({
+    windowMs: RATE_LIMIT.WRITE_WINDOW_MS,
+    max: RATE_LIMIT.WRITE_MAX,
+    standardHeaders: 'draft-7',
+    legacyHeaders: false,
+    skip: () => isTestEnv,
+    handler: (_req, res) => {
+      res.status(429).json({
+        error: {
+          code: 'RATE_LIMIT_EXCEEDED',
+          message: 'Too many write requests. Please slow down.',
+          details: {
+            retryAfter: Math.ceil(RATE_LIMIT.WRITE_WINDOW_MS / 1000),
+          },
+        },
+      })
+    },
+  }),
+
   apiEndpoints: rateLimit({
     windowMs: RATE_LIMIT.API_WINDOW_MS,
     max: RATE_LIMIT.API_MAX_REQUESTS,
-    standardHeaders: 'draft-7', // Use draft-7 to include Retry-After header
+    standardHeaders: 'draft-7',
     legacyHeaders: false,
-    skip: () => isTestEnv, // Skip rate limiting in tests
+    skip: () => isTestEnv,
+    handler: (_req, res) => {
+      res.status(429).json({
+        error: {
+          code: 'RATE_LIMIT_EXCEEDED',
+          message: 'Too many requests. Please slow down.',
+          details: {
+            retryAfter: Math.ceil(RATE_LIMIT.API_WINDOW_MS / 1000),
+          },
+        },
+      })
+    },
   }),
 }
 

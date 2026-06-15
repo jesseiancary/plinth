@@ -4,6 +4,7 @@ import { Router } from 'express'
 import { asyncHandler } from '../lib/async-handler.js'
 import { AppError } from '../lib/errors.js'
 import { prisma } from '../lib/prisma.js'
+import { rateLimitConfig } from '../lib/security.js'
 import { createOrgSchema, orgSlugParamSchema, updateOrgSchema } from '../lib/validation/orgs.js'
 import { authenticateJWT, requireAuth, requireRole } from '../middleware/auth.js'
 
@@ -18,6 +19,7 @@ router.use(authenticateJWT)
  */
 router.post(
   '/',
+  rateLimitConfig.writeOperations,
   requireAuth,
   asyncHandler(async (req: Request, res: Response) => {
     const body = createOrgSchema.parse(req.body)
@@ -82,6 +84,7 @@ router.post(
  */
 router.get(
   '/:slug',
+  rateLimitConfig.readOperations,
   requireRole('OWNER', 'ADMIN', 'MEMBER'),
   asyncHandler(async (req: Request, res: Response) => {
     const { slug } = orgSlugParamSchema.parse(req.params)
@@ -110,6 +113,7 @@ router.get(
  */
 router.patch(
   '/:slug',
+  rateLimitConfig.writeOperations,
   requireRole('OWNER', 'ADMIN'),
   asyncHandler(async (req: Request, res: Response) => {
     const { slug } = orgSlugParamSchema.parse(req.params)
@@ -160,6 +164,7 @@ router.patch(
  */
 router.delete(
   '/:slug',
+  rateLimitConfig.writeOperations,
   requireRole('OWNER'),
   asyncHandler(async (req: Request, res: Response) => {
     if (!req.tenantId) {

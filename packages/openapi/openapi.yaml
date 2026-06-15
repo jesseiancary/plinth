@@ -2,7 +2,34 @@ openapi: 3.1.0
 info:
   title: Plinth API
   version: 1.0.0
-  description: Production-grade multi-tenant SaaS API
+  description: |
+    Production-grade multi-tenant SaaS API with comprehensive security controls.
+
+    ## Rate Limiting
+
+    This API implements per-endpoint rate limiting to protect against abuse and ensure fair usage:
+
+    ### Authentication Endpoints (Most Restrictive)
+    - **Login**: 5 requests per minute
+    - **Register**: 3 requests per hour
+    - **Password Change**: 3 requests per 15 minutes
+    - **Refresh Token**: 20 requests per 15 minutes
+
+    ### Invitation Operations (Spam Prevention)
+    - **Create Invitation**: 20 requests per hour
+    - **Accept Invitation**: 10 requests per 15 minutes
+
+    ### API Key Operations
+    - **Create API Key**: 10 requests per hour
+
+    ### Generic Operations
+    - **Read Operations (GET)**: 300 requests per 15 minutes
+    - **Write Operations (POST/PATCH/DELETE)**: 100 requests per 15 minutes
+
+    ### Global Fallback
+    - **All Other Endpoints**: 1000 requests per 15 minutes
+
+    When rate limit is exceeded, the API returns HTTP 429 with standard rate limiting headers including `Retry-After`.
   contact:
     name: Plinth Team
     url: https://github.com/jesseiancary/plinth
@@ -186,6 +213,8 @@ paths:
                       code: EMAIL_EXISTS
                       message: Email already registered
                       details: {}
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
 
   /api/v1/auth/login:
     post:
@@ -264,6 +293,8 @@ paths:
                       code: INVALID_CREDENTIALS
                       message: Invalid credentials
                       details: {}
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
 
   /api/v1/auth/refresh:
     post:
@@ -331,6 +362,8 @@ paths:
                       code: REFRESH_TOKEN_EXPIRED
                       message: Refresh token expired
                       details: {}
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
 
   /api/v1/auth/logout:
     post:
@@ -539,6 +572,8 @@ paths:
                       code: UNAUTHENTICATED
                       message: Authentication required
                       details: {}
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
 
   /api/v1/orgs:
     post:
@@ -679,6 +714,8 @@ paths:
                       code: ORG_SLUG_EXISTS
                       message: Organization slug already exists
                       details: {}
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
 
   /api/v1/orgs/{slug}:
     get:
@@ -741,6 +778,8 @@ paths:
                       code: ORG_NOT_FOUND
                       message: Organization not found
                       details: {}
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
 
     patch:
       summary: Update organization
@@ -877,6 +916,8 @@ paths:
                       code: ORG_SLUG_EXISTS
                       message: Organization slug already exists
                       details: {}
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
 
     delete:
       summary: Delete organization
@@ -947,6 +988,8 @@ paths:
                       code: ORG_NOT_FOUND
                       message: Organization not found
                       details: {}
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
 
   /api/v1/orgs/{slug}/members:
     get:
@@ -1068,6 +1111,8 @@ paths:
                       code: ORG_NOT_FOUND
                       message: Organization not found
                       details: {}
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
 
   /api/v1/orgs/{slug}/members/{memberId}:
     patch:
@@ -1213,6 +1258,8 @@ paths:
                       code: LAST_OWNER_PROTECTION
                       message: Cannot remove last owner
                       details: {}
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
 
     delete:
       summary: Remove member
@@ -1285,6 +1332,8 @@ paths:
                       code: LAST_OWNER_PROTECTION
                       message: Cannot remove last owner
                       details: {}
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
 
   /api/v1/orgs/{slug}/transfer-ownership:
     post:
@@ -1372,6 +1421,8 @@ paths:
                       code: NEW_OWNER_NOT_MEMBER
                       message: New owner must be an existing member
                       details: {}
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
 
   /api/v1/orgs/{slug}/invitations:
     post:
@@ -1469,6 +1520,8 @@ paths:
                       code: INVITATION_ALREADY_EXISTS
                       message: A pending invitation already exists for this email
                       details: {}
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
 
     get:
       summary: List invitations
@@ -1545,6 +1598,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
 
   /api/v1/orgs/{slug}/invitations/{invitationId}:
     delete:
@@ -1596,6 +1651,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
 
   /api/v1/invitations/validate/{token}:
     get:
@@ -1695,6 +1752,8 @@ paths:
                       code: INVITATION_ALREADY_ACCEPTED
                       message: Invitation has already been accepted
                       details: {}
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
 
   /api/v1/invitations/accept:
     post:
@@ -1807,6 +1866,8 @@ paths:
                       code: INVITATION_ALREADY_ACCEPTED
                       message: Invitation has already been accepted
                       details: {}
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
 
   /api/v1/orgs/{slug}/api-keys:
     post:
@@ -1907,6 +1968,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
 
     get:
       summary: List API keys
@@ -1982,6 +2045,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
 
   /api/v1/orgs/{slug}/api-keys/{keyId}:
     delete:
@@ -2034,6 +2099,8 @@ paths:
                       code: API_KEY_NOT_FOUND
                       message: API key not found
                       details: {}
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
 
 components:
   schemas:
@@ -2235,6 +2302,67 @@ components:
             - type: string
             - type: 'null'
           description: Cursor for next page (null if no more pages)
+
+  responses:
+    RateLimitExceeded:
+      description: Rate limit exceeded
+      headers:
+        RateLimit-Limit:
+          schema:
+            type: integer
+          description: Maximum number of requests allowed in the window
+        RateLimit-Remaining:
+          schema:
+            type: integer
+          description: Number of requests remaining in the current window
+        RateLimit-Reset:
+          schema:
+            type: integer
+          description: Unix timestamp when the rate limit window resets
+        Retry-After:
+          schema:
+            type: integer
+          description: Seconds to wait before retrying
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - error
+            properties:
+              error:
+                type: object
+                required:
+                  - code
+                  - message
+                properties:
+                  code:
+                    type: string
+                    enum: [RATE_LIMIT_EXCEEDED]
+                  message:
+                    type: string
+                    description: Human-readable rate limit message
+                  details:
+                    type: object
+          examples:
+            authLogin:
+              summary: Login rate limit exceeded
+              value:
+                error:
+                  code: RATE_LIMIT_EXCEEDED
+                  message: Too many login attempts. Please try again in 1 minute.
+            authRegister:
+              summary: Registration rate limit exceeded
+              value:
+                error:
+                  code: RATE_LIMIT_EXCEEDED
+                  message: Too many registration attempts. Please try again in 1 hour.
+            invitationCreate:
+              summary: Invitation creation rate limit exceeded
+              value:
+                error:
+                  code: RATE_LIMIT_EXCEEDED
+                  message: Invitation limit reached. Please try again later.
 
   securitySchemes:
     bearerAuth:

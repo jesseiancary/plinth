@@ -5,6 +5,7 @@ import { asyncHandler } from '../lib/async-handler.js'
 import { sha256 } from '../lib/crypto.js'
 import { AppError } from '../lib/errors.js'
 import { prisma } from '../lib/prisma.js'
+import { rateLimitConfig } from '../lib/security.js'
 import {
   acceptInvitationSchema,
   invitationTokenParamSchema,
@@ -19,6 +20,7 @@ const router = Router()
  */
 router.get(
   '/validate/:token',
+  rateLimitConfig.readOperations,
   asyncHandler(async (req: Request, res: Response) => {
     const { token } = invitationTokenParamSchema.parse(req.params)
 
@@ -80,6 +82,7 @@ router.get(
  */
 router.post(
   '/accept',
+  rateLimitConfig.invitationAccept,
   authenticateJWT,
   requireAuth,
   asyncHandler(async (req: Request, res: Response) => {

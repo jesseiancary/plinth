@@ -5,6 +5,7 @@ import { asyncHandler } from '../lib/async-handler.js'
 import { generateInvitationToken, sha256 } from '../lib/crypto.js'
 import { AppError } from '../lib/errors.js'
 import { prisma } from '../lib/prisma.js'
+import { rateLimitConfig } from '../lib/security.js'
 import {
   createInvitationSchema,
   invitationIdParamSchema,
@@ -20,6 +21,7 @@ const router = Router()
  */
 router.post(
   '/:slug/invitations',
+  rateLimitConfig.invitationCreate,
   authenticateJWT,
   requireRole('OWNER', 'ADMIN'),
   asyncHandler(async (req: Request, res: Response) => {
@@ -103,6 +105,7 @@ router.post(
  */
 router.get(
   '/:slug/invitations',
+  rateLimitConfig.readOperations,
   authenticateJWT,
   requireRole('OWNER', 'ADMIN'),
   asyncHandler(async (req: Request, res: Response) => {
@@ -150,6 +153,7 @@ router.get(
  */
 router.delete(
   '/:slug/invitations/:invitationId',
+  rateLimitConfig.writeOperations,
   authenticateJWT,
   requireRole('OWNER', 'ADMIN'),
   asyncHandler(async (req: Request, res: Response) => {
