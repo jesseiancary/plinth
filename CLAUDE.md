@@ -500,6 +500,13 @@ This project implements comprehensive security controls based on the OWASP Top 1
 - [ ] Horizontal privilege escalation prevented (user A cannot access user B's resources)
 - [ ] 404 vs 403 pattern followed (don't leak org existence to non-members)
 
+**Authentication (A07 - MODERATE):**
+
+- [ ] Generic error messages (prevent account enumeration)
+- [ ] Timing normalization on auth failures (200ms minimum via `normalizeAuthTiming()`)
+- [ ] Rate limiting appropriate for endpoint sensitivity
+- [ ] Email verification (Phase 8+): verify email ownership before account activation
+
 **Input Validation (A05 - MODERATE):**
 
 - [ ] All inputs validated with Zod before database operations

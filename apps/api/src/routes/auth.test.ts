@@ -70,7 +70,7 @@ describe('POST /api/v1/auth/register', () => {
     expect(response.status).toBe(201)
   })
 
-  it('returns 409 if email already exists', async () => {
+  it('returns 400 with generic error if email already exists (prevents enumeration)', async () => {
     await createTestUser({ email: 'existing@example.com' })
 
     const response = await request(app).post('/api/v1/auth/register').send({
@@ -79,8 +79,25 @@ describe('POST /api/v1/auth/register', () => {
       name: 'Another User',
     })
 
-    expect(response.status).toBe(409)
-    expect(response.body.error.code).toBe('EMAIL_EXISTS')
+    expect(response.status).toBe(400)
+    expect(response.body.error.code).toBe('REGISTRATION_FAILED')
+    expect(response.body.error.message).toBe('Unable to complete registration')
+  })
+
+  it('normalizes timing on duplicate email to prevent timing attacks', async () => {
+    await createTestUser({ email: 'existing@example.com' })
+
+    const startTime = Date.now()
+    const response = await request(app).post('/api/v1/auth/register').send({
+      email: 'existing@example.com',
+      password: 'P@ssword123',
+      name: 'Another User',
+    })
+    const elapsed = Date.now() - startTime
+
+    expect(response.status).toBe(400)
+    // Response should take at least 200ms due to timing normalization
+    expect(elapsed).toBeGreaterThanOrEqual(200)
   })
 
   it('returns 400 for invalid email', async () => {

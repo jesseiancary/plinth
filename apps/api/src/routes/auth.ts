@@ -27,6 +27,9 @@ router.post(
   '/register',
   rateLimitConfig.authRegister,
   asyncHandler(async (req: Request, res: Response) => {
+    // Record start time for timing attack prevention
+    const startTime = Date.now()
+
     try {
       const body = registerSchema.parse(req.body)
 
@@ -36,7 +39,8 @@ router.post(
       })
 
       if (existingUser) {
-        throw new AppError('Email already registered', 409, 'EMAIL_EXISTS')
+        await normalizeAuthTiming(startTime)
+        throw new AppError('Unable to complete registration', 400, 'REGISTRATION_FAILED')
       }
 
       // Hash password
@@ -367,14 +371,12 @@ router.patch(
 
       const isCurrentPasswordValid = await verifyPassword(body.currentPassword, user.password)
       if (!isCurrentPasswordValid) {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-call
         await normalizeAuthTiming(startTime)
         throw new AppError('Current password is incorrect', 401, 'INVALID_PASSWORD')
       }
 
       const isSamePassword = await verifyPassword(body.newPassword, user.password)
       if (isSamePassword) {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-call
         await normalizeAuthTiming(startTime)
         throw new AppError(
           'New password must be different from current password',

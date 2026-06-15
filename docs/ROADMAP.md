@@ -354,15 +354,44 @@
 
 ## Phase 8 — Deployment & Polish
 
+### Email Infrastructure & Verification
+
+- [ ] Configure SMTP service (SendGrid, Postmark, or AWS SES)
+- [ ] Add email templates (React Email or Handlebars)
+- [ ] Implement email service wrapper (`apps/api/src/lib/email.ts`)
+- [ ] Add email verification to registration flow:
+  - [ ] Create `emailVerified` boolean + `verificationToken` fields in User model
+  - [ ] Generate verification token on registration (SHA-256 hashed)
+  - [ ] Send verification email with token link
+  - [ ] Implement `POST /api/v1/auth/verify-email/:token` endpoint
+  - [ ] Block login for unverified users (return 403 with helpful message)
+  - [ ] Add "Resend verification email" endpoint
+- [ ] Update account enumeration prevention:
+  - [ ] Send "account exists" email when duplicate registration attempted
+  - [ ] Keep generic error response (maintains enumeration prevention)
+  - [ ] User is notified via email if unauthorized registration attempt
+- [ ] Add email notification for invitation flow (when invited to org)
+- [ ] Add password reset flow:
+  - [ ] `POST /api/v1/auth/forgot-password` — send reset link
+  - [ ] `POST /api/v1/auth/reset-password/:token` — set new password
+  - [ ] Invalidate all sessions on password reset
+- [ ] Update OpenAPI spec with new email-related endpoints
+- [ ] Add integration tests for email verification flow
+- [ ] Update security audit (H-04 enhancement complete)
+
+**Rationale:** Email verification provides optimal security + UX for account enumeration prevention while enabling essential features like password reset. Currently deferred from H-04 fix due to missing email infrastructure.
+
+### Deployment & Infrastructure
+
 - [ ] Dockerize `apps/api` with multi-stage build
 - [ ] Add `docker-compose.yml` for local dev (PostgreSQL + API + Redis if needed)
 - [ ] Deploy API + PostgreSQL to Railway (or Render)
 - [ ] Deploy frontend to Vercel
-- [ ] Configure environment variables in both platforms
+- [ ] Configure environment variables in both platforms (including SMTP credentials)
 - [ ] Set up Prisma migrate deploy in CI/CD pipeline
 - [ ] Add live demo link to README
 - [ ] Write architecture decision records (ADRs) for: monorepo structure, tenant isolation strategy,
-      token design, API key hashing approach
+      token design, API key hashing approach, email verification strategy
 - [ ] Final README pass: architecture diagram, local setup, API docs link, AI workflow section
 
 ---

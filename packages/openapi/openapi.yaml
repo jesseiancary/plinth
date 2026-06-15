@@ -199,19 +199,12 @@ paths:
                       message: Validation failed
                       details:
                         email: Invalid email format
-        '409':
-          description: Email already registered
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-              examples:
-                emailExists:
-                  summary: Email already registered
+                registrationFailed:
+                  summary: Registration failed (generic error prevents account enumeration)
                   value:
                     error:
-                      code: EMAIL_EXISTS
-                      message: Email already registered
+                      code: REGISTRATION_FAILED
+                      message: Unable to complete registration
                       details: {}
         '429':
           $ref: '#/components/responses/RateLimitExceeded'
