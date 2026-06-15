@@ -9,11 +9,13 @@ import {
 } from '@plinth/validation'
 
 import { asyncHandler } from '../lib/async-handler.js'
+import { logUserLogin, logUserLogout, logUserRegistration } from '../lib/business-logger.js'
 import { AppError } from '../lib/errors.js'
 import { signAccessToken, signRefreshToken, verifyRefreshToken } from '../lib/jwt.js'
 import { hashPassword, normalizeAuthTiming, verifyPassword } from '../lib/password.js'
 import { prisma } from '../lib/prisma.js'
 import { rateLimitConfig } from '../lib/security.js'
+import { logAuthFailure, logSecurityEvent, logSensitiveOperation } from '../lib/security-logger.js'
 import { generateUniqueSlug } from '../lib/slug.js'
 import { requireAuth } from '../middleware/auth.js'
 
@@ -40,6 +42,7 @@ router.post(
 
       if (existingUser) {
         await normalizeAuthTiming(startTime)
+        logSecurityEvent('REGISTRATION_FAILED', req, { email: body.email })
         throw new AppError('Unable to complete registration', 400, 'REGISTRATION_FAILED')
       }
 
@@ -96,6 +99,17 @@ router.post(
         maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
       })
 
+      const personalOrg = user.memberships[0]?.organization
+      if (personalOrg) {
+        logUserRegistration({
+          userId: user.id,
+          email: user.email,
+          organizationId: personalOrg.id,
+          organizationSlug: personalOrg.slug,
+          personalOrg: true,
+        })
+      }
+
       res.status(201).json({
         accessToken,
         user: {
@@ -136,6 +150,14 @@ router.post(
       })
 
       if (!user) {
+        logAuthFailure({
+          event: 'FAILED_LOGIN',
+          reason: 'Invalid credentials',
+          email: body.email,
+          ip: req.ip,
+          userAgent: req.headers['user-agent'],
+          endpoint: req.originalUrl,
+        })
         throw new AppError('Invalid credentials', 401, 'INVALID_CREDENTIALS')
       }
 
@@ -143,6 +165,15 @@ router.post(
       const isPasswordValid = await verifyPassword(body.password, user.password)
 
       if (!isPasswordValid) {
+        logAuthFailure({
+          event: 'FAILED_LOGIN',
+          reason: 'Invalid password',
+          email: body.email,
+          userId: user.id,
+          ip: req.ip,
+          userAgent: req.headers['user-agent'],
+          endpoint: req.originalUrl,
+        })
         throw new AppError('Invalid credentials', 401, 'INVALID_CREDENTIALS')
       }
 
@@ -164,6 +195,12 @@ router.post(
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'strict',
         maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      })
+
+      logUserLogin({
+        userId: user.id,
+        email: user.email,
+        ip: req.ip,
       })
 
       res.json({
@@ -274,6 +311,11 @@ router.post(
       // Verify and extract user ID
       const payload = verifyRefreshToken(refreshToken)
 
+      const user = await prisma.user.findUnique({
+        where: { id: payload.userId },
+        select: { id: true, email: true },
+      })
+
       // Increment token version to invalidate all existing refresh tokens
       await prisma.user.update({
         where: { id: payload.userId },
@@ -283,6 +325,13 @@ router.post(
           },
         },
       })
+
+      if (user) {
+        logUserLogout({
+          userId: user.id,
+          email: user.email,
+        })
+      }
 
       // Clear cookie
       res.clearCookie('refreshToken')
@@ -397,6 +446,14 @@ router.patch(
             },
           },
         })
+      })
+
+      logSensitiveOperation({
+        event: 'PASSWORD_CHANGED',
+        userId: user.id,
+        email: user.email,
+        ip: req.ip,
+        userAgent: req.headers['user-agent'],
       })
 
       // Clear refresh token cookie

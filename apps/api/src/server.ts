@@ -1,45 +1,44 @@
 import { env } from './lib/env.js'
+import { logger } from './lib/logger.js'
 import { prisma } from './lib/prisma.js'
 import { app } from './app.js'
 
 const port = parseInt(env.PORT, 10)
 
 const server = app.listen(port, () => {
-  // eslint-disable-next-line no-console
-  console.log(`🚀 API server running on ${env.API_URL}`)
-  // eslint-disable-next-line no-console
-  console.log(`📖 Health check: ${env.API_URL}/health`)
-  // eslint-disable-next-line no-console
-  console.log(`📚 API docs: ${env.API_URL}/docs`)
-  // eslint-disable-next-line no-console
-  console.log(`🔒 Environment: ${env.NODE_ENV}`)
+  logger.info('Server started', {
+    port,
+    apiUrl: env.API_URL,
+    environment: env.NODE_ENV,
+    nodeVersion: process.version,
+    healthCheckUrl: `${env.API_URL}/health`,
+    apiDocsUrl: `${env.API_URL}/docs`,
+  })
 })
 
 // Graceful shutdown
 const gracefulShutdown = () => {
-  // eslint-disable-next-line no-console
-  console.log('\n🛑 Shutting down gracefully...')
+  logger.info('🛑 Graceful shutdown initiated')
 
   server.close(async () => {
-    // eslint-disable-next-line no-console
-    console.log('✅ HTTP server closed')
+    logger.info('✅ HTTP server closed')
 
     try {
       await prisma.$disconnect()
-      // eslint-disable-next-line no-console
-      console.log('✅ Database connection closed')
+      logger.info('✅ Database connection closed')
       process.exit(0)
     } catch (error) {
-      // eslint-disable-next-line no-console
-      console.error('❌ Error disconnecting from database:', error)
+      logger.error('❌ Error disconnecting from database', {
+        error: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+      })
       process.exit(1)
     }
   })
 
   // Force shutdown after 10 seconds
   setTimeout(() => {
-    // eslint-disable-next-line no-console
-    console.error('⚠️  Forced shutdown after timeout')
+    logger.error('⚠️ Forced shutdown after timeout')
     process.exit(1)
   }, 10000)
 }

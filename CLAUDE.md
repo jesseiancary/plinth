@@ -151,6 +151,38 @@ rest — the plaintext is returned once on creation and never stored.
 
 ---
 
+## Logging Conventions
+
+- **Use Winston logger** — never use `console.log`, `console.error`, or `console.warn` in production code
+- **Security events use WARN level** — `logAuthFailure()`, `logAuthorizationFailure()`, `logSensitiveOperation()`
+- **Business events use INFO level** — `logUserRegistration()`, `logMembershipChanged()`, `logApiKeyEvent()`
+- **Errors logged automatically** — error handler middleware logs all errors with context
+- **Never log sensitive data:**
+  - ❌ Passwords (plaintext or hashed)
+  - ❌ JWT tokens (access or refresh)
+  - ❌ API keys (plaintext - only log key name/ID)
+  - ❌ `req.body` on auth endpoints (contains passwords)
+  - ❌ `req.headers.authorization` (contains tokens)
+  - ✅ Email addresses OK for user events (not error logs)
+  - ✅ IP addresses OK for security events only
+- **Use structured logging** — pass objects, not string concatenation
+  - ✅ `logger.info('User registered', { userId, email, orgId })`
+  - ❌ ~~`logger.info(\`User ${email} registered\`)`~~
+- **Security logging helpers:**
+  - `logAuthFailure()` - failed logins, invalid tokens
+  - `logAuthorizationFailure()` - 403 errors, RBAC violations
+  - `logSensitiveOperation()` - password changes, email changes
+  - `logSecurityEvent()` - generic security event with request context
+- **Business logging helpers:**
+  - `logUserRegistration()` / `logUserLogin()` / `logUserLogout()`
+  - `logOrganizationCreated()` / `logOrganizationUpdated()`
+  - `logMembershipChanged()` - role changes, additions, removals
+  - `logInvitationEvent()` - created, accepted, revoked
+  - `logApiKeyEvent()` - created, revoked
+- **Reference:** See `docs/LOGGING.md` for comprehensive logging architecture and examples
+
+---
+
 ## Git Conventions & PR Workflow
 
 **CRITICAL: NEVER commit directly to `main`. ALL changes must go through a pull request.**

@@ -350,7 +350,7 @@ async function backfillLastName() {
     })
   }
 
-  console.log(`Backfilled ${users.length} users`)
+  logger.info(`Backfilled ${users.length} users`)
 }
 
 backfillLastName()

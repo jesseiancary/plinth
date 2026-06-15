@@ -5,6 +5,8 @@ import { PrismaClient } from '@prisma/client'
 import * as bcrypt from 'bcrypt'
 import * as crypto from 'crypto'
 
+import { logger } from '../src/lib/logger.js'
+
 const prisma = new PrismaClient()
 
 // Helper function to generate SHA-256 hash
@@ -13,8 +15,7 @@ function sha256(input: string): string {
 }
 
 async function main() {
-  // eslint-disable-next-line no-console
-  console.log('🌱 Seeding database...')
+  logger.info('Seeding database', { environment: process.env.NODE_ENV })
 
   // Create test users
   const hashedPassword = await bcrypt.hash('P@ssword123', 10)
@@ -29,8 +30,7 @@ async function main() {
     },
   })
 
-  // eslint-disable-next-line no-console
-  console.log(`Created user: ${adminUser.email}`)
+  logger.info('Created user', { email: adminUser.email })
 
   const memberUser = await prisma.user.upsert({
     where: { email: 'member@example.com' },
@@ -42,8 +42,7 @@ async function main() {
     },
   })
 
-  // eslint-disable-next-line no-console
-  console.log(`Created user: ${memberUser.email}`)
+  logger.info('Created user', { email: memberUser.email })
 
   const guestUser = await prisma.user.upsert({
     where: { email: 'guest@example.com' },
@@ -55,8 +54,7 @@ async function main() {
     },
   })
 
-  // eslint-disable-next-line no-console
-  console.log(`Created user: ${guestUser.email}`)
+  logger.info('Created user', { email: guestUser.email })
 
   // Create test organizations
   const acmeOrg = await prisma.organization.upsert({
@@ -68,8 +66,7 @@ async function main() {
     },
   })
 
-  // eslint-disable-next-line no-console
-  console.log(`Created organization: ${acmeOrg.name}`)
+  logger.info('Created organization', { name: acmeOrg.name, slug: acmeOrg.slug })
 
   const globexOrg = await prisma.organization.upsert({
     where: { slug: 'globex' },
@@ -80,8 +77,7 @@ async function main() {
     },
   })
 
-  // eslint-disable-next-line no-console
-  console.log(`Created organization: ${globexOrg.name}`)
+  logger.info('Created organization', { name: globexOrg.name, slug: globexOrg.slug })
 
   // Create memberships
   // Admin user: Owner of Acme, Admin of Globex
@@ -100,10 +96,11 @@ async function main() {
     },
   })
 
-  // eslint-disable-next-line no-console
-  console.log(
-    `Created membership: ${adminUser.email} -> ${acmeOrg.slug} (${acmeOwnerMembership.role})`,
-  )
+  logger.info('Created membership', {
+    user: adminUser.email,
+    organization: acmeOrg.slug,
+    role: acmeOwnerMembership.role,
+  })
 
   const globexAdminMembership = await prisma.membership.upsert({
     where: {
@@ -120,10 +117,11 @@ async function main() {
     },
   })
 
-  // eslint-disable-next-line no-console
-  console.log(
-    `Created membership: ${adminUser.email} -> ${globexOrg.slug} (${globexAdminMembership.role})`,
-  )
+  logger.info('Created membership', {
+    user: adminUser.email,
+    organization: globexOrg.slug,
+    role: globexAdminMembership.role,
+  })
 
   // Member user: Member of Acme only
   const acmeMemberMembership = await prisma.membership.upsert({
@@ -141,10 +139,11 @@ async function main() {
     },
   })
 
-  // eslint-disable-next-line no-console
-  console.log(
-    `Created membership: ${memberUser.email} -> ${acmeOrg.slug} (${acmeMemberMembership.role})`,
-  )
+  logger.info('Created membership', {
+    user: memberUser.email,
+    organization: acmeOrg.slug,
+    role: acmeMemberMembership.role,
+  })
 
   // Guest user: Owner of Globex (to test different user scenarios)
   const globexOwnerMembership = await prisma.membership.upsert({
@@ -162,10 +161,11 @@ async function main() {
     },
   })
 
-  // eslint-disable-next-line no-console
-  console.log(
-    `Created membership: ${guestUser.email} -> ${globexOrg.slug} (${globexOwnerMembership.role})`,
-  )
+  logger.info('Created membership', {
+    user: guestUser.email,
+    organization: globexOrg.slug,
+    role: globexOwnerMembership.role,
+  })
 
   // Create sample invitations
   const pendingInviteToken = 'invite_pending_' + crypto.randomBytes(16).toString('hex')
@@ -183,10 +183,11 @@ async function main() {
     },
   })
 
-  // eslint-disable-next-line no-console
-  console.log(`Created pending invitation: ${pendingInvite.email} -> ${acmeOrg.slug}`)
-  // eslint-disable-next-line no-console
-  console.log(`  Token (for testing): ${pendingInviteToken}`)
+  logger.info('Created pending invitation', {
+    email: pendingInvite.email,
+    organization: acmeOrg.slug,
+    token: pendingInviteToken,
+  })
 
   const expiredInviteToken = 'invite_expired_' + crypto.randomBytes(16).toString('hex')
   const expiredInvite = await prisma.invitation.upsert({
@@ -203,8 +204,10 @@ async function main() {
     },
   })
 
-  // eslint-disable-next-line no-console
-  console.log(`Created expired invitation: ${expiredInvite.email} -> ${acmeOrg.slug}`)
+  logger.info('Created expired invitation', {
+    email: expiredInvite.email,
+    organization: acmeOrg.slug,
+  })
 
   // Create sample API keys
   const prodApiKey = 'sk_live_' + crypto.randomBytes(24).toString('hex')
@@ -220,10 +223,7 @@ async function main() {
     },
   })
 
-  // eslint-disable-next-line no-console
-  console.log(`Created API key: ${prodKey.name}`)
-  // eslint-disable-next-line no-console
-  console.log(`  Key (for testing): ${prodApiKey}`)
+  logger.info('Created API key', { name: prodKey.name, key: prodApiKey })
 
   const ciApiKey = 'sk_live_' + crypto.randomBytes(24).toString('hex')
   const ciKey = await prisma.apiKey.upsert({
@@ -237,10 +237,7 @@ async function main() {
     },
   })
 
-  // eslint-disable-next-line no-console
-  console.log(`Created API key: ${ciKey.name}`)
-  // eslint-disable-next-line no-console
-  console.log(`  Key (for testing): ${ciApiKey}`)
+  logger.info('Created API key', { name: ciKey.name, key: ciApiKey })
 
   const revokedApiKey = 'sk_live_' + crypto.randomBytes(24).toString('hex')
   const revokedKey = await prisma.apiKey.upsert({
@@ -255,17 +252,17 @@ async function main() {
     },
   })
 
-  // eslint-disable-next-line no-console
-  console.log(`Created revoked API key: ${revokedKey.name}`)
+  logger.info('Created revoked API key', { name: revokedKey.name })
 
-  // eslint-disable-next-line no-console
-  console.log('✅ Seed completed!')
+  logger.info('Seed completed successfully', { totalRecords: 11 })
 }
 
 main()
   .catch((e) => {
-    // eslint-disable-next-line no-console
-    console.error(e)
+    logger.error('Seed failed', {
+      error: e instanceof Error ? e.message : String(e),
+      stack: e instanceof Error ? e.stack : undefined,
+    })
     process.exit(1)
   })
   .finally(async () => {
