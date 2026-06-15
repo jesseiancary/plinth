@@ -1,3 +1,4 @@
+import { TIME } from './constants.js'
 import { prisma } from './prisma.js'
 
 /**
@@ -111,7 +112,7 @@ export async function createTestInvitation(data: {
   const token = generateInvitationToken()
   const tokenHash = sha256(token)
 
-  const expiresAt = data.expiresAt ?? new Date(Date.now() + 72 * 60 * 60 * 1000)
+  const expiresAt = data.expiresAt ?? new Date(Date.now() + TIME.THREE_DAYS_MS)
 
   const invitation = await prisma.invitation.create({
     data: {

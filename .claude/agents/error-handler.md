@@ -395,7 +395,7 @@ router.post(
           role,
           organizationId: req.tenantId,
           token: crypto.createHash('sha256').update(token).digest('hex'),
-          expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
+          expiresAt: new Date(Date.now() + TIME.ONE_WEEK_MS),
         },
       })
 

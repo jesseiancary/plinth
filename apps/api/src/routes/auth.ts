@@ -10,6 +10,7 @@ import {
 
 import { asyncHandler } from '../lib/async-handler.js'
 import { logUserLogin, logUserLogout, logUserRegistration } from '../lib/business-logger.js'
+import { TIME } from '../lib/constants.js'
 import { AppError } from '../lib/errors.js'
 import { signAccessToken, signRefreshToken, verifyRefreshToken } from '../lib/jwt.js'
 import { hashPassword, normalizeAuthTiming, verifyPassword } from '../lib/password.js'
@@ -96,7 +97,7 @@ router.post(
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'strict',
-        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+        maxAge: TIME.ONE_WEEK_MS,
       })
 
       const personalOrg = user.memberships[0]?.organization
@@ -194,7 +195,7 @@ router.post(
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'strict',
-        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+        maxAge: TIME.ONE_WEEK_MS,
       })
 
       logUserLogin({
@@ -270,7 +271,7 @@ router.post(
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'strict',
-        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+        maxAge: TIME.ONE_WEEK_MS,
       })
 
       res.json({

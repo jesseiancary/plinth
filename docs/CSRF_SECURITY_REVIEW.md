@@ -55,7 +55,7 @@ res.cookie('csrf-token', token, {
   httpOnly: false,
   secure: process.env.NODE_ENV === 'production',
   sameSite: 'strict',
-  maxAge: 60 * 60 * 1000,
+  maxAge: TIME.ONE_HOUR_MS,
   path: '/',
   // Missing: domain attribute
 })

@@ -1000,7 +1000,7 @@ const cookieOptions = {
   httpOnly: true, // Not accessible to JavaScript
   secure: process.env.NODE_ENV === 'production', // HTTPS only in production
   sameSite: 'strict' as const, // CSRF protection
-  maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+  maxAge: TIME.ONE_WEEK_MS,
   path: '/api/v1/auth/refresh', // Limit scope
 }
 
@@ -1623,7 +1623,7 @@ export const login = async (req: Request, res: Response) => {
     httpOnly: true, // Not accessible to JavaScript (XSS protection)
     secure: process.env.NODE_ENV === 'production', // HTTPS only in production
     sameSite: 'strict', // CSRF protection
-    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    maxAge: TIME.ONE_WEEK_MS,
     path: '/api/v1/auth/refresh', // Limit cookie scope
   })
 
@@ -2074,7 +2074,7 @@ import rateLimit from 'express-rate-limit'
 
 // ✅ SECURE - Rate limit auth endpoints
 export const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
+  windowMs: TIME.FIFTEEN_MINUTES_MS,
   max: 5, // Max 5 requests per window
   message: 'Too many login attempts, please try again later',
   standardHeaders: true,
@@ -2084,14 +2084,14 @@ export const authLimiter = rateLimit({
 
 // Expensive operations (per-org)
 export const expensiveLimiter = rateLimit({
-  windowMs: 60 * 60 * 1000, // 1 hour
+  windowMs: TIME.ONE_HOUR_MS,
   max: 100, // Max 100 requests per hour
   keyGenerator: (req) => req.tenantId || req.ip,
 })
 
 // General API (per-user)
 export const apiLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
+  windowMs: TIME.FIFTEEN_MINUTES_MS,
   max: 1000, // Max 1000 requests per window
   keyGenerator: (req) => req.user?.id || req.ip,
 })
@@ -2153,7 +2153,7 @@ export const createInvitation = async (req: Request, res: Response) => {
     where: {
       organizationId: tenantId,
       createdAt: {
-        gte: new Date(Date.now() - 24 * 60 * 60 * 1000), // Last 24 hours
+        gte: new Date(Date.now() - TIME.ONE_DAY_MS),
       },
     },
   })
@@ -2171,7 +2171,7 @@ export const createInvitation = async (req: Request, res: Response) => {
   // Create invitation
   const token = generateToken()
   const hashedToken = hashToken(token)
-  const expiresAt = new Date(Date.now() + 72 * 60 * 60 * 1000) // 72 hours
+  const expiresAt = new Date(Date.now() + TIME.THREE_DAYS_MS)
 
   const invitation = await prisma.invitation.create({
     data: {
@@ -2384,7 +2384,7 @@ export const refreshAccessToken = async (req: Request, res: Response) => {
   }
 
   // Revoke old token (prevent reuse)
-  await redis.setex(`revoked:${oldRefreshToken}`, 7 * 24 * 60 * 60, '1')
+  await redis.setex(`revoked:${oldRefreshToken}`, TIME.ONE_WEEK_SEC, '1')
 
   // Issue new pair
   const { accessToken, refreshToken } = generateTokens(payload.userId)
@@ -2394,7 +2394,7 @@ export const refreshAccessToken = async (req: Request, res: Response) => {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'strict',
-    maxAge: 7 * 24 * 60 * 60 * 1000,
+    maxAge: TIME.ONE_WEEK_MS,
     path: '/api/v1/auth/refresh',
   })
 
@@ -2428,7 +2428,7 @@ export const requestPasswordReset = async (req: Request, res: Response) => {
   // Generate secure token
   const token = generateToken()
   const hashedToken = hashToken(token)
-  const expiresAt = new Date(Date.now() + 60 * 60 * 1000) // 1 hour
+  const expiresAt = new Date(Date.now() + TIME.ONE_HOUR_MS)
 
   // Store token
   await prisma.passwordResetToken.create({

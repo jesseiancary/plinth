@@ -353,7 +353,7 @@ it('cannot accept invitation twice', async () => {
       role: 'MEMBER',
       token: crypto.createHash('sha256').update('plaintext_token').digest('hex'),
       organizationId: org.id,
-      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+      expiresAt: new Date(Date.now() + TIME.ONE_WEEK_MS),
     },
   })
 
