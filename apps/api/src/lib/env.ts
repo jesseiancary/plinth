@@ -15,6 +15,7 @@ const envSchema = z.object({
   SMTP_USER: z.string().optional(),
   SMTP_PASS: z.string().optional(),
   BCRYPT_WORK_FACTOR: z.string().default('10'),
+  LOG_LEVEL: z.enum(['error', 'warn', 'info', 'http', 'debug', 'silent']).optional(),
 })
 
 export const env = envSchema.parse(process.env)

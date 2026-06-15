@@ -78,17 +78,17 @@ Structured approach to debugging and fixing bugs.
 
 ```typescript
 // Add request logging
-console.log('Request:', { method: req.method, url: req.url, body: req.body })
+logger.info('Request:', { method: req.method, url: req.url, body: req.body })
 
 // Add Prisma query logging
 const result = await prisma.user.findMany({
   where: { organizationId: tenantId },
 })
-console.log('Query result:', result)
+logger.info('Query result:', result)
 
 // Check middleware execution
-console.log('req.tenantId:', req.tenantId)
-console.log('req.user:', req.user)
+logger.info('req.tenantId:', req.tenantId)
+logger.info('req.user:', req.user)
 ```
 
 ### Database Debugging
@@ -113,7 +113,7 @@ it.only('should fix the bug', async () => {
 })
 
 // Add debug output
-console.log('Test state:', { user, org, membership })
+logger.info('Test state:', { user, org, membership })
 ```
 
 ## Checklist
