@@ -4,6 +4,7 @@ import { Router } from 'express'
 import { asyncHandler } from '../lib/async-handler.js'
 import { AppError } from '../lib/errors.js'
 import { prisma } from '../lib/prisma.js'
+import { rateLimitConfig } from '../lib/security.js'
 import {
   listMembersQuerySchema,
   memberIdParamSchema,
@@ -23,6 +24,7 @@ router.use(authenticateJWT)
  */
 router.get(
   '/:slug/members',
+  rateLimitConfig.readOperations,
   requireRole('OWNER', 'ADMIN', 'MEMBER'),
   asyncHandler(async (req: Request, res: Response) => {
     const query = listMembersQuerySchema.parse(req.query)
@@ -77,6 +79,7 @@ router.get(
  */
 router.patch(
   '/:slug/members/:memberId',
+  rateLimitConfig.writeOperations,
   requireRole('OWNER', 'ADMIN'),
   asyncHandler(async (req: Request, res: Response) => {
     const { memberId } = memberIdParamSchema.parse(req.params)
@@ -165,6 +168,7 @@ router.patch(
  */
 router.delete(
   '/:slug/members/:memberId',
+  rateLimitConfig.writeOperations,
   requireRole('OWNER', 'ADMIN', 'MEMBER'),
   asyncHandler(async (req: Request, res: Response) => {
     const { memberId } = memberIdParamSchema.parse(req.params)
@@ -240,6 +244,7 @@ router.delete(
  */
 router.post(
   '/:slug/transfer-ownership',
+  rateLimitConfig.writeOperations,
   requireRole('OWNER'),
   asyncHandler(async (req: Request, res: Response) => {
     const body = transferOwnershipSchema.parse(req.body)

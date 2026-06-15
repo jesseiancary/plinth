@@ -25,7 +25,7 @@ const router = Router()
  */
 router.post(
   '/register',
-  rateLimitConfig.authEndpoints,
+  rateLimitConfig.authRegister,
   asyncHandler(async (req: Request, res: Response) => {
     try {
       const body = registerSchema.parse(req.body)
@@ -121,7 +121,7 @@ router.post(
  */
 router.post(
   '/login',
-  rateLimitConfig.authEndpoints,
+  rateLimitConfig.authLogin,
   asyncHandler(async (req: Request, res: Response) => {
     try {
       const body = loginSchema.parse(req.body)
@@ -191,7 +191,7 @@ router.post(
  */
 router.post(
   '/refresh',
-  rateLimitConfig.apiEndpoints,
+  rateLimitConfig.authRefresh,
   asyncHandler(async (req: Request, res: Response) => {
     try {
       const { refreshToken } = req.cookies as { refreshToken?: string }
@@ -347,7 +347,7 @@ router.get(
 router.patch(
   '/password',
   requireAuth,
-  rateLimitConfig.authEndpoints,
+  rateLimitConfig.authPassword,
   asyncHandler(async (req: Request, res: Response): Promise<void> => {
     // Record start time for timing attack prevention
     const startTime = Date.now()

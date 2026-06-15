@@ -547,7 +547,33 @@ export interface components {
       nextCursor: string | null
     }
   }
-  responses: never
+  responses: {
+    /** @description Rate limit exceeded */
+    RateLimitExceeded: {
+      headers: {
+        /** @description Maximum number of requests allowed in the window */
+        'RateLimit-Limit'?: number
+        /** @description Number of requests remaining in the current window */
+        'RateLimit-Remaining'?: number
+        /** @description Unix timestamp when the rate limit window resets */
+        'RateLimit-Reset'?: number
+        /** @description Seconds to wait before retrying */
+        'Retry-After'?: number
+        [name: string]: unknown
+      }
+      content: {
+        'application/json': {
+          error: {
+            /** @enum {string} */
+            code: 'RATE_LIMIT_EXCEEDED'
+            /** @description Human-readable rate limit message */
+            message: string
+            details?: Record<string, never>
+          }
+        }
+      }
+    }
+  }
   parameters: never
   requestBodies: never
   headers: never
@@ -656,6 +682,7 @@ export interface operations {
           'application/json': components['schemas']['Error']
         }
       }
+      429: components['responses']['RateLimitExceeded']
     }
   }
   login: {
@@ -705,6 +732,7 @@ export interface operations {
           'application/json': components['schemas']['Error']
         }
       }
+      429: components['responses']['RateLimitExceeded']
     }
   }
   refreshToken: {
@@ -738,6 +766,7 @@ export interface operations {
           'application/json': components['schemas']['Error']
         }
       }
+      429: components['responses']['RateLimitExceeded']
     }
   }
   logout: {
@@ -857,6 +886,7 @@ export interface operations {
           'application/json': components['schemas']['Error']
         }
       }
+      429: components['responses']['RateLimitExceeded']
     }
   }
   createOrganization: {
@@ -928,6 +958,7 @@ export interface operations {
           'application/json': components['schemas']['Error']
         }
       }
+      429: components['responses']['RateLimitExceeded']
     }
   }
   getOrganization: {
@@ -969,6 +1000,7 @@ export interface operations {
           'application/json': components['schemas']['Error']
         }
       }
+      429: components['responses']['RateLimitExceeded']
     }
   }
   deleteOrganization: {
@@ -1017,6 +1049,7 @@ export interface operations {
           'application/json': components['schemas']['Error']
         }
       }
+      429: components['responses']['RateLimitExceeded']
     }
   }
   updateOrganization: {
@@ -1094,6 +1127,7 @@ export interface operations {
           'application/json': components['schemas']['Error']
         }
       }
+      429: components['responses']['RateLimitExceeded']
     }
   }
   listMembers: {
@@ -1143,6 +1177,7 @@ export interface operations {
           'application/json': components['schemas']['Error']
         }
       }
+      429: components['responses']['RateLimitExceeded']
     }
   }
   removeMember: {
@@ -1202,6 +1237,7 @@ export interface operations {
           'application/json': components['schemas']['Error']
         }
       }
+      429: components['responses']['RateLimitExceeded']
     }
   }
   updateMemberRole: {
@@ -1282,6 +1318,7 @@ export interface operations {
           'application/json': components['schemas']['Error']
         }
       }
+      429: components['responses']['RateLimitExceeded']
     }
   }
   transferOwnership: {
@@ -1352,6 +1389,7 @@ export interface operations {
           'application/json': components['schemas']['Error']
         }
       }
+      429: components['responses']['RateLimitExceeded']
     }
   }
   listInvitations: {
@@ -1412,6 +1450,7 @@ export interface operations {
           'application/json': components['schemas']['Error']
         }
       }
+      429: components['responses']['RateLimitExceeded']
     }
   }
   createInvitation: {
@@ -1500,6 +1539,7 @@ export interface operations {
           'application/json': components['schemas']['Error']
         }
       }
+      429: components['responses']['RateLimitExceeded']
     }
   }
   revokeInvitation: {
@@ -1559,6 +1599,7 @@ export interface operations {
           'application/json': components['schemas']['Error']
         }
       }
+      429: components['responses']['RateLimitExceeded']
     }
   }
   validateInvitation: {
@@ -1611,6 +1652,7 @@ export interface operations {
           'application/json': components['schemas']['Error']
         }
       }
+      429: components['responses']['RateLimitExceeded']
     }
   }
   acceptInvitation: {
@@ -1686,6 +1728,7 @@ export interface operations {
           'application/json': components['schemas']['Error']
         }
       }
+      429: components['responses']['RateLimitExceeded']
     }
   }
   listApiKeys: {
@@ -1746,6 +1789,7 @@ export interface operations {
           'application/json': components['schemas']['Error']
         }
       }
+      429: components['responses']['RateLimitExceeded']
     }
   }
   createApiKey: {
@@ -1837,6 +1881,7 @@ export interface operations {
           'application/json': components['schemas']['Error']
         }
       }
+      429: components['responses']['RateLimitExceeded']
     }
   }
   revokeApiKey: {
@@ -1887,6 +1932,7 @@ export interface operations {
           'application/json': components['schemas']['Error']
         }
       }
+      429: components['responses']['RateLimitExceeded']
     }
   }
 }
