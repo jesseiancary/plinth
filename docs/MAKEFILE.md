@@ -1,6 +1,6 @@
 # Makefile Architecture & Conventions
 
-> Documentation for the Plinth Makefile and patterns for extending it with polyglot services
+> Documentation for the Plinth Docker-first Makefile and patterns for extending it with polyglot services
 
 ---
 
@@ -9,10 +9,11 @@
 1. [Philosophy](#philosophy)
 2. [Architecture Decisions](#architecture-decisions)
 3. [Available Commands](#available-commands)
-4. [Adding New Services](#adding-new-services)
-5. [Multi-Language Patterns](#multi-language-patterns)
-6. [CI/CD Integration](#cicd-integration)
-7. [Troubleshooting](#troubleshooting)
+4. [Docker Integration](#docker-integration)
+5. [Adding New Services](#adding-new-services)
+6. [Multi-Language Patterns](#multi-language-patterns)
+7. [CI/CD Integration](#cicd-integration)
+8. [Troubleshooting](#troubleshooting)
 
 ---
 
@@ -20,64 +21,82 @@
 
 The Plinth Makefile follows these principles:
 
-### 1. **Coexistence with npm/pnpm**
+### 1. **Docker-First Development**
 
-The Makefile **does not replace** package.json scripts. Both interfaces are maintained:
+All development happens inside Docker containers:
 
-- **Use `make`**: Ops-style workflows, infrastructure orchestration, polyglot services
-- **Use `pnpm`**: Node.js-native workflows, package-specific tasks, IDE integrations
-- **CI/CD uses `pnpm`**: Explicit, auditable, language-specific
+- **Use `make`**: Primary interface for all development operations
+- **Docker Compose**: Orchestrates all services (db, api, web)
+- **Hot-reload**: Source code volume-mounted for instant updates
+- **pnpm**: Runs inside containers (not on host machine)
 
 **Example:**
 
 ```bash
-# Both work equally well
-make dev        # Makefile → calls ./scripts/dev.sh
-pnpm dev        # package.json → calls ./scripts/dev.sh
-
-# Both call the same underlying script
+# All commands run in Docker containers
+make dev          # Start all services in Docker
+make test-api     # Run tests in API container
+make shell-api    # Open shell in API container
 ```
 
-### 2. **Zero Breaking Changes**
+### 2. **No Local Node.js Required**
 
-All existing workflows continue to work:
+The Makefile isolates all dependencies inside containers:
 
-- ✅ `pnpm dev`, `pnpm test`, `pnpm build` - unchanged
-- ✅ CI/CD pipelines - no modifications needed
-- ✅ IDE npm script panels - still functional
-- ✅ Git hooks via Husky - unaffected
+- ✅ No Node.js installation needed on host
+- ✅ No pnpm installation needed on host
+- ✅ Consistent environment across all developers
+- ✅ Eliminates "works on my machine" issues
 
-### 3. **Progressive Enhancement**
+**Prerequisites:**
 
-Developers can adopt `make` gradually:
+- Docker 24+
+- Docker Compose v2
+- Make (standard on macOS/Linux)
 
-- Day 1: Use `pnpm` (what you know)
-- Week 1: Try `make dev` (convenience)
-- Month 1: Use `make check` in workflow (efficiency)
-- Phase 7+: Add Go/Python services via Makefile (scalability)
+### 3. **Unified Interface**
+
+The Makefile provides a single interface for all operations:
+
+- **Development**: `make dev`, `make stop`, `make restart`
+- **Database**: `make db-connect`, `make db-migrate`, `make db-seed`, `make db-studio`
+- **Testing**: `make test`, `make test-api`, `make test-web`
+- **Quality**: `make lint`, `make format`, `make typecheck`
+- **Debugging**: `make shell-api`, `make logs-api`, `make rebuild`
 
 ### 4. **Polyglot-Ready**
 
 Designed for future expansion to non-Node.js services:
 
 - Clear target naming conventions
-- Parallel execution support
-- Service-specific targets
-- Language-agnostic orchestration
+- Docker Compose orchestration
+- Service-specific containers
+- Language-agnostic workflows
 
 ---
 
 ## Architecture Decisions
 
-### Why Make + pnpm (not Make vs pnpm)?
+### Why Docker-First?
 
-| Concern                                     | Decision          | Rationale                           |
-| ------------------------------------------- | ----------------- | ----------------------------------- |
-| **Node.js developers unfamiliar with Make** | Keep pnpm scripts | Don't break existing muscle memory  |
-| **Future Go/Python services**               | Add Makefile      | Make is lingua franca for ops       |
-| **CI/CD complexity**                        | Use pnpm in CI    | Explicit, auditable, no abstraction |
-| **Local development**                       | Offer both        | Developer choice, same outcome      |
-| **Docker orchestration**                    | Makefile targets  | Standard pattern across industries  |
+| Concern                     | Decision                   | Rationale                                   |
+| --------------------------- | -------------------------- | ------------------------------------------- |
+| **Environment consistency** | Docker containers          | Eliminates "works on my machine"            |
+| **Dependency management**   | Isolated in containers     | No host Node.js/pnpm installation needed    |
+| **Multi-language support**  | Docker Compose             | Same pattern for Node.js, Go, Python, etc.  |
+| **Cloud deployment parity** | Same Dockerfile dev + prod | Development matches production              |
+| **Hot-reload requirement**  | Volume mounts + tsx/Vite   | Source changes reflected instantly          |
+| **Database management**     | PostgreSQL container       | No local PostgreSQL installation            |
+| **CI/CD**                   | Validate Docker builds     | Ensure production images build successfully |
+
+### Why Make as Primary Interface?
+
+| Concern                  | Decision                   | Rationale                               |
+| ------------------------ | -------------------------- | --------------------------------------- |
+| **Unified commands**     | Make delegates to Docker   | Single interface for all operations     |
+| **Developer experience** | `make dev`, `make test`    | Simple, memorable commands              |
+| **Polyglot future**      | Make is language-agnostic  | Works for Go, Python, Rust, etc.        |
+| **Self-documenting**     | `make help` auto-generated | New developers discover commands easily |
 
 ### Make Features Used
 
@@ -131,11 +150,14 @@ make logs         # View database logs
 ### Database Management
 
 ```bash
+make db-connect   # Connect to database (psql shell)
 make db-migrate   # Run Prisma migrations (starts db if not running)
 make db-seed      # Seed with test data
 make db-reset     # Reset database (⚠️  destructive, has 3-second confirmation)
 make db-studio    # Open Prisma Studio GUI
 ```
+
+**Note:** Database port is not exposed to the host by default for security. Use `make db-connect` to access the database via `psql` inside the container.
 
 ### Testing
 
@@ -164,6 +186,217 @@ make build        # Build for production
 make clean        # Remove build artifacts, stop containers
 make clean-deep   # Also remove node_modules (nuclear option)
 ```
+
+---
+
+## Docker Integration
+
+The Makefile serves as the primary interface to Docker Compose for all development operations. This section explains how Make commands delegate to Docker and how the containerized environment works.
+
+### Container Architecture
+
+```
+Host Machine (make commands)
+    ↓
+Makefile (delegator)
+    ↓
+Docker Compose (orchestrator)
+    ↓
+Containers (isolated services)
+    ├─ Caddy (reverse proxy)
+    ├─ API (Node.js + Express + Prisma)
+    ├─ Web (React + Vite)
+    └─ DB (PostgreSQL)
+```
+
+### How Commands Are Delegated
+
+**Development commands run inside containers:**
+
+```makefile
+# make dev → docker compose up
+dev: ## Start all services
+	@echo "🚀 Starting all services..."
+	docker compose up
+
+# make test-api → docker compose exec api pnpm test
+test-api: ## Run API tests
+	@docker compose exec api pnpm test
+
+# make shell-api → docker compose exec api sh
+shell-api: ## Open shell in API container
+	@docker compose exec api sh
+```
+
+**Database commands require DB container:**
+
+```makefile
+# make db-migrate → ensure DB is running, then exec prisma migrate
+db-migrate: ## Run database migrations
+	@docker compose up -d db
+	@docker compose exec api pnpm --filter api db:migrate
+
+# make db-connect → exec psql inside DB container
+db-connect: ## Connect to PostgreSQL shell
+	@docker compose exec db psql -U plinth_dev -d plinth_dev
+```
+
+### Volume Mounts (Hot-Reload)
+
+Source code is volume-mounted for instant updates:
+
+```yaml
+# docker-compose.yml
+services:
+  api:
+    volumes:
+      - ./apps/api:/app/apps/api # Source code
+      - api_node_modules:/app/node_modules # Isolated deps
+  web:
+    volumes:
+      - ./apps/web:/app/apps/web
+      - web_node_modules:/app/node_modules
+```
+
+**Result:** Edit `apps/api/src/routes/auth.ts` → API hot-reloads in container
+
+### Container State Management
+
+**Starting services:**
+
+```bash
+make dev          # docker compose up (foreground, see logs)
+make dev-detached # docker compose up -d (background)
+```
+
+**Checking status:**
+
+```bash
+docker compose ps  # List running containers
+make logs          # docker compose logs -f (all services)
+make logs-api      # docker compose logs -f api (API only)
+```
+
+**Stopping services:**
+
+```bash
+make stop          # docker compose down (preserves volumes)
+make clean         # docker compose down -v (removes volumes)
+```
+
+### Working with Multiple Containers
+
+**Running commands in specific containers:**
+
+```bash
+# API container
+make shell-api     # docker compose exec api sh
+make test-api      # docker compose exec api pnpm test
+make lint          # docker compose exec api pnpm lint
+
+# Web container
+make shell-web     # docker compose exec web sh
+make test-web      # docker compose exec web pnpm test
+
+# Database container
+make db-connect    # docker compose exec db psql
+make logs-db       # docker compose logs -f db
+```
+
+### Container Networking
+
+Containers communicate via Docker's internal network:
+
+```
+api container:
+  - Hostname: api
+  - Connects to: postgresql://db:5432/plinth_dev
+  - Exposed via Caddy: https://localhost/api/v1/*
+
+web container:
+  - Hostname: web
+  - Makes requests to: https://localhost/api/v1/* (through Caddy)
+  - Exposed via Caddy: https://localhost/*
+
+db container:
+  - Hostname: db
+  - Internal port: 5432
+  - NOT exposed to host (security)
+```
+
+**Key point:** Services are NOT exposed directly to the host. All traffic flows through Caddy reverse proxy on port 443.
+
+### Debugging Container Issues
+
+**Container won't start:**
+
+```bash
+# Check for errors in logs
+make logs-api
+
+# Rebuild container from scratch
+make rebuild
+
+# Check if port is already in use
+docker compose ps
+lsof -i :443  # Check if port 443 is occupied
+```
+
+**Volume permission issues:**
+
+```bash
+# Clean volumes and restart
+make clean
+make dev
+```
+
+**Database connection issues:**
+
+```bash
+# Verify DB is running
+docker compose ps
+
+# Check DB logs
+make logs-db
+
+# Test connection from API container
+make shell-api
+# Inside container:
+psql $DATABASE_URL
+```
+
+### When NOT to Use Docker
+
+**CI/CD pipelines** continue using direct pnpm commands for:
+
+- Explicit, auditable builds
+- GitHub Actions native caching
+- No Docker-in-Docker complexity
+
+```yaml
+# .github/workflows/ci.yml (current pattern)
+- run: pnpm install --frozen-lockfile # NOT make install
+- run: pnpm test # NOT make test
+- run: pnpm build # NOT make build
+```
+
+**Reason:** CI already runs in isolated environments (GitHub runners). Adding Docker adds indirection without benefits.
+
+### Production Docker Builds
+
+The Makefile also supports building production images:
+
+```makefile
+build: ## Build production Docker images
+	@echo "🏗️  Building production images..."
+	@docker compose -f docker-compose.yml build
+```
+
+**Current status:** Production deployment is not yet configured. Phase 10+ will add:
+
+- Multi-stage Dockerfile optimization
+- Registry push commands
+- Kubernetes/ECS deployment targets
 
 ---
 
@@ -316,13 +549,14 @@ dev:
 
 ```makefile
 analytics-dev:
-	@export GO_ENV=development && \
-	 export API_PORT=8080 && \
+	@export NODE_ENV=development && \
+	 export PORT=8080 && \
 	 cd apps/analytics-api && go run main.go
 
 ml-dev:
 	@export PYTHONPATH=apps/ml-service && \
 	 export MODEL_PATH=./models/latest && \
+	 export PORT=8081 && \
 	 cd apps/ml-service && python main.py
 ```
 

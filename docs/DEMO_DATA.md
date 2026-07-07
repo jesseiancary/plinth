@@ -166,7 +166,7 @@ pnpm --filter api db:seed
 
 ### Recommended Demo Path:
 
-1. **Start:** Navigate to `http://localhost:5173`
+1. **Start:** Navigate to `https://localhost`
 2. **Login:** Use `admin@example.com` / `password123`
 3. **Dashboard:** Auto-redirects to `/orgs/acme/members`
 4. **Org Switcher:** Click dropdown, select "Globex Corporation"

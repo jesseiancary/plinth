@@ -35,7 +35,7 @@ info:
     url: https://github.com/jesseiancary/plinth
 
 servers:
-  - url: http://localhost:3000
+  - url: https://localhost
     description: Development
   - url: https://api.plinth.dev
     description: Production

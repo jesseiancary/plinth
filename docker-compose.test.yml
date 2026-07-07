@@ -1,0 +1,143 @@
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# Test Environment Docker Compose Configuration
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+#
+# This configuration provides an isolated test environment that matches the CI setup.
+#
+# Usage:
+#   docker compose -f docker-compose.test.yml up -d          # Start test database
+#   docker compose -f docker-compose.test.yml run api-test   # Run API tests
+#   docker compose -f docker-compose.test.yml run web-test   # Run Web tests
+#   docker compose -f docker-compose.test.yml down -v        # Clean up (removes volumes)
+#
+# Or use Makefile shortcuts:
+#   make test-docker        # Run all tests in Docker
+#   make test-docker-api    # Run API tests only
+#   make test-docker-web    # Run Web tests only
+#
+# Key Differences from docker-compose.yml:
+# - Separate test database (plinth_test)
+# - Hardcoded test credentials (safe for testing)
+# - No Caddy/Web services (tests run directly against API)
+# - Ephemeral volumes (cleaned up after tests)
+# - Matches CI environment exactly
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+services:
+  # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  # Test Database (PostgreSQL)
+  # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  db-test:
+    image: postgres:15-alpine
+    container_name: plinth-db-test
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: 0123456798abcfef0123456789abcdef
+      POSTGRES_DB: plinth_test
+    ports:
+      - '5433:5432' # Different port to avoid conflicts with dev database
+    volumes:
+      # Use named volume (ephemeral, cleaned up with docker compose down -v)
+      - postgres-test-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres']
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - plinth-test-network
+
+  # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  # API Test Runner
+  # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  api-test:
+    build:
+      context: .
+      dockerfile: docker/api.Dockerfile
+      target: development
+    container_name: plinth-api-test
+    environment:
+      # Test database connection (matches CI)
+      DATABASE_URL: postgresql://postgres:0123456798abcfef0123456789abcdef@db-test:5432/plinth_test
+      # Test JWT secrets (hardcoded for testing)
+      JWT_SECRET: test-secret-key-for-ci-must-be-at-least-32-chars-long
+      JWT_REFRESH_SECRET: test-refresh-secret-key-for-ci-must-be-at-least-32-chars-long
+      # Test URLs
+      APP_URL: http://localhost:5173
+      API_URL: http://localhost:3000
+      # Force test environment
+      NODE_ENV: test
+    volumes:
+      # Mount source code
+      - ./apps/api:/app/apps/api
+      - ./packages:/app/packages
+      - ./tsconfig.json:/app/tsconfig.json:ro
+      - ./.prettierrc.json:/app/.prettierrc.json:ro
+      # Use named volumes for node_modules
+      - api_test_node_modules:/app/node_modules
+      - api_test_app_node_modules:/app/apps/api/node_modules
+      # Share pnpm store
+      - pnpm_test_store:/root/.local/share/pnpm/store
+    depends_on:
+      db-test:
+        condition: service_healthy
+    networks:
+      - plinth-test-network
+    # No default command - tests are run via 'docker compose run api-test pnpm test'
+    command: /bin/sh -c "echo 'API test container ready. Run `docker compose -f docker-compose.test.yml run api-test pnpm test`'"
+
+  # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  # Web Test Runner
+  # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  web-test:
+    build:
+      context: .
+      dockerfile: docker/web.Dockerfile
+      target: development
+    container_name: plinth-web-test
+    environment:
+      # Test API URL
+      VITE_API_URL: http://api-test:3000
+      # Force test environment
+      NODE_ENV: test
+    volumes:
+      # Mount source code
+      - ./apps/web:/app/apps/web
+      - ./packages:/app/packages
+      - ./tsconfig.json:/app/tsconfig.json:ro
+      - ./.prettierrc.json:/app/.prettierrc.json:ro
+      # Use named volumes for node_modules
+      - web_test_node_modules:/app/node_modules
+      - web_test_app_node_modules:/app/apps/web/node_modules
+      # Share pnpm store
+      - pnpm_test_store:/root/.local/share/pnpm/store
+    depends_on:
+      - api-test
+    networks:
+      - plinth-test-network
+    # No default command - tests are run via 'docker compose run web-test pnpm test'
+    command: /bin/sh -c "echo 'Web test container ready. Run `docker compose -f docker-compose.test.yml run web-test pnpm test`'"
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# Named Volumes (ephemeral, cleaned up with docker compose down -v)
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+volumes:
+  postgres-test-data:
+    driver: local
+  api_test_node_modules:
+    driver: local
+  api_test_app_node_modules:
+    driver: local
+  web_test_node_modules:
+    driver: local
+  web_test_app_node_modules:
+    driver: local
+  pnpm_test_store:
+    driver: local
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# Networks (isolated from development network)
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+networks:
+  plinth-test-network:
+    driver: bridge

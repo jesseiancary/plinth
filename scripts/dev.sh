@@ -1,26 +1,29 @@
 #!/usr/bin/env bash
+# Start all services using Docker Compose
+# This script ensures database is healthy before starting API and Web
+
 set -e
 
-echo "🐘 Starting PostgreSQL database..."
-docker compose up -d db
-
-echo "⏳ Waiting for database to be ready..."
-max_attempts=30
-attempt=0
-
-until docker compose exec -T db pg_isready -U postgres > /dev/null 2>&1; do
-  attempt=$((attempt + 1))
-  if [ $attempt -ge $max_attempts ]; then
-    echo "❌ Database failed to start after ${max_attempts} seconds"
-    exit 1
-  fi
-  sleep 1
-done
-
-echo "✅ Database is ready!"
+echo "🐳 Starting all services with Docker Compose..."
 echo ""
-echo "🚀 Starting API and Web services..."
+echo "  Services:"
+echo "  • Caddy:    Reverse proxy (port 80)"
+echo "  • Database: PostgreSQL 15 (internal)"
+echo "  • API:      Node.js + Express (internal:3000)"
+echo "  • Web:      React + Vite (internal:5173)"
+echo ""
+echo "  Access URLs (via Caddy):"
+echo "  • Frontend: https://localhost"
+echo "  • API:      https://localhost/api/v1/*"
+echo "  • Docs:     https://localhost/docs"
+echo ""
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo ""
 
-# Start API and Web in parallel (Ctrl+C will kill both)
-pnpm --parallel --filter api --filter web dev
+# Build images if needed and start all services
+# Database will start first due to depends_on in docker-compose.yml
+# API waits for database health check
+# Web depends on API
+docker compose up --build
+
+# Note: Ctrl+C will gracefully stop all services

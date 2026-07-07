@@ -1,0 +1,90 @@
+# Shared .dockerignore for all Docker builds
+# Used by both API and Web services
+
+# Dependencies
+node_modules/
+.pnpm-store/
+**/node_modules/
+
+# Build output
+dist/
+build/
+**/dist/
+**/build/
+*.tsbuildinfo
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+.env.test
+**/.env
+**/.env.local
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+
+# Test files
+**/*.test.ts
+**/*.test.tsx
+**/*.spec.ts
+**/*.spec.tsx
+coverage/
+.nyc_output/
+**/coverage/
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Vite cache
+.vite/
+**/.vite/
+
+# Prisma migration backups
+prisma/migrations/**/migration.sql.bak
+
+# Documentation (not needed in containers)
+*.md
+!README.md
+docs/
+.claude/
+
+# CI/CD
+.github/
+
+# Docker files themselves
+Dockerfile
+*.Dockerfile
+.dockerignore
+docker-compose*.yml
+
+# Caddy configuration (local dev only)
+caddy/
+
+# Scripts (not needed in containers)
+scripts/
+
+# Personal overrides
+CLAUDE.local.md

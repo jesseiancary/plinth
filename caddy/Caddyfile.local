@@ -1,0 +1,84 @@
+# Caddyfile.local - Development Reverse Proxy
+# Routes traffic to API and Web services in Docker network
+# Production uses AWS ALB for the same routing pattern
+
+# Disable admin API for security (reduces attack surface, not needed for development)
+{
+	admin off
+}
+
+# Listen on localhost with automatic HTTPS (Caddy auto-generates self-signed cert)
+localhost {
+	# Enable compression for all responses
+	encode gzip zstd
+
+	# Security headers (development-appropriate)
+	header {
+		# Prevent clickjacking
+		X-Frame-Options "SAMEORIGIN"
+		# Prevent MIME sniffing
+		X-Content-Type-Options "nosniff"
+		# Enable XSS protection
+		X-XSS-Protection "1; mode=block"
+		# Referrer policy
+		Referrer-Policy "strict-origin-when-cross-origin"
+		# Remove Server header
+		-Server
+	}
+
+	# Development access logging (useful for debugging)
+	log {
+		output stdout
+		format console
+		level INFO
+	}
+
+	# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+	# API Routes (reverse proxy to API container)
+	# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+	# API health endpoint (no /api prefix)
+	handle /health {
+		reverse_proxy api:3000 {
+			header_up Host {host}
+			header_up X-Real-IP {remote_host}
+		}
+	}
+
+	# API documentation (no /api prefix)
+	handle /docs {
+		reverse_proxy api:3000 {
+			header_up Host {host}
+			header_up X-Real-IP {remote_host}
+		}
+	}
+
+	# All other API routes (/api/v1/*)
+	handle /api/* {
+		reverse_proxy api:3000 {
+			header_up Host {host}
+			header_up X-Real-IP {remote_host}
+		}
+	}
+
+	# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+	# Web Frontend (reverse proxy to Vite dev server)
+	# Includes WebSocket support for Vite HMR (Hot Module Replacement)
+	# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+	handle {
+		reverse_proxy web:5173 {
+			# Pass original host header
+			header_up Host {host}
+			# Pass real client IP
+			header_up X-Real-IP {remote_host}
+			header_up X-Forwarded-For {remote_host}
+			header_up X-Forwarded-Proto {scheme}
+			header_up X-Forwarded-Host {host}
+
+			# WebSocket support for Vite HMR
+			# Caddy automatically handles Upgrade headers, but we ensure they're preserved
+			header_up Upgrade {>Upgrade}
+			header_up Connection {>Connection}
+		}
+	}
+}

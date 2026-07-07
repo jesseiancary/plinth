@@ -82,10 +82,10 @@
 - ✅ All dependencies installed (659 packages)
 - ✅ ESLint + Prettier working with pre-commit hooks
 
-**API running at:** http://localhost:3001
+**API running at:** https://localhost
 
-- Health: http://localhost:3001/health
-- Docs: http://localhost:3001/docs
+- Health: https://localhost/health
+- Docs: https://localhost/docs
 
 ---
 

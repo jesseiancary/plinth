@@ -39,7 +39,14 @@ const logDir = path.join(process.cwd(), 'logs')
 
 const transports: winston.transport[] = []
 
-if (env.NODE_ENV !== 'test') {
+if (env.NODE_ENV === 'test') {
+  // Add silent transport to prevent "no transports" warning
+  transports.push(
+    new winston.transports.Console({
+      silent: true,
+    }),
+  )
+} else {
   transports.push(
     new DailyRotateFile({
       filename: path.join(logDir, 'error-%DATE%.log'),
