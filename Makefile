@@ -60,11 +60,11 @@ help: ## Show this help message
 	@echo "  make test-docker-clean  Clean up test containers and volumes"
 	@echo ""
 	@echo "✨ Code Quality:"
-	@echo "  make lint               Run linters (API + Web)"
+	@echo "  make lint               Run linters (all packages)"
 	@echo "  make lint-fix           Fix auto-fixable lint issues"
 	@echo "  make format             Format code with Prettier"
 	@echo "  make format-check       Check code formatting"
-	@echo "  make typecheck          Run TypeScript type checking"
+	@echo "  make typecheck          Run TypeScript type checking (all packages)"
 	@echo "  make check              Run ALL checks (lint + format + typecheck)"
 	@echo ""
 	@echo "🏗️  Build:"
@@ -187,6 +187,7 @@ test-web: ## Run Web tests only
 test-coverage: ## Run tests with coverage report
 	@echo "📊 Running tests with coverage..."
 	@docker compose exec api pnpm --filter api test:coverage
+	@docker compose exec web pnpm --filter web test:coverage
 
 ##@ Testing Commands (Isolated)
 
@@ -227,15 +228,13 @@ test-docker-clean: ## Clean up test containers and volumes
 
 ##@ Code Quality Commands
 
-lint: ## Run ESLint on API and Web
+lint: ## Run ESLint on all packages
 	@echo "🔍 Running linters..."
-	@docker compose exec api pnpm --filter api lint
-	@docker compose exec web pnpm --filter web lint
+	@docker compose exec api pnpm lint
 
 lint-fix: ## Fix auto-fixable lint issues
 	@echo "🔧 Fixing lint issues..."
-	@docker compose exec api pnpm --filter api lint --fix
-	@docker compose exec web pnpm --filter web lint --fix
+	@docker compose exec api pnpm lint:fix
 
 format: ## Format code with Prettier
 	@echo "✨ Formatting code..."
@@ -248,8 +247,7 @@ format-check: ## Check code formatting
 
 typecheck: ## Run TypeScript type checking
 	@echo "🔎 Running type checks..."
-	@docker compose exec api pnpm --filter api typecheck
-	@docker compose exec web pnpm --filter web typecheck
+	@docker compose exec api pnpm typecheck
 
 check: lint format-check typecheck ## Run ALL quality checks
 	@echo "✅ All quality checks passed!"

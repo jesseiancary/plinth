@@ -9,8 +9,10 @@
     "preview": "vite preview",
     "test": "vitest",
     "test:watch": "vitest watch",
+    "test:coverage": "vitest --coverage",
     "typecheck": "tsc --noEmit",
     "lint": "eslint src --ext .ts,.tsx",
+    "lint:fix": "eslint src --ext .ts,.tsx --fix",
     "clean": "rm -rf dist"
   },
   "dependencies": {
@@ -37,8 +39,6 @@
     "msw": "^2.14.6",
     "postcss": "^8.5.15",
     "tailwindcss": "^4.3.0",
-    "typescript": "^5.3.3",
-    "vite": "^8.0.16",
-    "vitest": "^4.1.8"
+    "vite": "^8.0.16"
   }
 }
