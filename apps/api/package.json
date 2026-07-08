@@ -12,13 +12,14 @@
     "test:coverage": "vitest --coverage",
     "typecheck": "tsc --noEmit",
     "lint": "eslint src --ext .ts",
+    "lint:fix": "eslint src --ext .ts --fix",
+    "clean": "rm -rf dist",
     "db:migrate": "prisma migrate dev",
     "db:migrate:deploy": "prisma migrate deploy",
     "db:reset": "prisma migrate reset",
     "db:generate": "prisma generate",
     "db:seed": "tsx --env-file=.env prisma/seed.ts",
-    "db:studio": "prisma studio",
-    "clean": "rm -rf dist"
+    "db:studio": "prisma studio"
   },
   "dependencies": {
     "@plinth/validation": "workspace:*",
@@ -46,10 +47,8 @@
     "@types/morgan": "^1.9.9",
     "@types/node": "^20.11.5",
     "@types/supertest": "^6.0.2",
-    "@vitest/coverage-v8": "^4.1.8",
     "dotenv": "^17.4.2",
     "supertest": "^6.3.4",
-    "tsx": "^4.22.4",
-    "vitest": "^4.1.8"
+    "tsx": "^4.22.4"
   }
 }

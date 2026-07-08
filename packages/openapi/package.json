@@ -3,8 +3,10 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
-    "validate": "node node_modules/@redocly/openapi-cli/bin/cli.js lint openapi.yaml",
+    "validate": "openapi lint openapi.yaml",
     "generate:types": "openapi-typescript openapi.yaml -o ../types/src/generated.ts && prettier --write ../types/src/generated.ts",
+    "lint": "prettier --check openapi.yaml",
+    "lint:fix": "prettier --write openapi.yaml",
     "clean": "rm -rf dist"
   },
   "devDependencies": {

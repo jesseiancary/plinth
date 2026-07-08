@@ -8,6 +8,7 @@
   "scripts": {
     "typecheck": "tsc --noEmit",
     "lint": "eslint src --ext .ts",
+    "lint:fix": "eslint src --ext .ts --fix",
     "clean": "rm -rf dist"
   }
 }

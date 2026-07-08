@@ -73,6 +73,10 @@ services:
       - ./packages:/app/packages
       - ./tsconfig.json:/app/tsconfig.json:ro
       - ./.prettierrc.json:/app/.prettierrc.json:ro
+      # Mount root package files
+      - ./package.json:/app/package.json:ro
+      - ./pnpm-lock.yaml:/app/pnpm-lock.yaml:ro
+      - ./pnpm-workspace.yaml:/app/pnpm-workspace.yaml:ro
       # Use named volumes for node_modules
       - api_test_node_modules:/app/node_modules
       - api_test_app_node_modules:/app/apps/api/node_modules
@@ -106,6 +110,10 @@ services:
       - ./packages:/app/packages
       - ./tsconfig.json:/app/tsconfig.json:ro
       - ./.prettierrc.json:/app/.prettierrc.json:ro
+      # Mount root package files
+      - ./package.json:/app/package.json:ro
+      - ./pnpm-lock.yaml:/app/pnpm-lock.yaml:ro
+      - ./pnpm-workspace.yaml:/app/pnpm-workspace.yaml:ro
       # Use named volumes for node_modules
       - web_test_node_modules:/app/node_modules
       - web_test_app_node_modules:/app/apps/web/node_modules
