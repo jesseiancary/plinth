@@ -108,7 +108,7 @@ jobs:
       - name: Run tests
         run: pnpm --filter api test
         env:
-          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/plinth_test
+          DATABASE_URL: postgresql://postgres:0123456798abcfef0123456789abcdef@localhost:5432/plinth_test
           JWT_SECRET: test-secret-key-for-ci-must-be-at-least-32-chars-long
           JWT_REFRESH_SECRET: test-refresh-secret-key-for-ci-must-be-32-chars
           API_URL: http://localhost:3000
