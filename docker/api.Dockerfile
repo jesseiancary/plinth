@@ -85,7 +85,7 @@ COPY apps/api/package.json ./apps/api/
 COPY packages/validation/package.json ./packages/validation/
 
 # Install production dependencies only
-RUN pnpm install --frozen-lockfile --prod
+RUN HUSKY=0 pnpm install --frozen-lockfile --prod
 
 # Copy Prisma schema and migrations (needed for prisma migrate deploy)
 COPY apps/api/prisma ./apps/api/prisma/
