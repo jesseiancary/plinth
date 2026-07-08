@@ -63,6 +63,9 @@ CMD ["pnpm", "--filter", "api", "dev"]
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 FROM dependencies AS build
 
+# Copy root tsconfig.json (extended by apps/api/tsconfig.json)
+COPY tsconfig.json ./
+
 # Copy source code
 COPY apps/api ./apps/api/
 COPY packages/validation ./packages/validation/
