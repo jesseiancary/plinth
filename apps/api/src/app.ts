@@ -29,6 +29,10 @@ const currentDir = dirname(filename)
 
 const app = express()
 
+// Trust proxy (required when behind reverse proxy like Caddy/ALB)
+// This allows express-rate-limit to correctly identify users via X-Forwarded-For
+app.set('trust proxy', 1)
+
 // Security middleware
 app.use(helmet(getHelmetConfig()))
 

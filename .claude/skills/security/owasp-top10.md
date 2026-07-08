@@ -852,10 +852,7 @@ const allowedOrigins =
         'https://www.example.com',
         // Add production domains
       ]
-    : [
-        'http://localhost:5173', // Vite dev server
-        'http://localhost:3000',
-      ]
+    : ['https://localhost']
 
 export const corsMiddleware = cors({
   origin: (origin, callback) => {
@@ -946,7 +943,6 @@ const EnvSchema = z.object({
   SMTP_USER: z.string().optional(),
   SMTP_PASS: z.string().optional(),
 
-  APP_URL: z.string().url(),
   API_URL: z.string().url(),
 })
 
@@ -1023,7 +1019,7 @@ res.cookie('refreshToken', refreshToken, cookieOptions)
     <!-- CSP meta tag (backup if server headers fail) -->
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self'; connect-src 'self' http://localhost:3000; frame-ancestors 'none';"
+      content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self'; connect-src 'self' https://localhost; frame-ancestors 'none';"
     />
 
     <title>Plinth</title>

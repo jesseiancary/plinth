@@ -244,7 +244,7 @@ export const rateLimitConfig = {
 }
 
 export const corsConfig = {
-  development: ['http://localhost:5173'],
+  development: ['https://localhost'],
   // TODO: Update with actual production URL(s) when deploying
   production: ['https://app.yourdomain.com'],
 }

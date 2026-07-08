@@ -1,9 +1,11 @@
 import { http, HttpResponse } from 'msw'
 
+const API_URL = import.meta.env.VITE_API_URL
+
 // Default mock handlers - tests can override these
 export const handlers = [
   // Health check
-  http.get('/health', () =>
+  http.get(`${API_URL}/health`, () =>
     HttpResponse.json({
       status: 'ok',
       timestamp: new Date().toISOString(),
@@ -11,7 +13,7 @@ export const handlers = [
     }),
   ),
 
-  http.get('/api/v1/auth/me', () =>
+  http.get(`${API_URL}/api/v1/auth/me`, () =>
     HttpResponse.json({
       id: 'test-user-id',
       email: 'test@example.com',
@@ -20,5 +22,5 @@ export const handlers = [
     }),
   ),
 
-  http.patch('/api/v1/auth/password', () => new HttpResponse(null, { status: 204 })),
+  http.patch(`${API_URL}/api/v1/auth/password`, () => new HttpResponse(null, { status: 204 })),
 ]

@@ -31,6 +31,166 @@ We will keep you informed throughout the process and credit you in the security 
 
 ---
 
+## Development Environment Security
+
+### HTTPS with Self-Signed Certificate
+
+Development uses **Caddy reverse proxy** with auto-generated self-signed certificates for localhost. This provides:
+
+- Production parity (HTTPS in dev matches production)
+- Secure contexts for testing (cookies, service workers, etc.)
+- Protection against local network attacks
+
+**Trade-off:** Browser security warnings are expected and normal in development.
+
+### Local HTTPS Setup - Trusting the Certificate
+
+When accessing `https://localhost`, your browser will show a security warning because Caddy generates a self-signed certificate. **This is normal and expected.**
+
+#### Option 1: Click Through Warning (Fastest)
+
+**Chrome/Edge:**
+
+1. Visit `https://localhost`
+2. Click "Advanced"
+3. Click "Proceed to localhost (unsafe)"
+
+**Firefox:**
+
+1. Visit `https://localhost`
+2. Click "Advanced"
+3. Click "Accept the Risk and Continue"
+
+**Safari:**
+
+1. Visit `https://localhost`
+2. Click "Show Details"
+3. Click "visit this website"
+
+#### Option 2: Trust Certificate Permanently (Recommended)
+
+**macOS:**
+
+```bash
+# Export Caddy's self-signed certificate
+docker compose exec caddy cat /data/caddy/certificates/local/localhost/localhost.crt > /tmp/localhost.crt
+
+# Trust it in Keychain
+sudo security add-trusted-cert -d -r trustRoot -k /Library/Keychains/System.keychain /tmp/localhost.crt
+
+# Restart browser
+```
+
+**Linux (Ubuntu/Debian):**
+
+```bash
+# Export certificate
+docker compose exec caddy cat /data/caddy/certificates/local/localhost/localhost.crt | sudo tee /usr/local/share/ca-certificates/localhost.crt
+
+# Update CA certificates
+sudo update-ca-certificates
+
+# Restart browser
+```
+
+**Windows:**
+
+```powershell
+# Export certificate
+docker compose exec caddy cat /data/caddy/certificates/local/localhost/localhost.crt > localhost.crt
+
+# Import certificate (run as Administrator)
+Import-Certificate -FilePath .\localhost.crt -CertStoreLocation Cert:\LocalMachine\Root
+
+# Restart browser
+```
+
+**Note:** If you run `make clean` or `docker compose down -v`, Caddy regenerates the certificate and you'll need to trust it again.
+
+### Database Security - Why Port Isn't Exposed
+
+By default, PostgreSQL runs **inside the Docker network only** and is **not exposed to the host machine**.
+
+**Security Benefits:**
+
+✅ Reduces attack surface (no port 5432 open on host)
+✅ Prevents accidental exposure to local network
+✅ Forces access through controlled interfaces
+✅ Follows principle of least privilege
+
+**Accessing the Database:**
+
+```bash
+make db-connect   # Opens psql shell inside Docker container (RECOMMENDED)
+```
+
+This connects to the database **inside** the Docker network without exposing the port.
+
+**For GUI Tools (Debugging Only):**
+
+If you need direct database access from a GUI tool (e.g., TablePlus, pgAdmin), temporarily uncomment the port mapping in `docker-compose.yml`:
+
+```yaml
+db:
+  # Uncomment to expose database port (debugging only)
+  ports:
+    - '${POSTGRES_PORT:-5432}:5432'
+```
+
+⚠️ **Warning:** Remember to comment it out after debugging. Never commit exposed database ports.
+
+### Docker Network Isolation
+
+Docker Compose creates an **isolated bridge network** (`plinth-network`) that:
+
+1. **Isolates services from host:** Services can't access host machine processes
+2. **Isolates services from other Docker networks:** Only services in `plinth-network` can communicate
+3. **Provides internal DNS:** Services reference each other by name (`api`, `db`, `web`)
+4. **Controls port exposure:** Only explicitly mapped ports are accessible from host
+
+**Security Architecture:**
+
+```
+┌──────────────────────────────────────────────────────────────┐
+│ Host Machine (Your Computer)                                 │
+│                                                              │
+│  ┌────────────────────────────────────────────────────────┐  │
+│  │ Docker Network (plinth-network) - ISOLATED             │  │
+│  │                                                        │  │
+│  │  ┌──────────┐      ┌─────────┐  ┌─────────┐  ┌──────┐  │  │
+│  │  │  Caddy   │─────→│ API     │  │  Web    │  │ DB   │  │  │
+│  │  │ (Proxy)  │      │ Node.js │  │  Vite   │  │ PG15 │  │  │
+│  │  └──────────┘      └─────────┘  └─────────┘  └──────┘  │  │
+│  │   Ports:            Internal     Internal    Internal  │  │
+│  │   80/443            3000         5173        5432      │  │
+│  │       ▲                                                │  │
+│  └───────┼────────────────────────────────────────────────┘  │
+│          │ (Only Caddy exposed to host)                      │
+└──────────┼───────────────────────────────────────────────────┘
+           │
+           ▼
+    Browser → https://localhost (self-signed cert)
+```
+
+**Attack Surface Comparison:**
+
+- **Without Docker isolation:** 5 ports exposed (80, 443, 3000, 5173, 5432)
+- **With Docker isolation:** 2 ports exposed (80, 443 - Caddy only)
+
+### Production vs Development Security
+
+| Feature            | Development                 | Production                     |
+| ------------------ | --------------------------- | ------------------------------ |
+| **HTTPS**          | Self-signed cert (Caddy)    | Real cert (Let's Encrypt/ACM)  |
+| **Database**       | Internal-only (not exposed) | Private subnet (VPC)           |
+| **Secrets**        | `.env` files (gitignored)   | AWS Secrets Manager / Env vars |
+| **CORS**           | Allows `localhost`          | Allows production domain only  |
+| **CSP**            | Disabled (Helmet)           | Strict (Helmet)                |
+| **Error Messages** | Detailed (dev mode)         | Generic (no stack traces)      |
+| **Rate Limiting**  | Disabled in tests           | Enabled (per-endpoint)         |
+
+---
+
 ## Security Framework
 
 Plinth implements security controls based on the **OWASP Top 10 2025** framework with graduated enforcement:
@@ -329,6 +489,11 @@ For general support:
 ---
 
 ## Security Changelog
+
+### 2026-07-07
+
+- ✅ Implemented auto-generated credentials in `make setup`
+- ✅ Updated `.env.example` files with security-conscious empty placeholders
 
 ### 2026-06-02
 

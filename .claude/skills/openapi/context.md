@@ -38,7 +38,7 @@ info:
   description: Multi-tenant SaaS API
 
 servers:
-  - url: http://localhost:3000/api/v1
+  - url: https://localhost/api/v1
     description: Development
   - url: https://api.plinth.dev/api/v1
     description: Production
@@ -609,7 +609,7 @@ Use these commands to maintain documentation quality:
 - `/review` — Pre-PR checklist including OpenAPI validation
 - Validate spec: `pnpm --filter openapi validate`
 - Generate types: `pnpm --filter openapi generate:types`
-- View docs: http://localhost:3001/docs (when API is running)
+- View docs: https://localhost/docs (when services are running via Docker)
 
 ### Common Phase 4 Tasks
 

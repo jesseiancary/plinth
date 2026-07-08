@@ -18,7 +18,7 @@ pnpm generate:types
 
 ## Viewing Documentation
 
-The API documentation is served at `http://localhost:3000/docs` when the API server is running.
+The API documentation is served at `https://localhost/docs` when the development services are running.
 
 ## Editing the Spec
 

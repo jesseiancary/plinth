@@ -8,7 +8,6 @@ const envSchema = z.object({
   JWT_REFRESH_SECRET: z.string().min(32),
   JWT_ACCESS_EXPIRY: z.string().default('15m'),
   JWT_REFRESH_EXPIRY: z.string().default('7d'),
-  APP_URL: z.string().url(),
   API_URL: z.string().url(),
   SMTP_HOST: z.string().optional(),
   SMTP_PORT: z.string().optional(),

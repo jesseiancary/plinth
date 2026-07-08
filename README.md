@@ -241,16 +241,19 @@ pnpm dev
 
 **Services will be running at:**
 
-- API: `http://localhost:3000`
-- API Docs: `http://localhost:3000/docs`
+- Web Frontend: `https://localhost`
+- API: `https://localhost/api/v1/*`
+- API Health: `https://localhost/health`
+- API Docs: `https://localhost/docs`
 - PostgreSQL: `localhost:5432`
-- Web: `http://localhost:5173`
+
+**Note:** Caddy automatically generates a self-signed certificate for localhost. Your browser will show a security warning - this is normal for local development. Accept the certificate to continue.
 
 ### Test Data
 
 The seed script creates:
 
-- **User:** `admin@example.com` / `password123`
+- **User:** `admin@example.com` / `P@ssword123`
 - **Organization:** Acme Corporation (slug: `acme`)
 - **Membership:** Admin user is OWNER of Acme
 

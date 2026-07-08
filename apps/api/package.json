@@ -16,7 +16,7 @@
     "db:migrate:deploy": "prisma migrate deploy",
     "db:reset": "prisma migrate reset",
     "db:generate": "prisma generate",
-    "db:seed": "tsx prisma/seed.ts",
+    "db:seed": "tsx --env-file=.env prisma/seed.ts",
     "db:studio": "prisma studio",
     "clean": "rm -rf dist"
   },
@@ -32,6 +32,7 @@
     "helmet": "^7.2.0",
     "jsonwebtoken": "^9.0.2",
     "morgan": "^1.10.0",
+    "prisma": "^5.8.1",
     "winston": "^3.19.0",
     "winston-daily-rotate-file": "^5.0.0",
     "zod": "^3.22.4"
@@ -47,7 +48,6 @@
     "@types/supertest": "^6.0.2",
     "@vitest/coverage-v8": "^4.1.8",
     "dotenv": "^17.4.2",
-    "prisma": "^5.8.1",
     "supertest": "^6.3.4",
     "tsx": "^4.22.4",
     "vitest": "^4.1.8"

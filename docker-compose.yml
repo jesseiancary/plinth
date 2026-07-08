@@ -1,10 +1,15 @@
 services:
+  # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  # Database Service (PostgreSQL)
+  # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   db:
     image: postgres:15-alpine
     container_name: plinth-db
     restart: unless-stopped
-    ports:
-      - '${POSTGRES_PORT:-5432}:5432'
+    # Database is internal-only (not exposed to host by default for security)
+    # Use 'make db-connect' to access the database, or uncomment the line below for direct access:
+    # ports:
+    #   - '${POSTGRES_PORT:-5432}:5432'
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
@@ -16,6 +21,148 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - plinth-network
 
+  # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  # Caddy Service (Reverse Proxy)
+  # Routes HTTPS traffic to API and Web services (development only)
+  # Production uses AWS ALB/CloudFront
+  # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  caddy:
+    build:
+      context: .
+      dockerfile: docker/caddy.Dockerfile
+    container_name: plinth-caddy
+    restart: unless-stopped
+    ports:
+      - '80:80'
+      - '443:443'
+    volumes:
+      # Mount Caddyfile configuration
+      - ./caddy/Caddyfile.local:/etc/caddy/Caddyfile:ro
+      # Persist Caddy data (certificates, etc.)
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - api
+      - web
+    healthcheck:
+      # Test that Caddy is routing traffic correctly (via public health endpoint)
+      test: ['CMD', 'curl', '-f', 'http://localhost/health']
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+    networks:
+      - plinth-network
+
+  # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  # API Service (Node.js + Express + Prisma)
+  # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  api:
+    build:
+      context: .
+      dockerfile: docker/api.Dockerfile
+      target: development
+    container_name: plinth-api
+    restart: unless-stopped
+    expose:
+      - '3000' # Internal only - accessed via Caddy reverse proxy
+    # All environment variables loaded from apps/api/.env
+    # This includes: DATABASE_URL, JWT_SECRET, JWT_REFRESH_SECRET, SMTP_*, API_URL, etc.
+    env_file:
+      - apps/api/.env
+    volumes:
+      # Mount source code for hot-reload
+      - ./apps/api:/app/apps/api
+      - ./packages:/app/packages
+      # Mount root configuration files (required by workspace tools)
+      - ./tsconfig.json:/app/tsconfig.json:ro
+      - ./.eslintrc.cjs:/app/.eslintrc.cjs:ro
+      - ./.prettierrc.json:/app/.prettierrc.json:ro
+      # Use named volume for node_modules (avoid permission issues)
+      - api_node_modules:/app/node_modules
+      - api_app_node_modules:/app/apps/api/node_modules
+      # Share pnpm store across services
+      - pnpm_store:/root/.local/share/pnpm/store
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      # Health check runs INSIDE the API container, so localhost:3000 is correct
+      # (refers to the container itself, not the host machine)
+      test: ['CMD', 'curl', '-f', 'http://localhost:3000/health']
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    networks:
+      - plinth-network
+
+  # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  # Web Service (React + Vite)
+  # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  web:
+    build:
+      context: .
+      dockerfile: docker/web.Dockerfile
+      target: development
+    container_name: plinth-web
+    restart: unless-stopped
+    expose:
+      - '5173' # Internal only - accessed via Caddy reverse proxy
+    env_file:
+      # All environment variables loaded from apps/web/.env
+      - apps/web/.env
+    volumes:
+      # Mount source code for Vite HMR
+      - ./apps/web:/app/apps/web
+      - ./packages:/app/packages
+      # Mount root configuration files (required by workspace tools)
+      - ./tsconfig.json:/app/tsconfig.json:ro
+      - ./.eslintrc.cjs:/app/.eslintrc.cjs:ro
+      - ./.prettierrc.json:/app/.prettierrc.json:ro
+      # Use named volume for node_modules (avoid permission issues)
+      - web_node_modules:/app/node_modules
+      - web_app_node_modules:/app/apps/web/node_modules
+      # Share pnpm store across services
+      - pnpm_store:/root/.local/share/pnpm/store
+    depends_on:
+      - api
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost:5173']
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    networks:
+      - plinth-network
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# Named Volumes (persist data across container restarts)
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 volumes:
   postgres-data:
+    driver: local
+  api_node_modules:
+    driver: local
+  api_app_node_modules:
+    driver: local
+  web_node_modules:
+    driver: local
+  web_app_node_modules:
+    driver: local
+  pnpm_store:
+    driver: local
+  caddy_data:
+    driver: local
+  caddy_config:
+    driver: local
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# Networks (isolate services from host and other Docker networks)
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+networks:
+  plinth-network:
+    driver: bridge

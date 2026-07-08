@@ -115,10 +115,10 @@ For critical endpoints, manually test and compare:
 
 ```bash
 # Start API server
-pnpm --filter api dev
+make dev
 
 # Test endpoint
-curl -X GET http://localhost:3001/api/v1/auth/me \
+curl -k -X GET https://localhost/api/v1/auth/me \
   -H "Authorization: Bearer YOUR_TOKEN" | jq
 
 # Compare response structure with OpenAPI spec
@@ -170,7 +170,7 @@ If there are type errors in generated types:
 
 ### 9. Test with Scalar UI
 
-Open http://localhost:3001/docs and verify:
+Open https://localhost/docs and verify:
 
 - All endpoints are visible and grouped correctly
 - Request examples are realistic

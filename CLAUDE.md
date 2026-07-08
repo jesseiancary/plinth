@@ -280,7 +280,7 @@ POSTGRES_PORT=5432
 
 ```
 # Must match credentials in root .env
-DATABASE_URL=postgresql://plinth_dev:<password>@localhost:5432/plinth_dev
+DATABASE_URL=postgresql://plinth_dev:<password>@db:5432/plinth_dev
 JWT_SECRET=
 JWT_REFRESH_SECRET=
 JWT_ACCESS_EXPIRY=15m
@@ -290,111 +290,219 @@ SMTP_HOST=
 SMTP_PORT=
 SMTP_USER=
 SMTP_PASS=
-APP_URL=http://localhost:5173
-API_URL=http://localhost:3000
+API_URL=https://localhost
 NODE_ENV=development
+PORT=3000
 ```
 
 **`apps/web/.env`**
 
 ```
-VITE_API_URL=http://localhost:3000
+VITE_API_URL=https://localhost
 ```
 
 All env vars validated at startup using Zod. App fails fast with a clear error if any required
 variable is missing.
 
-**Security Note:** Database credentials are randomly generated using `openssl rand -base64 32` for local development. This follows security best practices even in local environments and prevents accidental use of default credentials in production.
+**Security Note - Auto-Generated Credentials:**
+
+Passwords are auto-generated during `make setup` using cryptographically secure methods:
+
+- **Database password:** `openssl rand -hex 32` (64 chars, URL-safe, 256-bit entropy)
+- **JWT secrets:** `openssl rand -base64 32` (44 chars, 264-bit entropy)
+
+**Why hex for database, base64 for JWT?**
+
+- Database passwords appear in URLs (`postgresql://user:PASSWORD@host/db`)
+- Hex uses only `[0-9a-f]` (URL-safe, no encoding needed)
+- Base64 uses `/`, `+`, `=` (requires URL encoding: `%2F`, `%2B`, `%3D`)
+- JWT secrets never appear in URLs, so base64 is preferred (shorter for same entropy)
+
+**Defense-in-depth validation:**
+
+1. `.env.example` placeholders: Empty strings intentionally fail to prevent accidental use
+2. Zod validation (`apps/api/src/lib/env.ts`): Validates format, length, and encoding
+3. Application pre-flight check (`apps/api/src/server.ts`): Runs even if Zod is bypassed
+4. PostgreSQL authentication: Final backstop (rejects wrong credentials)
 
 ---
 
 ## Local Development
 
-### Using pnpm (Node.js-native)
+**Prerequisites:**
+
+- Docker 24+ and Docker Compose v2
+- Make (standard on macOS/Linux)
+- No Node.js/pnpm installation required (runs inside containers)
+
+All development happens inside Docker containers. The `make` command provides a unified interface for all operations.
+
+### Quick Start
 
 ```bash
-# Install dependencies
-pnpm install
+# First-time setup (creates .env files, builds images, runs migrations, seeds data)
+make setup
 
-# Start PostgreSQL via Docker
-docker compose up -d db
+# Start all services (db + api + web) with hot-reload
+make dev
 
-# Run migrations + seed
-pnpm --filter api db:migrate
-pnpm --filter api db:seed
-
-# Start API (port 3000) + Web (port 5173) in parallel
-pnpm dev
-
-# Stop services when done
-pnpm stop
-
-# Run tests
-pnpm --filter api test
-pnpm --filter web test
-
-# Typecheck all packages
-pnpm typecheck
-
-# Lint all packages
-pnpm lint
+# Stop all services
+make stop
 ```
 
-### Using Make (Polyglot-friendly alternative)
-
-A Makefile is provided as an optional, ops-style interface for development commands. All `pnpm` commands continue to work—the Makefile is additive, not a replacement.
+### Daily Development
 
 ```bash
 # View all available commands
 make help
 
-# First-time setup (creates .env files, starts db, runs migrations, seeds data)
-make setup
+# Start services
+make dev             # Start all services with logs (Ctrl+C to stop)
+make dev-detached    # Start all services in background
+make stop            # Stop all services
+make restart         # Restart API and Web services
 
-# Daily development
-make dev          # Start all services (db + api + web)
-make stop         # Stop all services
-make restart      # Restart all services
+# View logs
+make logs            # Tail all service logs
+make logs-api        # Tail API logs only
+make logs-web        # Tail Web logs only
+make logs-db         # Tail database logs only
 
-# Database management
-make db-migrate   # Run Prisma migrations
-make db-seed      # Seed database with test data
-make db-studio    # Open Prisma Studio GUI
-
-# Testing
-make test         # Run all tests
-make test-api     # API tests only
-make test-web     # Web tests only
-
-# Code quality
-make lint         # Run ESLint
-make format       # Format with Prettier
-make typecheck    # Run TypeScript type checking
-make check        # Run ALL checks (lint + format + typecheck)
-
-# Build
-make build        # Build for production
-make clean        # Remove build artifacts and stop services
+# Debug containers
+make shell-api       # Open shell in API container
+make shell-web       # Open shell in Web container
+make shell-db        # Open PostgreSQL shell
 ```
 
-**When to use Make vs pnpm:**
+### Database Management
 
-- **Use Make when:**
-  - Working with multi-language services (Go, Python, Node.js)
-  - Coming from backend/ops background
-  - Adding non-Node.js services in future phases
-  - Want conventional Unix-style commands (`make dev`, `make test`)
-  - Prefer self-documenting help menu (`make help`)
+```bash
+make db-migrate      # Run Prisma migrations
+make db-seed         # Seed database with test data
+make db-reset        # Reset database (⚠️  destructive!)
+make db-studio       # Open Prisma Studio GUI (http://localhost:5555)
+```
 
-- **Use pnpm when:**
-  - Pure Node.js workflow
-  - Prefer Node.js ecosystem conventions
-  - Using IDE npm script panels
-  - Writing CI/CD workflows (explicit, auditable)
+### Testing
 
-- **CI/CD uses pnpm** for explicit dependency management and auditability
+**Two testing approaches available:**
 
-Both interfaces call the same underlying scripts. See [docs/MAKEFILE.md](docs/MAKEFILE.md) for comprehensive documentation and patterns for adding Go/Python services.
+#### 1. Quick Development Testing (use running containers)
+
+```bash
+make test            # Run all tests (API + Web) in development containers
+make test-api        # API tests only
+make test-web        # Web tests only
+make test-coverage   # Run tests with coverage report
+```
+
+**Best for:** Fast feedback during TDD/development workflow. Requires services to be running (`make dev`).
+
+**Tradeoffs:**
+
+- ✅ Fast (~seconds)
+- ✅ Uses existing containers
+- ⚠️ Tests run against development database (shared state)
+- ⚠️ May be affected by existing dev data
+
+#### 2. Isolated CI-Parity Testing (fresh containers)
+
+```bash
+make test-docker       # Run all tests in isolated test environment (like CI)
+make test-docker-api   # API tests only (isolated)
+make test-docker-web   # Web tests only (isolated)
+make test-docker-clean # Clean up test containers and volumes
+```
+
+**Best for:** Pre-commit validation, debugging CI failures, ensuring tests pass in clean environment.
+
+**Tradeoffs:**
+
+- ✅ Complete isolation (separate database on port 5433)
+- ✅ Exact CI environment match
+- ✅ Fresh containers and volumes
+- ⚠️ Slower (~30s setup time)
+- ⚠️ More resource intensive
+
+**Recommended workflow:**
+
+```bash
+# Daily development: fast feedback loop
+make test
+
+# Before committing: final validation
+make test-docker
+```
+
+### Code Quality
+
+```bash
+make lint            # Run ESLint (API + Web)
+make lint-fix        # Fix auto-fixable lint issues
+make format          # Format code with Prettier
+make format-check    # Check code formatting
+make typecheck       # Run TypeScript type checking
+make check           # Run ALL checks (lint + format + typecheck)
+```
+
+### Build & Cleanup
+
+```bash
+make build           # Build production Docker images
+make rebuild         # Rebuild containers without cache
+make clean           # Stop services and remove volumes
+```
+
+### How It Works
+
+All commands execute inside Docker containers:
+
+- **Caddy container**: Reverse proxy (port 80) — routes traffic to API and Web services
+- **API container**: Node.js 24 + Express + Prisma with `tsx watch` for hot-reload (internal port 3000)
+- **Web container**: Node.js 24 + Vite with Hot Module Replacement (HMR) (internal port 5173)
+- **Database container**: PostgreSQL 15 Alpine (internal port 5432)
+
+### Reverse Proxy Architecture (Production Parity)
+
+Development uses **Caddy** as a reverse proxy to match production's AWS ALB pattern:
+
+```
+Browser (https://localhost)
+    ↓
+Caddy Container (ports 80/443, auto-generates self-signed cert)
+    ├─ /api/*  → API Container (port 3000, internal only)
+    └─ /*      → Web Container (port 5173, internal only)
+```
+
+**Benefits:**
+
+- ✅ Single entry point (HTTPS with automatic self-signed certificate)
+- ✅ Services not directly exposed to host
+- ✅ Matches production architecture (Caddy → ALB)
+- ✅ Clean URLs (no port numbers in browser)
+- ✅ Production-parity HTTPS for testing secure contexts (cookies, service workers, etc.)
+
+**Access URLs:**
+
+- Frontend: https://localhost
+- API: https://localhost/api/v1/\*
+- API Health: https://localhost/health
+- API Docs: https://localhost/docs
+
+**IMPORTANT for Development:**
+
+- All services run inside Docker containers - no local Node.js/pnpm required
+- Browser requests to `https://localhost` are routed by Caddy reverse proxy
+- Caddy automatically generates a self-signed certificate for localhost (browser will show security warning - this is normal for local development)
+- Web app uses `VITE_API_URL=https://localhost` (browser makes requests through Caddy)
+- API container uses `PORT=3000` internally, but is NOT exposed directly to host
+- Web container uses port 5173 internally, but is NOT exposed directly to host
+
+Source code is volume-mounted into containers, so changes are instantly reflected. `node_modules` are isolated in Docker volumes to avoid permission issues.
+
+**Internal pnpm usage:** The Makefile delegates to `docker compose exec <service> pnpm <command>`. You don't run pnpm directly on your host machine.
+
+See [docs/DOCKER.md](docs/DOCKER.md) for architecture details and troubleshooting.
 
 ---
 
