@@ -201,6 +201,9 @@ jobs:
       - name: Build API
         run: pnpm --filter api build
 
+      - name: Build Web
+        run: pnpm --filter web build
+
   docker-build:
     name: Docker Build (Smoke Test)
     runs-on: ubuntu-latest
@@ -222,17 +225,6 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: Build Web production image
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          file: docker/web.Dockerfile
-          target: production
-          push: false
-          tags: plinth-web:ci
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
   security-scan:
     name: Security Scan (Trivy)
     runs-on: ubuntu-latest
@@ -242,7 +234,7 @@ jobs:
       security-events: write
     strategy:
       matrix:
-        image: [api, web]
+        image: [api]
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
