@@ -75,7 +75,7 @@ export function ChangePasswordForm() {
       changePasswordSchema.shape.newPassword.parse(newPassword)
     } catch (error) {
       if (error instanceof z.ZodError) {
-        errors.newPassword = error.errors[0]?.message ?? 'Invalid password'
+        errors.newPassword = error.issues[0]?.message ?? 'Invalid password'
       }
     }
 
