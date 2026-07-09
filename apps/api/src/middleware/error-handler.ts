@@ -36,14 +36,14 @@ export const errorHandler: ErrorRequestHandler = (
   if (err instanceof ZodError) {
     logger.debug('Validation error', {
       ...errorContext,
-      validationErrors: err.errors,
+      validationErrors: err.issues,
     })
 
     return res.status(400).json({
       error: {
         code: 'VALIDATION_ERROR',
         message: 'Invalid request data',
-        details: err.errors,
+        details: err.issues,
       },
     })
   }
