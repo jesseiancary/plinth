@@ -27,9 +27,7 @@ export function MembersPage() {
     isLoading,
     error,
   } = useQuery<MembersResponse>({
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
     queryKey: queryKeys.members.list(orgSlug!),
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
     queryFn: () => api.get(`/api/v1/orgs/${orgSlug}/members`),
     enabled: Boolean(orgSlug),
   })
@@ -113,11 +111,9 @@ export function MembersPage() {
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div>
                         <div className="text-sm font-medium text-gray-900">
-                          {/* eslint-disable-next-line @typescript-eslint/no-unsafe-call */}
                           {sanitizeDisplayText(member.user.name)}
                         </div>
                         <div className="text-sm text-gray-500">
-                          {/* eslint-disable-next-line @typescript-eslint/no-unsafe-call */}
                           {sanitizeDisplayText(member.user.email)}
                         </div>
                       </div>

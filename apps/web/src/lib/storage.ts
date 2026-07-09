@@ -32,7 +32,6 @@ const safeLocalStorage = {
   getItem: (key: string): string | null => {
     try {
       // localStorage is 'any' in JSDOM test environment - this is expected
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
       return localStorage.getItem(key)
     } catch {
       return null
@@ -40,13 +39,11 @@ const safeLocalStorage = {
   },
   setItem: (key: string, value: string): void => {
     // localStorage is 'any' in JSDOM test environment - this is expected
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
     localStorage.setItem(key, value)
   },
   removeItem: (key: string): void => {
     try {
       // localStorage is 'any' in JSDOM test environment - this is expected
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
       localStorage.removeItem(key)
     } catch {
       // Ignore errors when removing
@@ -160,7 +157,9 @@ export function createStorage<T>({ key, schema }: StorageOptions<T>): TypedStora
         safeLocalStorage.setItem(key, serialized)
       } catch (error) {
         // Re-throw with context (could be QuotaExceededError, etc.)
-        throw new Error(`Failed to save to localStorage (key: ${key}): ${String(error)}`)
+        throw new Error(`Failed to save to localStorage (key: ${key}): ${String(error)}`, {
+          cause: error,
+        })
       }
     },
 
@@ -205,29 +204,24 @@ export function onStorageChange(
 
     // Only respond to localStorage changes from other tabs
     // localStorage and event properties are 'any' in JSDOM test environment
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     if (event.storageArea !== localStorage) {
       return
     }
 
     // Only respond to changes for the specified key
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     if (event.key !== key) {
       return
     }
 
     // event.newValue and event.oldValue are 'any' in JSDOM test environment
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-member-access
     callback(event.newValue, event.oldValue)
   }
 
   // window is 'any' in JSDOM test environment - this is expected
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
   window.addEventListener('storage', handler)
 
   return () => {
     // window is 'any' in JSDOM test environment - this is expected
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
     window.removeEventListener('storage', handler)
   }
 }

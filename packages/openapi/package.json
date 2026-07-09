@@ -3,14 +3,14 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
-    "validate": "openapi lint openapi.yaml",
+    "validate": "redocly lint openapi.yaml",
     "generate:types": "openapi-typescript openapi.yaml -o ../types/src/generated.ts && prettier --write ../types/src/generated.ts",
     "lint": "prettier --check openapi.yaml",
     "lint:fix": "prettier --write openapi.yaml",
     "clean": "rm -rf dist"
   },
   "devDependencies": {
-    "@redocly/openapi-cli": "^1.0.0-beta.95",
+    "@redocly/cli": "^2.36.0",
     "openapi-typescript": "^7.13.0"
   }
 }

@@ -29,7 +29,6 @@ export const setAccessTokenGetter = (fn: () => string | null) => {
  * so we can read it and send it back in the X-CSRF-Token header
  */
 const getCsrfToken = (): string | null => {
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
   const cookies: string[] = document.cookie.split(';')
   for (const cookie of cookies) {
     const parts: string[] = cookie.trim().split('=')
@@ -177,9 +176,7 @@ api.interceptors.response.use(
         refreshSubscribers = []
 
         // Clear user data and redirect to login
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
         localStorage.removeItem('user')
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         window.location.href = '/login'
         return Promise.reject(new Error('Refresh token failed', { cause: refreshError }))
       }

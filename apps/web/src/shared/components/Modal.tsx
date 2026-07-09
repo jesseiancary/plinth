@@ -20,12 +20,10 @@ export function Modal({ isOpen, onClose, title, children }: ModalProps) {
     }
 
     // Store the previously focused element
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment
     previousActiveElement.current = document.activeElement
 
     // Focus the modal container
     if (modalRef.current) {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-call
       modalRef.current.focus()
     }
 
@@ -38,55 +36,42 @@ export function Modal({ isOpen, onClose, title, children }: ModalProps) {
 
       // Handle Tab key for focus trap
       if (e.key === 'Tab') {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call
         const focusableElements = modalRef.current?.querySelectorAll(
           'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
         )
 
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         if (!focusableElements || focusableElements.length === 0) {
           return
         }
 
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         const firstElement = focusableElements[0] as HTMLElement
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         const lastElement = focusableElements[focusableElements.length - 1] as HTMLElement
 
         // Shift + Tab on first element -> focus last element
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         if (e.shiftKey && document.activeElement === firstElement) {
           e.preventDefault()
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-call
           lastElement.focus()
           return
         }
 
         // Tab on last element -> focus first element
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         if (!e.shiftKey && document.activeElement === lastElement) {
           e.preventDefault()
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-call
           firstElement.focus()
         }
       }
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
     document.addEventListener('keydown', handleKeyDown)
     // Prevent body scroll
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     document.body.style.overflow = 'hidden'
 
     return () => {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
       document.removeEventListener('keydown', handleKeyDown)
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       document.body.style.overflow = 'unset'
 
       // Restore focus to previously focused element
       if (previousActiveElement.current instanceof HTMLElement) {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-call
         previousActiveElement.current.focus()
       }
     }
@@ -139,7 +124,6 @@ export function Modal({ isOpen, onClose, title, children }: ModalProps) {
         <div className="px-6 py-4">{children}</div>
       </div>
     </div>,
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-member-access
     document.body,
   )
 }
