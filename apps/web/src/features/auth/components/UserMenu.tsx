@@ -13,7 +13,6 @@ export function UserMenu() {
   // Focus the sign out button when dropdown opens
   useEffect(() => {
     if (isOpen && signOutButtonRef.current) {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
       signOutButtonRef.current.focus()
     }
   }, [isOpen])
@@ -38,9 +37,7 @@ export function UserMenu() {
       }
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
     document.addEventListener('keydown', handleKeyDown)
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-return
     return () => document.removeEventListener('keydown', handleKeyDown)
   }, [isOpen])
 

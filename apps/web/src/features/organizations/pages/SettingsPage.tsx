@@ -25,10 +25,8 @@ export function SettingsPage() {
     isLoading,
     error,
   } = useQuery<Organization>({
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
     queryKey: queryKeys.organizations.detail(orgSlug!),
     queryFn: async () => {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
       const response: Organization = await api.get(`/api/v1/orgs/${orgSlug}`)
       // Initialize form fields with current values
       setName(response.name)
@@ -74,7 +72,6 @@ export function SettingsPage() {
                 id="name"
                 value={name}
                 onChange={(e) => {
-                  // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-member-access
                   setName(e.currentTarget.value)
                 }}
                 placeholder="Acme Inc."
@@ -87,7 +84,6 @@ export function SettingsPage() {
                 id="slug"
                 value={slug}
                 onChange={(e) => {
-                  // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-member-access
                   setSlug(e.currentTarget.value)
                 }}
                 placeholder="acme-inc"
@@ -137,7 +133,6 @@ export function SettingsPage() {
                 <div>
                   <dt className="text-sm font-medium text-gray-500">Organization ID</dt>
                   <dd className="mt-1 text-sm text-gray-900 font-mono">
-                    {/* eslint-disable-next-line @typescript-eslint/no-unsafe-call */}
                     {sanitizeDisplayText(organization.id)}
                   </dd>
                 </div>

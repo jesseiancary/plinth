@@ -46,7 +46,6 @@ export function OrgSwitcher() {
   // Focus the menu item when focusedIndex changes
   useEffect(() => {
     if (isOpen && focusedIndex >= 0 && menuItemsRef.current[focusedIndex]) {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
       menuItemsRef.current[focusedIndex]?.focus()
     }
   }, [focusedIndex, isOpen])
@@ -99,9 +98,7 @@ export function OrgSwitcher() {
       }
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
     document.addEventListener('keydown', handleKeyDown)
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-return
     return () => document.removeEventListener('keydown', handleKeyDown)
   }, [isOpen, focusedIndex, user?.memberships])
 

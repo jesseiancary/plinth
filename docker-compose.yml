@@ -79,7 +79,7 @@ services:
       - ./packages:/app/packages
       # Mount root configuration files (required by workspace tools)
       - ./tsconfig.json:/app/tsconfig.json:ro
-      - ./.eslintrc.cjs:/app/.eslintrc.cjs:ro
+      - ./eslint.config.js:/app/eslint.config.js:ro
       - ./.prettierrc.json:/app/.prettierrc.json:ro
       # Use named volume for node_modules (avoid permission issues)
       - api_node_modules:/app/node_modules
@@ -121,7 +121,7 @@ services:
       - ./packages:/app/packages
       # Mount root configuration files (required by workspace tools)
       - ./tsconfig.json:/app/tsconfig.json:ro
-      - ./.eslintrc.cjs:/app/.eslintrc.cjs:ro
+      - ./eslint.config.js:/app/eslint.config.js:ro
       - ./.prettierrc.json:/app/.prettierrc.json:ro
       # Use named volume for node_modules (avoid permission issues)
       - web_node_modules:/app/node_modules

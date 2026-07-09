@@ -11,13 +11,11 @@ import { ErrorBoundary } from './shared/components/ErrorBoundary'
 
 import './index.css'
 
-// eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call
 const rootElement = document.getElementById('root')
 if (!rootElement) {
   throw new Error('Root element not found')
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unsafe-argument
 createRoot(rootElement).render(
   <StrictMode>
     <ErrorBoundary>

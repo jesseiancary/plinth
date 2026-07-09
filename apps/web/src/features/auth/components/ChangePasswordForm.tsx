@@ -43,12 +43,10 @@ export function ChangePasswordForm() {
     return () => {
       secureClearPasswords()
     }
-    // eslint-disable-next-line
   }, [])
 
   const mutation = useMutation({
     mutationFn: async (data: { currentPassword: string; newPassword: string }) => {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
       await api.patch('/api/v1/auth/password', data)
     },
     onSuccess: () => {
@@ -152,7 +150,6 @@ export function ChangePasswordForm() {
 
       {mutation.isError && (
         <div className="rounded-md bg-red-50 p-4">
-          {/* eslint-disable-next-line @typescript-eslint/no-unsafe-call */}
           <p className="text-sm text-danger">{getApiErrorMessage(mutation.error)}</p>
         </div>
       )}
@@ -169,7 +166,6 @@ export function ChangePasswordForm() {
             type="password"
             value={currentPassword}
             onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-              // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
               setCurrentPassword(e.currentTarget.value)
               setValidationErrors((prev) => ({ ...prev, currentPassword: '' }))
             }}
@@ -195,7 +191,6 @@ export function ChangePasswordForm() {
             type="password"
             value={newPassword}
             onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-              // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
               setNewPassword(e.currentTarget.value)
               setValidationErrors((prev) => ({ ...prev, newPassword: '' }))
             }}
@@ -221,7 +216,6 @@ export function ChangePasswordForm() {
             type="password"
             value={confirmPassword}
             onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-              // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
               setConfirmPassword(e.currentTarget.value)
               setValidationErrors((prev) => ({ ...prev, confirmPassword: '' }))
             }}

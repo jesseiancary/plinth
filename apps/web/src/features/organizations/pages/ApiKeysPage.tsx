@@ -26,9 +26,7 @@ export function ApiKeysPage() {
     isLoading,
     error,
   } = useQuery<ApiKeysResponse>({
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
     queryKey: queryKeys.apiKeys.list(orgSlug!),
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
     queryFn: () => api.get(`/api/v1/orgs/${orgSlug}/api-keys`),
     enabled: Boolean(orgSlug),
   })
@@ -136,7 +134,6 @@ export function ApiKeysPage() {
                   <tr key={apiKey.id}>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm font-medium text-gray-900">
-                        {/* eslint-disable-next-line @typescript-eslint/no-unsafe-call */}
                         {sanitizeDisplayText(apiKey.name)}
                       </div>
                     </td>

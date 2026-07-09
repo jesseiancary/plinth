@@ -145,7 +145,6 @@ export function RegisterPage() {
 
             {registerMutation.isError && (
               <div className="text-sm text-danger">
-                {/* eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-argument */}
                 {getApiErrorMessage(registerMutation.error)}
               </div>
             )}

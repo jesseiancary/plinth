@@ -20,7 +20,6 @@ export async function generateUniqueSlug(baseName: string): Promise<string> {
   let slug = baseSlug
   let counter = 1
 
-  // eslint-disable-next-line no-constant-condition
   while (true) {
     const existing = await prisma.organization.findUnique({
       where: { slug },
