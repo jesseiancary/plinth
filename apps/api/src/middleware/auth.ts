@@ -1,9 +1,9 @@
 import type { NextFunction, Request, Response } from 'express'
 
 import { hashApiKey } from '../lib/api-key.js'
+import { prisma } from '../lib/db.js'
 import { AppError } from '../lib/errors.js'
 import { verifyAccessToken } from '../lib/jwt.js'
-import { prisma } from '../lib/prisma.js'
 
 // Extend Express Request type to include user and tenantId
 declare global {

@@ -3,7 +3,7 @@ import request from 'supertest'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
 import { app } from '../app'
-import { prisma } from '../lib/prisma'
+import { prisma } from '../lib/db'
 import { clearDatabase, createTestUser } from '../lib/test-helpers'
 
 /**

@@ -1,6 +1,6 @@
+import { prisma } from './lib/db.js'
 import { env } from './lib/env.js'
 import { logger } from './lib/logger.js'
-import { prisma } from './lib/prisma.js'
 import { app } from './app.js'
 
 const port = parseInt(env.PORT, 10)

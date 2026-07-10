@@ -1,4 +1,4 @@
-import { prisma } from './prisma.js'
+import { prisma } from './db.js'
 
 /**
  * Generates a URL-friendly slug from a string

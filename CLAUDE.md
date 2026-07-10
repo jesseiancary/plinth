@@ -40,19 +40,19 @@ but a disciplined workflow using Claude Code agents, skills, commands, and hooks
 
 ## Tech Stack
 
-| Layer           | Choice                                 | Notes                                                 |
-| --------------- | -------------------------------------- | ----------------------------------------------------- |
-| Database        | PostgreSQL                             | Via Railway or local Docker                           |
-| ORM             | Prisma                                 | Schema-first, migrations in version control           |
-| API             | Node.js + Express + TypeScript         | `apps/api`                                            |
-| Validation      | Zod                                    | All request/response I/O validated at runtime         |
-| Auth            | JWT (access) + httpOnly refresh cookie | Rolled manually — no auth library abstraction         |
-| Frontend        | React + Vite + TypeScript              | `apps/web`                                            |
-| Styling         | Tailwind CSS v4                        | CSS-first config: `@theme` + `@plugin` in `index.css` |
-| Data fetching   | TanStack Query (React Query)           | All server state                                      |
-| API Docs        | OpenAPI 3.1 + Scalar                   | Spec in `packages/openapi`, served at `/docs`         |
-| Testing         | Vitest + Supertest                     | Integration-first on API; RTL for frontend            |
-| Package manager | pnpm workspaces                        | Run commands from repo root                           |
+| Layer           | Choice                                 | Notes                                                        |
+| --------------- | -------------------------------------- | ------------------------------------------------------------ |
+| Database        | PostgreSQL                             | Via Railway or local Docker                                  |
+| ORM             | Prisma 7.8                             | Schema-first, migrations in version control, driver adapters |
+| API             | Node.js + Express + TypeScript         | `apps/api`                                                   |
+| Validation      | Zod                                    | All request/response I/O validated at runtime                |
+| Auth            | JWT (access) + httpOnly refresh cookie | Rolled manually — no auth library abstraction                |
+| Frontend        | React + Vite + TypeScript              | `apps/web`                                                   |
+| Styling         | Tailwind CSS v4                        | CSS-first config: `@theme` + `@plugin` in `index.css`        |
+| Data fetching   | TanStack Query (React Query)           | All server state                                             |
+| API Docs        | OpenAPI 3.1 + Scalar                   | Spec in `packages/openapi`, served at `/docs`                |
+| Testing         | Vitest + Supertest                     | Integration-first on API; RTL for frontend                   |
+| Package manager | pnpm workspaces                        | Run commands from repo root                                  |
 
 ---
 
