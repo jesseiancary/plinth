@@ -1,12 +1,13 @@
 import crypto from 'node:crypto'
 
 /**
- * Generate a new API key with the format sk_live_<random>
+ * Generate a new API key with the format sk_live_<UUIDv7>
+ * Uses UUIDv7 for time-ordering and better database indexing
  */
 export function generateApiKey(): string {
-  const randomBytes = crypto.randomBytes(32)
-  const randomString = randomBytes.toString('base64url')
-  return `sk_live_${randomString}`
+  const uuid = crypto.randomUUIDv7()
+  const compactUuid = uuid.replace(/-/g, '')
+  return `sk_live_${compactUuid}`
 }
 
 /**

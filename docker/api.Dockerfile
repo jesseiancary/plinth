@@ -4,10 +4,10 @@
 # Stage: base
 # Base Node.js image with pnpm installed
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-FROM node:24-alpine AS base
+FROM node:26-alpine AS base
 
 # Install pnpm globally
-RUN corepack enable && corepack prepare pnpm@8.15.0 --activate
+RUN npm install -g pnpm
 
 # Set working directory
 WORKDIR /app
@@ -22,7 +22,7 @@ RUN apk add --no-cache openssl
 FROM base AS dependencies
 
 # Copy workspace configuration
-COPY pnpm-workspace.yaml package.json pnpm-lock.yaml ./
+COPY pnpm-workspace.yaml package.json pnpm-lock.yaml .npmrc ./
 
 # Copy all package.json files for workspace dependency resolution
 COPY apps/api/package.json ./apps/api/
@@ -83,7 +83,7 @@ FROM base AS production
 RUN apk add --no-cache curl
 
 # Copy workspace configuration
-COPY pnpm-workspace.yaml package.json pnpm-lock.yaml ./
+COPY pnpm-workspace.yaml package.json pnpm-lock.yaml .npmrc ./
 COPY apps/api/package.json ./apps/api/
 COPY packages/validation/package.json ./packages/validation/
 

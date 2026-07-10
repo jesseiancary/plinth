@@ -209,11 +209,11 @@ Before completing any new endpoint, verify:
 
 This skill provides security guidance tailored to:
 
-- **Backend:** Node.js 20+, Express 4.x, TypeScript 5.x, Prisma 6.x
+- **Backend:** Node.js 20+, Express 5.x, TypeScript 5.x, Prisma 6.x
 - **Frontend:** React 19, Vite 8, TanStack Query 5
 - **Database:** PostgreSQL 16+
 - **Auth:** JWT (access + refresh), bcrypt password hashing
-- **Validation:** Zod 3.x
+- **Validation:** Zod 4.x
 - **Security:** helmet, express-rate-limit, CORS
 
 ## Key Principles

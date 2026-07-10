@@ -90,7 +90,7 @@ export function requireRole(...allowedRoles: string[]) {
       // Extract organization slug from params
       const orgSlug = req.params.slug
 
-      if (!orgSlug) {
+      if (!orgSlug || typeof orgSlug !== 'string') {
         throw new AppError('Organization slug required', 400, 'ORG_SLUG_REQUIRED')
       }
 
