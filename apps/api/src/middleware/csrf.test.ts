@@ -3,8 +3,8 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 
 import { app } from '../app.js'
 import { generateApiKey, hashApiKey } from '../lib/api-key.js'
+import { prisma } from '../lib/db.js'
 import { hashPassword } from '../lib/password.js'
-import { prisma } from '../lib/prisma.js'
 
 describe('CSRF Protection', () => {
   let accessToken: string

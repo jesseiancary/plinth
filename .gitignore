@@ -37,6 +37,7 @@ pnpm-debug.log*
 
 # Prisma
 prisma/migrations/**/migration.sql.bak
+apps/api/prisma/generated/
 
 # Temporary files
 tmp/

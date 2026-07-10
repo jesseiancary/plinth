@@ -1,5 +1,5 @@
 import { TIME } from './constants.js'
-import { prisma } from './prisma.js'
+import { prisma } from './db.js'
 
 /**
  * Clear all database tables for testing

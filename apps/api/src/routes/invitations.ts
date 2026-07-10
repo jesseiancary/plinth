@@ -3,8 +3,8 @@ import { Router } from 'express'
 
 import { asyncHandler } from '../lib/async-handler.js'
 import { sha256 } from '../lib/crypto.js'
+import { prisma } from '../lib/db.js'
 import { AppError } from '../lib/errors.js'
-import { prisma } from '../lib/prisma.js'
 import { rateLimitConfig } from '../lib/security.js'
 import {
   acceptInvitationSchema,

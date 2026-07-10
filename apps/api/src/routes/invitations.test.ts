@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
 import { app } from '../app.js'
 import { sha256 } from '../lib/crypto.js'
-import { prisma } from '../lib/prisma.js'
+import { prisma } from '../lib/db.js'
 import {
   clearDatabase,
   createTestInvitation,

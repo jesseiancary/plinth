@@ -1,14 +1,9 @@
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
-/* eslint-disable @typescript-eslint/no-unsafe-call */
-import { PrismaClient } from '@prisma/client'
 import * as bcrypt from 'bcrypt'
 import * as crypto from 'crypto'
 
 import { TIME } from '../src/lib/constants.js'
+import { prisma } from '../src/lib/db.js'
 import { logger } from '../src/lib/logger.js'
-
-const prisma = new PrismaClient()
 
 // Helper function to generate SHA-256 hash
 function sha256(input: string): string {

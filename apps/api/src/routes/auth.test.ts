@@ -2,7 +2,7 @@ import request from 'supertest'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
 import { app } from '../app.js'
-import { prisma } from '../lib/prisma.js'
+import { prisma } from '../lib/db.js'
 import { clearDatabase, createTestUser } from '../lib/test-helpers.js'
 
 describe('POST /api/v1/auth/register', () => {
