@@ -8,6 +8,11 @@ export default defineConfig({
     globals: true,
     environment: 'jsdom',
     setupFiles: './src/test/setup.ts',
+    // Disable Node.js 26 experimental localStorage to avoid warnings
+    // jsdom provides its own Storage implementation which is more battle-tested
+    env: {
+      NODE_OPTIONS: '--no-webstorage',
+    },
   },
   resolve: {
     alias: {

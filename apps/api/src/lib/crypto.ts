@@ -8,17 +8,11 @@ export function sha256(input: string): string {
 }
 
 /**
- * Generate a cryptographically secure random token
- * @param byteLength - Number of random bytes to generate (default: 32)
- * @returns Hex-encoded random string
- */
-export function generateSecureToken(byteLength: number = 32): string {
-  return crypto.randomBytes(byteLength).toString('hex')
-}
-
-/**
- * Generate an invitation token with format: inv_<64 hex chars>
+ * Generate an invitation token with format: inv_<UUIDv7>
+ * Uses UUIDv7 for time-ordering and better database indexing
  */
 export function generateInvitationToken(): string {
-  return `inv_${generateSecureToken(32)}`
+  const uuid = crypto.randomUUIDv7()
+  const compactUuid = uuid.replace(/-/g, '')
+  return `inv_${compactUuid}`
 }
