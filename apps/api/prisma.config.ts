@@ -10,10 +10,12 @@
  * @see https://pris.ly/d/prisma7-client-config
  */
 
-import { defineConfig, env } from 'prisma/config'
+import { defineConfig } from 'prisma/config'
 
 export default defineConfig({
   datasource: {
-    url: env('DATABASE_URL'),
+    // Use process.env directly instead of env() helper to avoid throwing during build
+    // The env() helper validates at config load time, but build/typecheck don't need DB access
+    url: process.env.DATABASE_URL ?? 'postgresql://localhost:5432/placeholder',
   },
 })
