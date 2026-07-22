@@ -15,13 +15,15 @@ describe('POST /api/v1/auth/register', () => {
   })
 
   it('creates a new user and returns access token', async () => {
-    const response = await request(app).post('/api/v1/auth/register').send({
-      email: 'newuser@example.com',
-      password: 'SecureP@ss123',
-      name: 'New User',
-    })
+    const response = await request(app)
+      .post('/api/v1/auth/register')
+      .send({
+        email: 'newuser@example.com',
+        password: 'SecureP@ss123',
+        name: 'New User',
+      })
+      .expect(201)
 
-    expect(response.status).toBe(201)
     expect(response.body).toHaveProperty('accessToken')
     expect(response.body).toHaveProperty('user')
     expect(response.body.user).toMatchObject({
@@ -31,26 +33,26 @@ describe('POST /api/v1/auth/register', () => {
   })
 
   it('sets refresh token as httpOnly cookie', async () => {
-    const response = await request(app).post('/api/v1/auth/register').send({
-      email: 'newuser@example.com',
-      password: 'SecureP@ss123',
-      name: 'New User',
-    })
-
-    const cookies = response.headers['set-cookie']
-    expect(cookies).toBeDefined()
-    expect(
-      Array.isArray(cookies) &&
-        cookies.some((cookie: string) => cookie.startsWith('refreshToken=')),
-    ).toBe(true)
+    await request(app)
+      .post('/api/v1/auth/register')
+      .send({
+        email: 'newuser@example.com',
+        password: 'SecureP@ss123',
+        name: 'New User',
+      })
+      .expect(201)
+      .expect('set-cookie', /refreshToken=/)
   })
 
   it('creates personal organization for new user', async () => {
-    const response = await request(app).post('/api/v1/auth/register').send({
-      email: 'newuser@example.com',
-      password: 'SecureP@ss123',
-      name: 'New User',
-    })
+    await request(app)
+      .post('/api/v1/auth/register')
+      .send({
+        email: 'newuser@example.com',
+        password: 'SecureP@ss123',
+        name: 'New User',
+      })
+      .expect(201)
 
     const user = await prisma.user.findUnique({
       where: { email: 'newuser@example.com' },
@@ -67,19 +69,20 @@ describe('POST /api/v1/auth/register', () => {
     expect(user?.memberships).toHaveLength(1)
     expect(user?.memberships[0]?.role).toBe('OWNER')
     expect(user?.memberships[0]?.organization.name).toContain('New User')
-    expect(response.status).toBe(201)
   })
 
   it('returns 400 with generic error if email already exists (prevents enumeration)', async () => {
     await createTestUser({ email: 'existing@example.com' })
 
-    const response = await request(app).post('/api/v1/auth/register').send({
-      email: 'existing@example.com',
-      password: 'P@ssword123',
-      name: 'Another User',
-    })
+    const response = await request(app)
+      .post('/api/v1/auth/register')
+      .send({
+        email: 'existing@example.com',
+        password: 'P@ssword123',
+        name: 'Another User',
+      })
+      .expect(400)
 
-    expect(response.status).toBe(400)
     expect(response.body.error.code).toBe('REGISTRATION_FAILED')
     expect(response.body.error.message).toBe('Unable to complete registration')
   })
@@ -88,82 +91,94 @@ describe('POST /api/v1/auth/register', () => {
     await createTestUser({ email: 'existing@example.com' })
 
     const startTime = Date.now()
-    const response = await request(app).post('/api/v1/auth/register').send({
-      email: 'existing@example.com',
-      password: 'P@ssword123',
-      name: 'Another User',
-    })
+    await request(app)
+      .post('/api/v1/auth/register')
+      .send({
+        email: 'existing@example.com',
+        password: 'P@ssword123',
+        name: 'Another User',
+      })
+      .expect(400)
     const elapsed = Date.now() - startTime
 
-    expect(response.status).toBe(400)
     // Response should take at least 200ms due to timing normalization
     expect(elapsed).toBeGreaterThanOrEqual(200)
   })
 
   it('returns 400 for invalid email', async () => {
-    const response = await request(app).post('/api/v1/auth/register').send({
-      email: 'invalid-email',
-      password: 'P@ssword123',
-      name: 'Test User',
-    })
-
-    expect(response.status).toBe(400)
+    await request(app)
+      .post('/api/v1/auth/register')
+      .send({
+        email: 'invalid-email',
+        password: 'P@ssword123',
+        name: 'Test User',
+      })
+      .expect(400)
   })
 
   it('returns 400 for short password', async () => {
-    const response = await request(app).post('/api/v1/auth/register').send({
-      email: 'test@example.com',
-      password: 'short',
-      name: 'Test User',
-    })
-
-    expect(response.status).toBe(400)
+    await request(app)
+      .post('/api/v1/auth/register')
+      .send({
+        email: 'test@example.com',
+        password: 'short',
+        name: 'Test User',
+      })
+      .expect(400)
   })
 
   it('returns 400 for password without uppercase letter', async () => {
-    const response = await request(app).post('/api/v1/auth/register').send({
-      email: 'test@example.com',
-      password: 'p@ssword123',
-      name: 'Test User',
-    })
+    const response = await request(app)
+      .post('/api/v1/auth/register')
+      .send({
+        email: 'test@example.com',
+        password: 'p@ssword123',
+        name: 'Test User',
+      })
+      .expect(400)
 
-    expect(response.status).toBe(400)
     expect(response.body.error.code).toBe('VALIDATION_ERROR')
     expect(JSON.stringify(response.body.error.details)).toContain('uppercase')
   })
 
   it('returns 400 for password without lowercase letter', async () => {
-    const response = await request(app).post('/api/v1/auth/register').send({
-      email: 'test@example.com',
-      password: 'P@SSWORD123',
-      name: 'Test User',
-    })
+    const response = await request(app)
+      .post('/api/v1/auth/register')
+      .send({
+        email: 'test@example.com',
+        password: 'P@SSWORD123',
+        name: 'Test User',
+      })
+      .expect(400)
 
-    expect(response.status).toBe(400)
     expect(response.body.error.code).toBe('VALIDATION_ERROR')
     expect(JSON.stringify(response.body.error.details)).toContain('lowercase')
   })
 
   it('returns 400 for password without number', async () => {
-    const response = await request(app).post('/api/v1/auth/register').send({
-      email: 'test@example.com',
-      password: 'P@sswordABC',
-      name: 'Test User',
-    })
+    const response = await request(app)
+      .post('/api/v1/auth/register')
+      .send({
+        email: 'test@example.com',
+        password: 'P@sswordABC',
+        name: 'Test User',
+      })
+      .expect(400)
 
-    expect(response.status).toBe(400)
     expect(response.body.error.code).toBe('VALIDATION_ERROR')
     expect(JSON.stringify(response.body.error.details)).toContain('number')
   })
 
   it('returns 400 for password without special character', async () => {
-    const response = await request(app).post('/api/v1/auth/register').send({
-      email: 'test@example.com',
-      password: 'Password123',
-      name: 'Test User',
-    })
+    const response = await request(app)
+      .post('/api/v1/auth/register')
+      .send({
+        email: 'test@example.com',
+        password: 'Password123',
+        name: 'Test User',
+      })
+      .expect(400)
 
-    expect(response.status).toBe(400)
     expect(response.body.error.code).toBe('VALIDATION_ERROR')
     expect(JSON.stringify(response.body.error.details)).toContain('special')
   })
@@ -184,12 +199,14 @@ describe('POST /api/v1/auth/login', () => {
       password: 'correctPassword',
     })
 
-    const response = await request(app).post('/api/v1/auth/login').send({
-      email: 'user@example.com',
-      password: 'correctPassword',
-    })
+    const response = await request(app)
+      .post('/api/v1/auth/login')
+      .send({
+        email: 'user@example.com',
+        password: 'correctPassword',
+      })
+      .expect(200)
 
-    expect(response.status).toBe(200)
     expect(response.body).toHaveProperty('accessToken')
     expect(response.body).toHaveProperty('user')
     expect(response.body.user.email).toBe('user@example.com')
@@ -201,26 +218,25 @@ describe('POST /api/v1/auth/login', () => {
       password: 'correctPassword',
     })
 
-    const response = await request(app).post('/api/v1/auth/login').send({
-      email: 'user@example.com',
-      password: 'correctPassword',
-    })
-
-    const cookies = response.headers['set-cookie']
-    expect(cookies).toBeDefined()
-    expect(
-      Array.isArray(cookies) &&
-        cookies.some((cookie: string) => cookie.startsWith('refreshToken=')),
-    ).toBe(true)
+    await request(app)
+      .post('/api/v1/auth/login')
+      .send({
+        email: 'user@example.com',
+        password: 'correctPassword',
+      })
+      .expect(200)
+      .expect('set-cookie', /refreshToken=/)
   })
 
   it('returns 401 for non-existent user', async () => {
-    const response = await request(app).post('/api/v1/auth/login').send({
-      email: 'nonexistent@example.com',
-      password: 'P@ssword123',
-    })
+    const response = await request(app)
+      .post('/api/v1/auth/login')
+      .send({
+        email: 'nonexistent@example.com',
+        password: 'P@ssword123',
+      })
+      .expect(401)
 
-    expect(response.status).toBe(401)
     expect(response.body.error.code).toBe('INVALID_CREDENTIALS')
   })
 
@@ -230,12 +246,14 @@ describe('POST /api/v1/auth/login', () => {
       password: 'correctPassword',
     })
 
-    const response = await request(app).post('/api/v1/auth/login').send({
-      email: 'user@example.com',
-      password: 'wrongPassword',
-    })
+    const response = await request(app)
+      .post('/api/v1/auth/login')
+      .send({
+        email: 'user@example.com',
+        password: 'wrongPassword',
+      })
+      .expect(401)
 
-    expect(response.status).toBe(401)
     expect(response.body.error.code).toBe('INVALID_CREDENTIALS')
   })
 })
@@ -264,16 +282,17 @@ describe('POST /api/v1/auth/refresh', () => {
     const cookies = loginResponse.headers['set-cookie'] as unknown as string[]
 
     // Use refresh token to get new access token
-    const refreshResponse = await request(app).post('/api/v1/auth/refresh').set('Cookie', cookies)
+    const refreshResponse = await request(app)
+      .post('/api/v1/auth/refresh')
+      .set('Cookie', cookies)
+      .expect(200)
 
-    expect(refreshResponse.status).toBe(200)
     expect(refreshResponse.body).toHaveProperty('accessToken')
   })
 
   it('returns 401 when refresh token is missing', async () => {
-    const response = await request(app).post('/api/v1/auth/refresh')
+    const response = await request(app).post('/api/v1/auth/refresh').expect(401)
 
-    expect(response.status).toBe(401)
     expect(response.body.error.code).toBe('REFRESH_TOKEN_MISSING')
   })
 
@@ -281,8 +300,8 @@ describe('POST /api/v1/auth/refresh', () => {
     const response = await request(app)
       .post('/api/v1/auth/refresh')
       .set('Cookie', ['refreshToken=invalid-token'])
+      .expect(401)
 
-    expect(response.status).toBe(401)
     expect(response.body.error.code).toBe('INVALID_REFRESH_TOKEN')
   })
 
@@ -311,9 +330,11 @@ describe('POST /api/v1/auth/refresh', () => {
     })
 
     // Try to refresh with old token
-    const refreshResponse = await request(app).post('/api/v1/auth/refresh').set('Cookie', cookies)
+    const refreshResponse = await request(app)
+      .post('/api/v1/auth/refresh')
+      .set('Cookie', cookies)
+      .expect(401)
 
-    expect(refreshResponse.status).toBe(401)
     expect(refreshResponse.body.error.code).toBe('INVALID_REFRESH_TOKEN')
   })
 })
@@ -346,9 +367,7 @@ describe('POST /api/v1/auth/logout', () => {
     })
 
     // Logout
-    const logoutResponse = await request(app).post('/api/v1/auth/logout').set('Cookie', cookies)
-
-    expect(logoutResponse.status).toBe(204)
+    await request(app).post('/api/v1/auth/logout').set('Cookie', cookies).expect(204)
 
     const userAfter = await prisma.user.findUnique({
       where: { email: 'user@example.com' },
@@ -381,17 +400,14 @@ describe('POST /api/v1/auth/logout', () => {
   })
 
   it('returns 204 even when no refresh token provided', async () => {
-    const response = await request(app).post('/api/v1/auth/logout')
-
-    expect(response.status).toBe(204)
+    await request(app).post('/api/v1/auth/logout').expect(204)
   })
 
   it('returns 204 even when refresh token is invalid', async () => {
-    const response = await request(app)
+    await request(app)
       .post('/api/v1/auth/logout')
       .set('Cookie', ['refreshToken=invalid-token'])
-
-    expect(response.status).toBe(204)
+      .expect(204)
   })
 })
 
@@ -422,8 +438,8 @@ describe('GET /api/v1/auth/me', () => {
     const meResponse = await request(app)
       .get('/api/v1/auth/me')
       .set('Authorization', `Bearer ${accessToken}`)
+      .expect(200)
 
-    expect(meResponse.status).toBe(200)
     expect(meResponse.body).toMatchObject({
       email: 'user@example.com',
       name: expect.any(String) as string,
@@ -435,9 +451,8 @@ describe('GET /api/v1/auth/me', () => {
   })
 
   it('returns 401 when not authenticated', async () => {
-    const response = await request(app).get('/api/v1/auth/me')
+    const response = await request(app).get('/api/v1/auth/me').expect(401)
 
-    expect(response.status).toBe(401)
     expect(response.body.error.code).toBe('UNAUTHENTICATED')
   })
 
@@ -445,8 +460,8 @@ describe('GET /api/v1/auth/me', () => {
     const response = await request(app)
       .get('/api/v1/auth/me')
       .set('Authorization', 'Bearer invalid-token')
+      .expect(401)
 
-    expect(response.status).toBe(401)
     expect(response.body.error.code).toBe('UNAUTHENTICATED')
   })
 })
@@ -509,15 +524,14 @@ describe('PATCH /api/v1/auth/password', () => {
     })
 
     // Change password
-    const changeResponse = await request(app)
+    await request(app)
       .patch('/api/v1/auth/password')
       .set('Authorization', `Bearer ${accessToken}`)
       .send({
         currentPassword: 'OldP@ssword123',
         newPassword: 'NewP@ssword456',
       })
-
-    expect(changeResponse.status).toBe(204)
+      .expect(204)
 
     // Verify token version was incremented
     const userAfter = await prisma.user.findUnique({
@@ -528,9 +542,11 @@ describe('PATCH /api/v1/auth/password', () => {
     expect(userAfter?.tokenVersion).toBe((userBefore?.tokenVersion ?? 0) + 1)
 
     // Old refresh token should now be invalid
-    const refreshResponse = await request(app).post('/api/v1/auth/refresh').set('Cookie', cookies)
+    const refreshResponse = await request(app)
+      .post('/api/v1/auth/refresh')
+      .set('Cookie', cookies)
+      .expect(401)
 
-    expect(refreshResponse.status).toBe(401)
     expect(refreshResponse.body.error.code).toBe('INVALID_REFRESH_TOKEN')
   })
 
@@ -558,12 +574,14 @@ describe('PATCH /api/v1/auth/password', () => {
       })
 
     // Login with new password should work
-    const newLoginResponse = await request(app).post('/api/v1/auth/login').send({
-      email: 'user@example.com',
-      password: 'NewP@ssword456',
-    })
+    const newLoginResponse = await request(app)
+      .post('/api/v1/auth/login')
+      .send({
+        email: 'user@example.com',
+        password: 'NewP@ssword456',
+      })
+      .expect(200)
 
-    expect(newLoginResponse.status).toBe(200)
     expect(newLoginResponse.body).toHaveProperty('accessToken')
     expect(newLoginResponse.body.user.id).toBe(user.id)
   })
@@ -591,12 +609,14 @@ describe('PATCH /api/v1/auth/password', () => {
       })
 
     // Login with old password should fail
-    const oldLoginResponse = await request(app).post('/api/v1/auth/login').send({
-      email: 'user@example.com',
-      password: 'OldP@ssword123',
-    })
+    const oldLoginResponse = await request(app)
+      .post('/api/v1/auth/login')
+      .send({
+        email: 'user@example.com',
+        password: 'OldP@ssword123',
+      })
+      .expect(401)
 
-    expect(oldLoginResponse.status).toBe(401)
     expect(oldLoginResponse.body.error.code).toBe('INVALID_CREDENTIALS')
   })
 
@@ -620,8 +640,8 @@ describe('PATCH /api/v1/auth/password', () => {
         currentPassword: 'WrongP@ssword123',
         newPassword: 'NewP@ssword456',
       })
+      .expect(401)
 
-    expect(response.status).toBe(401)
     expect(response.body.error.code).toBe('INVALID_PASSWORD')
     expect(response.body.error.message).toContain('Current password is incorrect')
   })
@@ -647,18 +667,19 @@ describe('PATCH /api/v1/auth/password', () => {
         currentPassword: 'OldP@ssword123',
         newPassword: 'weakpassword',
       })
+      .expect(400)
 
-    expect(response.status).toBe(400)
     expect(response.body.error.code).toBe('VALIDATION_ERROR')
   })
 
   it('returns 401 when not authenticated', async () => {
-    const response = await request(app).patch('/api/v1/auth/password').send({
-      currentPassword: 'OldP@ssword123',
-      newPassword: 'NewP@ssword456',
-    })
-
-    expect(response.status).toBe(401)
+    await request(app)
+      .patch('/api/v1/auth/password')
+      .send({
+        currentPassword: 'OldP@ssword123',
+        newPassword: 'NewP@ssword456',
+      })
+      .expect(401)
   })
 
   it('invalidates multiple active sessions', async () => {
@@ -683,23 +704,19 @@ describe('PATCH /api/v1/auth/password', () => {
     const cookies2 = session2.headers['set-cookie'] as unknown as string[]
 
     // Change password using session 1
-    const changeResponse = await request(app)
+    await request(app)
       .patch('/api/v1/auth/password')
       .set('Authorization', `Bearer ${accessToken1}`)
       .send({
         currentPassword: 'OldP@ssword123',
         newPassword: 'NewP@ssword456',
       })
-
-    expect(changeResponse.status).toBe(204)
+      .expect(204)
 
     // Both refresh tokens should now be invalid
-    const refresh1 = await request(app).post('/api/v1/auth/refresh').set('Cookie', cookies1)
+    await request(app).post('/api/v1/auth/refresh').set('Cookie', cookies1).expect(401)
 
-    const refresh2 = await request(app).post('/api/v1/auth/refresh').set('Cookie', cookies2)
-
-    expect(refresh1.status).toBe(401)
-    expect(refresh2.status).toBe(401)
+    await request(app).post('/api/v1/auth/refresh').set('Cookie', cookies2).expect(401)
   })
 
   it('enforces strong password policy', async () => {
@@ -716,54 +733,54 @@ describe('PATCH /api/v1/auth/password', () => {
     const accessToken = loginResponse.body.accessToken as string
 
     // Test missing uppercase
-    const noUppercase = await request(app)
+    await request(app)
       .patch('/api/v1/auth/password')
       .set('Authorization', `Bearer ${accessToken}`)
       .send({
         currentPassword: 'OldP@ssword123',
         newPassword: 'newp@ssword123',
       })
-    expect(noUppercase.status).toBe(400)
+      .expect(400)
 
     // Test missing lowercase
-    const noLowercase = await request(app)
+    await request(app)
       .patch('/api/v1/auth/password')
       .set('Authorization', `Bearer ${accessToken}`)
       .send({
         currentPassword: 'OldP@ssword123',
         newPassword: 'NEWP@SSWORD123',
       })
-    expect(noLowercase.status).toBe(400)
+      .expect(400)
 
     // Test missing number
-    const noNumber = await request(app)
+    await request(app)
       .patch('/api/v1/auth/password')
       .set('Authorization', `Bearer ${accessToken}`)
       .send({
         currentPassword: 'OldP@ssword123',
         newPassword: 'NewP@ssword',
       })
-    expect(noNumber.status).toBe(400)
+      .expect(400)
 
     // Test missing special character
-    const noSpecial = await request(app)
+    await request(app)
       .patch('/api/v1/auth/password')
       .set('Authorization', `Bearer ${accessToken}`)
       .send({
         currentPassword: 'OldP@ssword123',
         newPassword: 'NewPassword123',
       })
-    expect(noSpecial.status).toBe(400)
+      .expect(400)
 
     // Test too short
-    const tooShort = await request(app)
+    await request(app)
       .patch('/api/v1/auth/password')
       .set('Authorization', `Bearer ${accessToken}`)
       .send({
         currentPassword: 'OldP@ssword123',
         newPassword: 'Np@ss1',
       })
-    expect(tooShort.status).toBe(400)
+      .expect(400)
   })
 
   it('clears refresh token cookie on success', async () => {
@@ -786,8 +803,7 @@ describe('PATCH /api/v1/auth/password', () => {
         currentPassword: 'OldP@ssword123',
         newPassword: 'NewP@ssword456',
       })
-
-    expect(response.status).toBe(204)
+      .expect(204)
 
     // Check that cookie is cleared
     const cookies = response.headers['set-cookie'] as unknown as string[]
@@ -815,8 +831,8 @@ describe('PATCH /api/v1/auth/password', () => {
     const beforeChange = await request(app)
       .get('/api/v1/auth/me')
       .set('Authorization', `Bearer ${accessToken}`)
+      .expect(200)
 
-    expect(beforeChange.status).toBe(200)
     expect(beforeChange.body.email).toBe('user@example.com')
 
     // Change password
@@ -832,8 +848,8 @@ describe('PATCH /api/v1/auth/password', () => {
     const afterChange = await request(app)
       .get('/api/v1/auth/me')
       .set('Authorization', `Bearer ${accessToken}`)
+      .expect(401)
 
-    expect(afterChange.status).toBe(401)
     expect(afterChange.body.error.code).toBe('UNAUTHENTICATED')
   })
 
@@ -864,8 +880,8 @@ describe('PATCH /api/v1/auth/password', () => {
         currentPassword: 'SecureP@ss123',
         newPassword: 'SecureP@ss123', // Same password
       })
+      .expect(400)
 
-    expect(response.status).toBe(400)
     expect(response.body.error.code).toBe('SAME_PASSWORD')
     expect(response.body.error.message).toContain('must be different')
 

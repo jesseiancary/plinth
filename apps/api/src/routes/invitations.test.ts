@@ -36,8 +36,7 @@ describe('POST /api/v1/orgs/:slug/invitations', () => {
         email: 'newuser@example.com',
         role: 'MEMBER',
       })
-
-    expect(response.status).toBe(201)
+      .expect(201)
     expect(response.body.invitation).toMatchObject({
       email: 'newuser@example.com',
       role: 'MEMBER',
@@ -64,8 +63,7 @@ describe('POST /api/v1/orgs/:slug/invitations', () => {
         email: 'existing@example.com',
         role: 'MEMBER',
       })
-
-    expect(response.status).toBe(409)
+      .expect(409)
     expect(response.body.error.code).toBe('USER_ALREADY_MEMBER')
   })
 
@@ -90,8 +88,7 @@ describe('POST /api/v1/orgs/:slug/invitations', () => {
         email: 'invited@example.com',
         role: 'MEMBER',
       })
-
-    expect(response.status).toBe(409)
+      .expect(409)
     expect(response.body.error.code).toBe('INVITATION_ALREADY_EXISTS')
   })
 
@@ -109,8 +106,7 @@ describe('POST /api/v1/orgs/:slug/invitations', () => {
         email: 'newuser@example.com',
         role: 'MEMBER',
       })
-
-    expect(response.status).toBe(403)
+      .expect(403)
     expect(response.body.error.code).toBe('FORBIDDEN')
   })
 })
@@ -148,8 +144,7 @@ describe('GET /api/v1/orgs/:slug/invitations', () => {
     const response = await request(app)
       .get('/api/v1/orgs/test-org/invitations')
       .set('Authorization', `Bearer ${token}`)
-
-    expect(response.status).toBe(200)
+      .expect(200)
     expect(response.body.data).toHaveLength(2)
     expect(response.body.nextCursor).toBeNull()
   })
@@ -178,8 +173,7 @@ describe('GET /api/v1/orgs/:slug/invitations', () => {
     const response = await request(app)
       .get('/api/v1/orgs/test-org/invitations?status=PENDING')
       .set('Authorization', `Bearer ${token}`)
-
-    expect(response.status).toBe(200)
+      .expect(200)
     expect(response.body.data).toHaveLength(1)
     expect(response.body.data[0].status).toBe('PENDING')
   })
@@ -194,8 +188,7 @@ describe('GET /api/v1/orgs/:slug/invitations', () => {
     const response = await request(app)
       .get('/api/v1/orgs/test-org/invitations')
       .set('Authorization', `Bearer ${token}`)
-
-    expect(response.status).toBe(403)
+      .expect(403)
     expect(response.body.error.code).toBe('FORBIDDEN')
   })
 })
@@ -223,11 +216,10 @@ describe('DELETE /api/v1/orgs/:slug/invitations/:invitationId', () => {
 
     const token = await generateTestAccessToken(admin.id, admin.email)
 
-    const response = await request(app)
+    await request(app)
       .delete(`/api/v1/orgs/test-org/invitations/${invitation.id}`)
       .set('Authorization', `Bearer ${token}`)
-
-    expect(response.status).toBe(204)
+      .expect(204)
 
     // Verify status updated
     const updated = await prisma.invitation.findUnique({
@@ -254,8 +246,7 @@ describe('DELETE /api/v1/orgs/:slug/invitations/:invitationId', () => {
     const response = await request(app)
       .delete(`/api/v1/orgs/test-org/invitations/${invitation.id}`)
       .set('Authorization', `Bearer ${token}`)
-
-    expect(response.status).toBe(410)
+      .expect(410)
     expect(response.body.error.code).toBe('INVITATION_ALREADY_ACCEPTED')
   })
 
@@ -269,8 +260,7 @@ describe('DELETE /api/v1/orgs/:slug/invitations/:invitationId', () => {
     const response = await request(app)
       .delete('/api/v1/orgs/test-org/invitations/nonexistent-id')
       .set('Authorization', `Bearer ${token}`)
-
-    expect(response.status).toBe(404)
+      .expect(404)
     expect(response.body.error.code).toBe('INVITATION_NOT_FOUND')
   })
 })
@@ -298,9 +288,7 @@ describe('GET /api/v1/invitations/validate/:token', () => {
     })
 
     // No authentication required
-    const response = await request(app).get(`/api/v1/invitations/validate/${token}`)
-
-    expect(response.status).toBe(200)
+    const response = await request(app).get(`/api/v1/invitations/validate/${token}`).expect(200)
     expect(response.body).toMatchObject({
       email: 'invited@example.com',
       role: 'MEMBER',
@@ -313,9 +301,9 @@ describe('GET /api/v1/invitations/validate/:token', () => {
   })
 
   it('returns 404 for invalid token', async () => {
-    const response = await request(app).get('/api/v1/invitations/validate/invalid-token')
-
-    expect(response.status).toBe(404)
+    const response = await request(app)
+      .get('/api/v1/invitations/validate/invalid-token')
+      .expect(404)
     expect(response.body.error.code).toBe('INVALID_TOKEN')
   })
 
@@ -332,9 +320,7 @@ describe('GET /api/v1/invitations/validate/:token', () => {
       expiresAt: new Date(Date.now() - 24 * 60 * 60 * 1000), // 24 hours ago
     })
 
-    const response = await request(app).get(`/api/v1/invitations/validate/${token}`)
-
-    expect(response.status).toBe(410)
+    const response = await request(app).get(`/api/v1/invitations/validate/${token}`).expect(410)
     expect(response.body.error.code).toBe('INVITATION_EXPIRED')
   })
 
@@ -350,9 +336,7 @@ describe('GET /api/v1/invitations/validate/:token', () => {
       status: 'REVOKED',
     })
 
-    const response = await request(app).get(`/api/v1/invitations/validate/${token}`)
-
-    expect(response.status).toBe(410)
+    const response = await request(app).get(`/api/v1/invitations/validate/${token}`).expect(410)
     expect(response.body.error.code).toBe('INVITATION_REVOKED')
   })
 })
@@ -389,8 +373,7 @@ describe('POST /api/v1/invitations/accept', () => {
       .send({
         token: inviteToken,
       })
-
-    expect(response.status).toBe(201)
+      .expect(201)
     expect(response.body.membership.role).toBe('MEMBER')
     expect(response.body.organization.slug).toBe('test-org')
 
@@ -440,8 +423,7 @@ describe('POST /api/v1/invitations/accept', () => {
       .send({
         token: inviteToken,
       })
-
-    expect(response.status).toBe(409)
+      .expect(409)
     expect(response.body.error.code).toBe('USER_ALREADY_MEMBER')
   })
 
@@ -468,17 +450,17 @@ describe('POST /api/v1/invitations/accept', () => {
       .send({
         token: inviteToken,
       })
-
-    expect(response.status).toBe(410)
+      .expect(410)
     expect(response.body.error.code).toBe('INVITATION_EXPIRED')
   })
 
   it('returns 401 if not authenticated', async () => {
-    const response = await request(app).post('/api/v1/invitations/accept').send({
-      token: 'some-token',
-    })
-
-    expect(response.status).toBe(401)
+    const response = await request(app)
+      .post('/api/v1/invitations/accept')
+      .send({
+        token: 'some-token',
+      })
+      .expect(401)
     expect(response.body.error.code).toBe('UNAUTHENTICATED')
   })
 })

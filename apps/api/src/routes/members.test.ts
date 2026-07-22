@@ -35,8 +35,7 @@ describe('GET /api/v1/orgs/:slug/members', () => {
     const response = await request(app)
       .get('/api/v1/orgs/test-org/members')
       .set('Authorization', `Bearer ${token}`)
-
-    expect(response.status).toBe(200)
+      .expect(200)
     expect(response.body.data).toHaveLength(3)
     expect(response.body.nextCursor).toBeNull()
   })
@@ -57,8 +56,7 @@ describe('GET /api/v1/orgs/:slug/members', () => {
     const response = await request(app)
       .get('/api/v1/orgs/test-org/members?limit=10')
       .set('Authorization', `Bearer ${token}`)
-
-    expect(response.status).toBe(200)
+      .expect(200)
     expect(response.body.data).toHaveLength(10)
     expect(response.body.nextCursor).toBeDefined()
     expect(response.body.nextCursor).not.toBeNull()
@@ -72,8 +70,7 @@ describe('GET /api/v1/orgs/:slug/members', () => {
     const response = await request(app)
       .get('/api/v1/orgs/private-org/members')
       .set('Authorization', `Bearer ${token}`)
-
-    expect(response.status).toBe(404) // 404 vs 403 decision
+      .expect(404) // 404 vs 403 decision
     expect(response.body.error.code).toBe('ORG_NOT_FOUND')
   })
 })
@@ -103,8 +100,7 @@ describe('PATCH /api/v1/orgs/:slug/members/:memberId', () => {
       .send({
         role: 'ADMIN',
       })
-
-    expect(response.status).toBe(200)
+      .expect(200)
     expect(response.body.role).toBe('ADMIN')
   })
 
@@ -124,8 +120,7 @@ describe('PATCH /api/v1/orgs/:slug/members/:memberId', () => {
       .send({
         role: 'MEMBER',
       })
-
-    expect(response.status).toBe(403)
+      .expect(403)
     expect(response.body.error.code).toBe('CANNOT_DEMOTE_OWNER')
   })
 
@@ -143,8 +138,7 @@ describe('PATCH /api/v1/orgs/:slug/members/:memberId', () => {
       .send({
         role: 'ADMIN',
       })
-
-    expect(response.status).toBe(409)
+      .expect(409)
     expect(response.body.error.code).toBe('LAST_OWNER_PROTECTION')
   })
 
@@ -164,8 +158,7 @@ describe('PATCH /api/v1/orgs/:slug/members/:memberId', () => {
       .send({
         role: 'ADMIN',
       })
-
-    expect(response.status).toBe(200)
+      .expect(200)
     expect(response.body.role).toBe('ADMIN')
   })
 
@@ -182,8 +175,7 @@ describe('PATCH /api/v1/orgs/:slug/members/:memberId', () => {
       .send({
         role: 'ADMIN',
       })
-
-    expect(response.status).toBe(404)
+      .expect(404)
     expect(response.body.error.code).toBe('MEMBER_NOT_FOUND')
   })
 })
@@ -207,11 +199,10 @@ describe('DELETE /api/v1/orgs/:slug/members/:memberId', () => {
 
     const token = await generateTestAccessToken(admin.id, admin.email)
 
-    const response = await request(app)
+    await request(app)
       .delete(`/api/v1/orgs/test-org/members/${membershipToRemove.id}`)
       .set('Authorization', `Bearer ${token}`)
-
-    expect(response.status).toBe(204)
+      .expect(204)
 
     // Verify deleted
     const deleted = await prisma.membership.findUnique({
@@ -231,11 +222,10 @@ describe('DELETE /api/v1/orgs/:slug/members/:memberId', () => {
 
     const token = await generateTestAccessToken(member.id, member.email)
 
-    const response = await request(app)
+    await request(app)
       .delete(`/api/v1/orgs/test-org/members/${membershipToRemove.id}`)
       .set('Authorization', `Bearer ${token}`)
-
-    expect(response.status).toBe(204)
+      .expect(204)
   })
 
   it('returns 403 when ADMIN tries to remove OWNER', async () => {
@@ -251,8 +241,7 @@ describe('DELETE /api/v1/orgs/:slug/members/:memberId', () => {
     const response = await request(app)
       .delete(`/api/v1/orgs/test-org/members/${ownerMembership.id}`)
       .set('Authorization', `Bearer ${token}`)
-
-    expect(response.status).toBe(403)
+      .expect(403)
     expect(response.body.error.code).toBe('CANNOT_REMOVE_OWNER')
   })
 
@@ -266,8 +255,7 @@ describe('DELETE /api/v1/orgs/:slug/members/:memberId', () => {
     const response = await request(app)
       .delete(`/api/v1/orgs/test-org/members/${ownerMembership.id}`)
       .set('Authorization', `Bearer ${token}`)
-
-    expect(response.status).toBe(409)
+      .expect(409)
     expect(response.body.error.code).toBe('LAST_OWNER_PROTECTION')
   })
 
@@ -284,8 +272,7 @@ describe('DELETE /api/v1/orgs/:slug/members/:memberId', () => {
     const response = await request(app)
       .delete(`/api/v1/orgs/test-org/members/${member2Membership.id}`)
       .set('Authorization', `Bearer ${token}`)
-
-    expect(response.status).toBe(403)
+      .expect(403)
     expect(response.body.error.code).toBe('FORBIDDEN')
   })
 })
@@ -315,8 +302,7 @@ describe('POST /api/v1/orgs/:slug/transfer-ownership', () => {
       .send({
         newOwnerId: newOwner.id,
       })
-
-    expect(response.status).toBe(200)
+      .expect(200)
     expect(response.body.newOwner.role).toBe('OWNER')
     expect(response.body.newOwner.userId).toBe(newOwner.id)
     expect(response.body.formerOwner.role).toBe('ADMIN')
@@ -336,8 +322,7 @@ describe('POST /api/v1/orgs/:slug/transfer-ownership', () => {
       .send({
         newOwnerId: owner.id,
       })
-
-    expect(response.status).toBe(400)
+      .expect(400)
     expect(response.body.error.code).toBe('CANNOT_TRANSFER_TO_SELF')
   })
 
@@ -356,8 +341,7 @@ describe('POST /api/v1/orgs/:slug/transfer-ownership', () => {
       .send({
         newOwnerId: outsider.id,
       })
-
-    expect(response.status).toBe(404)
+      .expect(404)
     expect(response.body.error.code).toBe('NEW_OWNER_NOT_MEMBER')
   })
 
@@ -377,8 +361,7 @@ describe('POST /api/v1/orgs/:slug/transfer-ownership', () => {
       .send({
         newOwnerId: member.id,
       })
-
-    expect(response.status).toBe(403)
+      .expect(403)
     expect(response.body.error.code).toBe('FORBIDDEN')
   })
 })

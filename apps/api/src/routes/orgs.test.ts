@@ -31,8 +31,8 @@ describe('POST /api/v1/orgs', () => {
         name: 'New Organization',
         slug: 'new-org',
       })
+      .expect(201)
 
-    expect(response.status).toBe(201)
     expect(response.body).toMatchObject({
       name: 'New Organization',
       slug: 'new-org',
@@ -54,12 +54,14 @@ describe('POST /api/v1/orgs', () => {
   })
 
   it('returns 401 if not authenticated', async () => {
-    const response = await request(app).post('/api/v1/orgs').send({
-      name: 'New Organization',
-      slug: 'new-org',
-    })
+    const response = await request(app)
+      .post('/api/v1/orgs')
+      .send({
+        name: 'New Organization',
+        slug: 'new-org',
+      })
+      .expect(401)
 
-    expect(response.status).toBe(401)
     expect(response.body.error.code).toBe('UNAUTHENTICATED')
   })
 
@@ -74,8 +76,8 @@ describe('POST /api/v1/orgs', () => {
         name: 'New Organization',
         slug: 'Invalid_Slug!',
       })
+      .expect(400)
 
-    expect(response.status).toBe(400)
     expect(response.body.error.code).toBe('VALIDATION_ERROR')
   })
 
@@ -92,8 +94,8 @@ describe('POST /api/v1/orgs', () => {
         name: 'Another Organization',
         slug: 'existing-org',
       })
+      .expect(409)
 
-    expect(response.status).toBe(409)
     expect(response.body.error.code).toBe('ORG_SLUG_EXISTS')
   })
 })
@@ -117,8 +119,8 @@ describe('GET /api/v1/orgs/:slug', () => {
     const response = await request(app)
       .get('/api/v1/orgs/test-org')
       .set('Authorization', `Bearer ${token}`)
+      .expect(200)
 
-    expect(response.status).toBe(200)
     expect(response.body).toMatchObject({
       name: 'Test Org',
       slug: 'test-org',
@@ -132,8 +134,8 @@ describe('GET /api/v1/orgs/:slug', () => {
     const response = await request(app)
       .get('/api/v1/orgs/nonexistent')
       .set('Authorization', `Bearer ${token}`)
+      .expect(404)
 
-    expect(response.status).toBe(404)
     expect(response.body.error.code).toBe('ORG_NOT_FOUND')
   })
 
@@ -145,17 +147,16 @@ describe('GET /api/v1/orgs/:slug', () => {
     const response = await request(app)
       .get('/api/v1/orgs/private-org')
       .set('Authorization', `Bearer ${token}`)
+      .expect(404)
 
-    expect(response.status).toBe(404)
     expect(response.body.error.code).toBe('ORG_NOT_FOUND')
   })
 
   it('returns 401 if not authenticated', async () => {
     await createTestOrg({ slug: 'test-org' })
 
-    const response = await request(app).get('/api/v1/orgs/test-org')
+    const response = await request(app).get('/api/v1/orgs/test-org').expect(401)
 
-    expect(response.status).toBe(401)
     expect(response.body.error.code).toBe('UNAUTHENTICATED')
   })
 })
@@ -182,8 +183,8 @@ describe('PATCH /api/v1/orgs/:slug', () => {
       .send({
         name: 'Updated Name',
       })
+      .expect(200)
 
-    expect(response.status).toBe(200)
     expect(response.body.name).toBe('Updated Name')
     expect(response.body.slug).toBe('test-org')
   })
@@ -201,8 +202,8 @@ describe('PATCH /api/v1/orgs/:slug', () => {
       .send({
         slug: 'new-slug',
       })
+      .expect(200)
 
-    expect(response.status).toBe(200)
     expect(response.body.slug).toBe('new-slug')
   })
 
@@ -221,8 +222,8 @@ describe('PATCH /api/v1/orgs/:slug', () => {
       .send({
         slug: 'existing-slug',
       })
+      .expect(409)
 
-    expect(response.status).toBe(409)
     expect(response.body.error.code).toBe('ORG_SLUG_EXISTS')
   })
 
@@ -239,8 +240,8 @@ describe('PATCH /api/v1/orgs/:slug', () => {
       .send({
         name: 'Updated Name',
       })
+      .expect(403)
 
-    expect(response.status).toBe(403)
     expect(response.body.error.code).toBe('FORBIDDEN')
   })
 })
@@ -261,11 +262,10 @@ describe('DELETE /api/v1/orgs/:slug', () => {
 
     const token = await generateTestAccessToken(user.id, user.email)
 
-    const response = await request(app)
+    await request(app)
       .delete('/api/v1/orgs/delete-me')
       .set('Authorization', `Bearer ${token}`)
-
-    expect(response.status).toBe(204)
+      .expect(204)
 
     // Verify deleted
     const deleted = await prisma.organization.findUnique({
@@ -282,7 +282,10 @@ describe('DELETE /api/v1/orgs/:slug', () => {
 
     const token = await generateTestAccessToken(user.id, user.email)
 
-    await request(app).delete('/api/v1/orgs/delete-me').set('Authorization', `Bearer ${token}`)
+    await request(app)
+      .delete('/api/v1/orgs/delete-me')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(204)
 
     // Verify membership deleted
     const deletedMembership = await prisma.membership.findUnique({
@@ -302,8 +305,8 @@ describe('DELETE /api/v1/orgs/:slug', () => {
     const response = await request(app)
       .delete('/api/v1/orgs/test-org')
       .set('Authorization', `Bearer ${token}`)
+      .expect(403)
 
-    expect(response.status).toBe(403)
     expect(response.body.error.code).toBe('FORBIDDEN')
   })
 
@@ -314,8 +317,8 @@ describe('DELETE /api/v1/orgs/:slug', () => {
     const response = await request(app)
       .delete('/api/v1/orgs/nonexistent')
       .set('Authorization', `Bearer ${token}`)
+      .expect(404)
 
-    expect(response.status).toBe(404)
     expect(response.body.error.code).toBe('ORG_NOT_FOUND')
   })
 })
