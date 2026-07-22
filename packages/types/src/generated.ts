@@ -1144,9 +1144,8 @@ export interface operations {
           [name: string]: unknown
         }
         content: {
-          'application/json': {
-            data: components['schemas']['Membership'][]
-            nextCursor: string | null
+          'application/json': components['schemas']['PaginatedResponse'] & {
+            data?: components['schemas']['Membership'][]
           }
         }
       }
@@ -1408,9 +1407,8 @@ export interface operations {
           [name: string]: unknown
         }
         content: {
-          'application/json': {
-            data: components['schemas']['Invitation'][]
-            nextCursor: string | null
+          'application/json': components['schemas']['PaginatedResponse'] & {
+            data?: components['schemas']['Invitation'][]
           }
         }
       }
@@ -1747,9 +1745,8 @@ export interface operations {
           [name: string]: unknown
         }
         content: {
-          'application/json': {
-            data: components['schemas']['ApiKey'][]
-            nextCursor: string | null
+          'application/json': components['schemas']['PaginatedResponse'] & {
+            data?: components['schemas']['ApiKey'][]
           }
         }
       }
