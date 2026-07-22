@@ -13,6 +13,12 @@ package-lock.json
 
 # Generated files
 *.tsbuildinfo
+**/generated/**
+packages/types/src/generated.ts
+apps/api/prisma/generated/**
+
+# Logs
+apps/api/logs/**
 
 # Markdown files in docs (preserve formatting)
 CHANGELOG.md

@@ -78,9 +78,12 @@ services:
       - ./apps/api:/app/apps/api
       - ./packages:/app/packages
       # Mount root configuration files (required by workspace tools)
-      - ./tsconfig.json:/app/tsconfig.json:ro
+      - ./tsconfig.base.json:/app/tsconfig.base.json:ro
+      - ./tsconfig.node.json:/app/tsconfig.node.json:ro
+      - ./tsconfig.bundler.json:/app/tsconfig.bundler.json:ro
       - ./eslint.config.js:/app/eslint.config.js:ro
       - ./.prettierrc.json:/app/.prettierrc.json:ro
+      - ./.prettierignore:/app/.prettierignore:ro
       # Use named volume for node_modules (avoid permission issues)
       - api_node_modules:/app/node_modules
       - api_app_node_modules:/app/apps/api/node_modules
@@ -120,9 +123,12 @@ services:
       - ./apps/web:/app/apps/web
       - ./packages:/app/packages
       # Mount root configuration files (required by workspace tools)
-      - ./tsconfig.json:/app/tsconfig.json:ro
+      - ./tsconfig.base.json:/app/tsconfig.base.json:ro
+      - ./tsconfig.node.json:/app/tsconfig.node.json:ro
+      - ./tsconfig.bundler.json:/app/tsconfig.bundler.json:ro
       - ./eslint.config.js:/app/eslint.config.js:ro
       - ./.prettierrc.json:/app/.prettierrc.json:ro
+      - ./.prettierignore:/app/.prettierignore:ro
       # Use named volume for node_modules (avoid permission issues)
       - web_node_modules:/app/node_modules
       - web_app_node_modules:/app/apps/web/node_modules

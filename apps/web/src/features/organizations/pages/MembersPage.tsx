@@ -27,7 +27,7 @@ export function MembersPage() {
     isLoading,
     error,
   } = useQuery<MembersResponse>({
-    queryKey: queryKeys.members.list(orgSlug!),
+    queryKey: queryKeys.members.list(orgSlug ?? ''),
     queryFn: () => api.get(`/api/v1/orgs/${orgSlug}/members`),
     enabled: Boolean(orgSlug),
   })

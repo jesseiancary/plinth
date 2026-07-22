@@ -10,6 +10,7 @@ import helmet from 'helmet'
 import morgan from 'morgan'
 
 import { TIME } from './lib/constants.js'
+import { env } from './lib/env.js'
 import { corsConfig, getHelmetConfig, rateLimitConfig } from './lib/security.js'
 import { authenticateJWT } from './middleware/auth.js'
 import { csrfProtection } from './middleware/csrf.js'
@@ -37,7 +38,7 @@ app.set('trust proxy', 1)
 app.use(helmet(getHelmetConfig()))
 
 const allowedOrigins: string[] =
-  process.env.NODE_ENV === 'production' ? corsConfig.production : corsConfig.development
+  env.NODE_ENV === 'production' ? corsConfig.production : corsConfig.development
 
 app.use(
   cors({
@@ -69,7 +70,7 @@ app.use(express.urlencoded({ extended: true }))
 app.use(cookieParser())
 
 // Logging
-if (process.env.NODE_ENV !== 'test') {
+if (env.NODE_ENV !== 'test') {
   app.use(morgan('dev'))
 }
 

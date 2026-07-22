@@ -1,6 +1,11 @@
-import jwt from 'jsonwebtoken'
+import { createRequire } from 'node:module'
+
+import type * as JWT from 'jsonwebtoken'
 
 import { env } from './env.js'
+
+const require = createRequire(import.meta.url)
+const jwt = require('jsonwebtoken') as typeof JWT
 
 export interface AccessTokenPayload {
   userId: string
@@ -16,13 +21,13 @@ export interface RefreshTokenPayload {
 export function signAccessToken(payload: AccessTokenPayload): string {
   return jwt.sign(payload, env.JWT_SECRET, {
     expiresIn: env.JWT_ACCESS_EXPIRY,
-  } as jwt.SignOptions)
+  } as JWT.SignOptions)
 }
 
 export function signRefreshToken(payload: RefreshTokenPayload): string {
   return jwt.sign(payload, env.JWT_REFRESH_SECRET, {
     expiresIn: env.JWT_REFRESH_EXPIRY,
-  } as jwt.SignOptions)
+  } as JWT.SignOptions)
 }
 
 export function verifyAccessToken(token: string): AccessTokenPayload {

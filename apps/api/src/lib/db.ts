@@ -3,15 +3,13 @@ import { Pool } from 'pg'
 
 import { PrismaClient } from '../../prisma/generated/client/client.js'
 
+import { env } from './env.js'
+
 /**
  * Database connection pool configuration
  * Uses PostgreSQL native driver with Prisma adapter
  */
-const connectionString = process.env.DATABASE_URL
-
-if (!connectionString) {
-  throw new Error('DATABASE_URL environment variable is not set')
-}
+const connectionString = env.DATABASE_URL
 
 const pool = new Pool({ connectionString })
 const adapter = new PrismaPg(pool)
@@ -25,7 +23,7 @@ const adapter = new PrismaPg(pool)
 const prismaClientSingleton = () =>
   new PrismaClient({
     adapter,
-    log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
+    log: env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
   })
 
 declare global {
@@ -34,7 +32,7 @@ declare global {
 
 const prisma = globalThis.prismaGlobal ?? prismaClientSingleton()
 
-if (process.env.NODE_ENV !== 'production') {
+if (env.NODE_ENV !== 'production') {
   globalThis.prismaGlobal = prisma
 }
 

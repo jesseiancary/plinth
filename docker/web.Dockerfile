@@ -57,6 +57,9 @@ CMD ["pnpm", "--filter", "web", "dev"]
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 FROM dependencies AS build
 
+# Copy root TypeScript configuration (3-tier hierarchy)
+COPY tsconfig.base.json tsconfig.node.json tsconfig.bundler.json ./
+
 # Copy source code
 COPY apps/web ./apps/web/
 COPY packages/types ./packages/types/

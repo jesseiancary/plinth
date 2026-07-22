@@ -1,30 +1,21 @@
 {
+  "extends": "../../tsconfig.bundler.json",
   "compilerOptions": {
-    "target": "ES2022",
+    /* React-specific */
     "useDefineForClassFields": true,
-    "lib": ["ES2022", "DOM", "DOM.Iterable"],
-    "module": "ESNext",
-    "skipLibCheck": true,
-
-    /* Bundler mode */
-    "moduleResolution": "bundler",
-    "allowImportingTsExtensions": true,
-    "resolveJsonModule": true,
-    "isolatedModules": true,
-    "noEmit": true,
     "jsx": "react-jsx",
 
-    /* Linting */
-    "strict": true,
-    "noUnusedLocals": true,
-    "noUnusedParameters": true,
-    "noFallthroughCasesInSwitch": true,
+    /* DOM environment */
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+
+    /* Vite-specific */
+    "rootDir": "./src",
 
     /* Path aliases - resolved by Vite */
     "paths": {
       "@/*": ["./src/*"]
     }
   },
-  "include": ["src"],
+  "include": ["src/**/*"],
   "references": [{ "path": "./tsconfig.node.json" }]
 }

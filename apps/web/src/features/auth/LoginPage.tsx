@@ -26,7 +26,7 @@ export function LoginPage() {
     email: '',
     password: '',
   })
-  const [errors, setErrors] = useState<Partial<Record<keyof LoginFormData, string>>>({})
+  const [errors, setErrors] = useState<Partial<Record<keyof LoginFormData, string | undefined>>>({})
 
   const loginMutation = useMutation<{ accessToken: string; user: User }, Error, LoginFormData>({
     mutationFn: (data) => api.post('/api/v1/auth/login', data),

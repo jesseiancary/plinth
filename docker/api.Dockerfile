@@ -63,8 +63,8 @@ CMD ["pnpm", "--filter", "api", "dev"]
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 FROM dependencies AS build
 
-# Copy root tsconfig.json (extended by apps/api/tsconfig.json)
-COPY tsconfig.json ./
+# Copy root TypeScript configuration (3-tier hierarchy)
+COPY tsconfig.base.json tsconfig.node.json tsconfig.bundler.json ./
 
 # Copy source code
 COPY apps/api ./apps/api/

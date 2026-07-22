@@ -12,13 +12,19 @@ import { getApiErrorMessage } from '@/lib/api-error'
 import { Button } from '@/shared/components/Button'
 import { Input } from '@/shared/components/Input'
 
+interface ValidationErrors {
+  currentPassword?: string
+  newPassword?: string
+  confirmPassword?: string
+}
+
 export function ChangePasswordForm() {
   const navigate = useNavigate()
   const { logout } = useAuth()
   const [currentPassword, setCurrentPassword] = useState('')
   const [newPassword, setNewPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
-  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({})
+  const [validationErrors, setValidationErrors] = useState<ValidationErrors>({})
   const [successMessage, setSuccessMessage] = useState('')
 
   /**
@@ -68,7 +74,7 @@ export function ChangePasswordForm() {
   })
 
   const validateForm = (): boolean => {
-    const errors: Record<string, string> = {}
+    const errors: ValidationErrors = {}
 
     // Validate new password with Zod
     try {

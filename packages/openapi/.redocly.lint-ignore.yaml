@@ -1,0 +1,10 @@
+# This file instructs Redocly's linter to ignore the rules contained for specific parts of your API.
+# See https://redocly.com/docs/cli/ for more information.
+#
+# Suppress operation-4xx-response for operations that intentionally don't return client errors:
+openapi.yaml:
+  operation-4xx-response:
+    # /health: Returns only 200 (healthy) or 503 (unhealthy) - no client error cases
+    - '#/paths/~1health/get/responses'
+    # /auth/logout: Idempotent operation always returns 204 (success) - no failure modes
+    - '#/paths/~1api~1v1~1auth~1logout/post/responses'

@@ -30,9 +30,9 @@ describe('sanitizeLogData', () => {
 
     const sanitized = sanitizeLogData(data)
 
-    expect(sanitized.email).toBe('user@example.com')
-    expect(sanitized.password).toBe('[REDACTED]')
-    expect(sanitized.name).toBe('John Doe')
+    expect(sanitized['email']).toBe('user@example.com')
+    expect(sanitized['password']).toBe('[REDACTED]')
+    expect(sanitized['name']).toBe('John Doe')
   })
 
   it('should redact passwordHash fields', () => {
@@ -43,8 +43,8 @@ describe('sanitizeLogData', () => {
 
     const sanitized = sanitizeLogData(data)
 
-    expect(sanitized.userId).toBe('123')
-    expect(sanitized.passwordHash).toBe('[REDACTED]')
+    expect(sanitized['userId']).toBe('123')
+    expect(sanitized['passwordHash']).toBe('[REDACTED]')
   })
 
   it('should redact token fields', () => {
@@ -57,10 +57,10 @@ describe('sanitizeLogData', () => {
 
     const sanitized = sanitizeLogData(data)
 
-    expect(sanitized.userId).toBe('123')
-    expect(sanitized.token).toBe('[REDACTED]')
-    expect(sanitized.accessToken).toBe('[REDACTED]')
-    expect(sanitized.refreshToken).toBe('[REDACTED]')
+    expect(sanitized['userId']).toBe('123')
+    expect(sanitized['token']).toBe('[REDACTED]')
+    expect(sanitized['accessToken']).toBe('[REDACTED]')
+    expect(sanitized['refreshToken']).toBe('[REDACTED]')
   })
 
   it('should redact API key fields', () => {
@@ -71,8 +71,8 @@ describe('sanitizeLogData', () => {
 
     const sanitized = sanitizeLogData(data)
 
-    expect(sanitized.organizationId).toBe('org-123')
-    expect(sanitized.apiKey).toBe('[REDACTED]')
+    expect(sanitized['organizationId']).toBe('org-123')
+    expect(sanitized['apiKey']).toBe('[REDACTED]')
   })
 
   it('should redact authorization headers', () => {
@@ -85,7 +85,7 @@ describe('sanitizeLogData', () => {
 
     const sanitized = sanitizeLogData(data)
 
-    expect(sanitized.headers).toEqual({
+    expect(sanitized['headers']).toEqual({
       'user-agent': 'Mozilla/5.0',
       authorization: '[REDACTED]',
     })
@@ -100,7 +100,7 @@ describe('sanitizeLogData', () => {
 
     const sanitized = sanitizeLogData(data)
 
-    expect(sanitized.headers).toEqual({
+    expect(sanitized['headers']).toEqual({
       cookie: '[REDACTED]',
     })
   })
@@ -115,7 +115,7 @@ describe('sanitizeLogData', () => {
 
     const sanitized = sanitizeLogData(data)
 
-    expect(sanitized.config).toEqual({
+    expect(sanitized['config']).toEqual({
       jwtSecret: '[REDACTED]',
       dbPassword: '[REDACTED]',
     })
@@ -129,8 +129,8 @@ describe('sanitizeLogData', () => {
 
     const sanitized = sanitizeLogData(data)
 
-    expect(sanitized.csrfToken).toBe('[REDACTED]')
-    expect(sanitized.userId).toBe('456')
+    expect(sanitized['csrfToken']).toBe('[REDACTED]')
+    expect(sanitized['userId']).toBe('456')
   })
 
   it('should handle nested objects recursively', () => {
@@ -148,7 +148,7 @@ describe('sanitizeLogData', () => {
 
     const sanitized = sanitizeLogData(data)
 
-    expect(sanitized.user).toEqual({
+    expect(sanitized['user']).toEqual({
       id: '123',
       email: 'user@example.com',
       password: '[REDACTED]',
@@ -167,8 +167,8 @@ describe('sanitizeLogData', () => {
 
     const sanitized = sanitizeLogData(data)
 
-    expect(sanitized.users).toEqual(['user1', 'user2'])
-    expect(sanitized.ids).toEqual([1, 2, 3])
+    expect(sanitized['users']).toEqual(['user1', 'user2'])
+    expect(sanitized['ids']).toEqual([1, 2, 3])
   })
 
   it('should handle empty objects', () => {
@@ -188,9 +188,9 @@ describe('sanitizeLogData', () => {
 
     const sanitized = sanitizeLogData(data)
 
-    expect(sanitized.PASSWORD).toBe('[REDACTED]')
-    expect(sanitized.AccessToken).toBe('[REDACTED]')
-    expect(sanitized.ApiKey).toBe('[REDACTED]')
+    expect(sanitized['PASSWORD']).toBe('[REDACTED]')
+    expect(sanitized['AccessToken']).toBe('[REDACTED]')
+    expect(sanitized['ApiKey']).toBe('[REDACTED]')
   })
 
   it('should redact fields containing sensitive keywords', () => {
@@ -202,8 +202,8 @@ describe('sanitizeLogData', () => {
 
     const sanitized = sanitizeLogData(data)
 
-    expect(sanitized.userPassword).toBe('[REDACTED]')
-    expect(sanitized.refreshTokenValue).toBe('[REDACTED]')
-    expect(sanitized.apiKeyHash).toBe('[REDACTED]')
+    expect(sanitized['userPassword']).toBe('[REDACTED]')
+    expect(sanitized['refreshTokenValue']).toBe('[REDACTED]')
+    expect(sanitized['apiKeyHash']).toBe('[REDACTED]')
   })
 })

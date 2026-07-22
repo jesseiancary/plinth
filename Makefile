@@ -65,7 +65,8 @@ help: ## Show this help message
 	@echo "  make format             Format code with Prettier"
 	@echo "  make format-check       Check code formatting"
 	@echo "  make typecheck          Run TypeScript type checking (all packages)"
-	@echo "  make check              Run ALL checks (lint + format + typecheck)"
+	@echo "  make validate-openapi   Validate OpenAPI specification"
+	@echo "  make check              Run ALL checks (lint + format + typecheck + openapi)"
 	@echo ""
 	@echo "🏗️  Build:"
 	@echo "  make build              Build production Docker images"
@@ -230,26 +231,50 @@ test-docker-clean: ## Clean up test containers and volumes
 
 lint: ## Run ESLint on all packages
 	@echo "🔍 Running linters..."
-	@docker compose exec api pnpm lint
+	@echo "  → Checking: api, validation..."
+	@docker compose exec api pnpm --filter api --filter validation lint
+	@echo "  → Checking: web..."
+	@docker compose exec web pnpm --filter web lint
+	@echo "✅ Linting complete"
 
 lint-fix: ## Fix auto-fixable lint issues
 	@echo "🔧 Fixing lint issues..."
-	@docker compose exec api pnpm lint:fix
+	@echo "  → Fixing: api, validation..."
+	@docker compose exec api pnpm --filter api --filter validation lint:fix
+	@echo "  → Fixing: web..."
+	@docker compose exec web pnpm --filter web lint:fix
+	@echo "✅ Lint fixes complete"
 
 format: ## Format code with Prettier
 	@echo "✨ Formatting code..."
-	@docker compose exec api pnpm format
+	@echo "  → Formatting: api, packages, root files..."
+	@docker compose exec api pnpm --filter plinth format
+	@echo "  → Formatting: web..."
+	@docker compose exec web pnpm --filter plinth format
 	@echo "✅ Code formatted"
 
 format-check: ## Check code formatting
 	@echo "🔍 Checking code formatting..."
-	@docker compose exec api pnpm format:check
+	@echo "  → Checking: api, packages, root files..."
+	@docker compose exec api pnpm --filter plinth format:check
+	@echo "  → Checking: web..."
+	@docker compose exec web pnpm --filter plinth format:check
+	@echo "✅ Format check complete"
 
 typecheck: ## Run TypeScript type checking
 	@echo "🔎 Running type checks..."
-	@docker compose exec api pnpm typecheck
+	@echo "  → Checking: api, types, validation..."
+	@docker compose exec api pnpm --filter api --filter types --filter validation typecheck
+	@echo "  → Checking: web..."
+	@docker compose exec web pnpm --filter web typecheck
+	@echo "✅ Type checking complete"
 
-check: lint format-check typecheck ## Run ALL quality checks
+validate-openapi: ## Validate OpenAPI specification
+	@echo "📋 Validating OpenAPI spec..."
+	@docker compose exec api pnpm --filter openapi validate
+	@echo "✅ OpenAPI spec valid"
+
+check: lint format-check typecheck validate-openapi ## Run ALL quality checks
 	@echo "✅ All quality checks passed!"
 
 ##@ Build Commands
