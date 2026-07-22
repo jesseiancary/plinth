@@ -16,6 +16,6 @@ export default defineConfig({
   datasource: {
     // Use process.env directly instead of env() helper to avoid throwing during build
     // The env() helper validates at config load time, but build/typecheck don't need DB access
-    url: process.env.DATABASE_URL ?? 'postgresql://localhost:5432/placeholder',
+    url: process.env['DATABASE_URL'] ?? 'postgresql://localhost:5432/placeholder',
   },
 })

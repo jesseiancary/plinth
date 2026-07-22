@@ -25,7 +25,7 @@ export function SettingsPage() {
     isLoading,
     error,
   } = useQuery<Organization>({
-    queryKey: queryKeys.organizations.detail(orgSlug!),
+    queryKey: queryKeys.organizations.detail(orgSlug ?? ''),
     queryFn: async () => {
       const response: Organization = await api.get(`/api/v1/orgs/${orgSlug}`)
       // Initialize form fields with current values

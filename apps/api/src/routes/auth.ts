@@ -12,6 +12,7 @@ import { asyncHandler } from '../lib/async-handler.js'
 import { logUserLogin, logUserLogout, logUserRegistration } from '../lib/business-logger.js'
 import { TIME } from '../lib/constants.js'
 import { prisma } from '../lib/db.js'
+import { env } from '../lib/env.js'
 import { AppError } from '../lib/errors.js'
 import { signAccessToken, signRefreshToken, verifyRefreshToken } from '../lib/jwt.js'
 import { hashPassword, normalizeAuthTiming, verifyPassword } from '../lib/password.js'
@@ -95,7 +96,7 @@ router.post(
       // Set refresh token as httpOnly cookie
       res.cookie('refreshToken', refreshToken, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
+        secure: env.NODE_ENV === 'production',
         sameSite: 'strict',
         maxAge: TIME.ONE_WEEK_MS,
       })
@@ -193,7 +194,7 @@ router.post(
       // Set refresh token as httpOnly cookie
       res.cookie('refreshToken', refreshToken, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
+        secure: env.NODE_ENV === 'production',
         sameSite: 'strict',
         maxAge: TIME.ONE_WEEK_MS,
       })
@@ -269,7 +270,7 @@ router.post(
       // Set new refresh token as httpOnly cookie
       res.cookie('refreshToken', newRefreshToken, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
+        secure: env.NODE_ENV === 'production',
         sameSite: 'strict',
         maxAge: TIME.ONE_WEEK_MS,
       })

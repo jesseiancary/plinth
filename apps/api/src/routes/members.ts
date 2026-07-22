@@ -60,13 +60,13 @@ router.get(
     const nextCursor = hasMore && lastItem ? lastItem.id : null
 
     res.json({
-      data: data.map((m) => ({
-        id: m.id,
-        role: m.role,
-        userId: m.userId,
-        user: m.user,
-        createdAt: m.createdAt,
-        updatedAt: m.updatedAt,
+      data: data.map((membership) => ({
+        id: membership.id,
+        role: membership.role,
+        userId: membership.userId,
+        user: membership.user,
+        createdAt: membership.createdAt,
+        updatedAt: membership.updatedAt,
       })),
       nextCursor,
     })

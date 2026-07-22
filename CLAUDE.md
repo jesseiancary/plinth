@@ -125,6 +125,15 @@ rest — the plaintext is returned once on creation and never stored.
 
 - **TypeScript strict mode on.** No `any`. If you need an escape hatch, use `unknown` + a type
   guard.
+- **`verbatimModuleSyntax: true`** — Always use `import type` for type-only imports. Separate type imports from value imports. Never mix types and values in the same import statement.
+  ```typescript
+  // ✅ Correct - separate imports
+  import type { Request, Response } from 'express'
+  import { Router } from 'express'
+
+  // ❌ Wrong - mixing types and values
+  import { Request, Response, Router } from 'express'
+  ```
 - **`const` only** — never `let` unless reassignment is genuinely required and unavoidable.
 - **Arrow functions** — use implicit returns when possible: `() => value` instead of `() => { return value }`. Enforced by `arrow-body-style` ESLint rule.
 - **Zod for all I/O** — every request body, query param, and env variable validated with Zod. Infer
@@ -135,6 +144,37 @@ rest — the plaintext is returned once on creation and never stored.
 - **Async/await** — no `.then()` chains. Always `try/catch` in Express route handlers.
 - **Prisma:** never use `prisma.$queryRaw` unless there is no alternative. Document why if you do.
 - **Tailwind v4 configuration:** All config in CSS using `@theme` for colors and `@plugin` for plugins in `apps/web/src/index.css`. No `tailwind.config.ts` needed. Use `--color-{name}-{shade}` format for color scales (e.g., `--color-brand-500`).
+
+---
+
+## TypeScript Configuration
+
+The project uses a **three-tier inheritance hierarchy** for TypeScript configs:
+
+```
+tsconfig.base.json (shared strict settings)
+├── tsconfig.node.json (Node.js: module=NodeNext)
+│   ├── apps/api/tsconfig.json
+│   ├── apps/web/tsconfig.node.json (vite.config.ts only)
+│   ├── packages/types/tsconfig.json
+│   └── packages/validation/tsconfig.json
+└── tsconfig.bundler.json (Bundler: module=ESNext, moduleResolution=bundler)
+    └── apps/web/tsconfig.json
+```
+
+**Why three base configs?**
+
+- **tsconfig.base.json** — All strict TypeScript settings (29 compiler options). Single source of truth for type-checking rules across the entire monorepo.
+- **tsconfig.node.json** — Node.js module resolution (`module: "NodeNext"`). Used by API and packages that run in Node.js runtime.
+- **tsconfig.bundler.json** — Bundler module resolution (`moduleResolution: "bundler"`). Used by Vite/esbuild for frontend. Enables bundler-specific features like `allowImportingTsExtensions`.
+
+**When adding new apps/packages:**
+
+- **Node.js backend/library?** → Extend `tsconfig.node.json`
+- **Vite/bundled frontend?** → Extend `tsconfig.bundler.json`
+- **Both?** → Create separate configs for each (like web app does)
+
+**Special case:** `apps/web/tsconfig.node.json` is only for [vite.config.ts](apps/web/vite.config.ts), which is Node.js code. The main app uses [apps/web/tsconfig.json](apps/web/tsconfig.json) (bundler-based).
 
 ---
 
@@ -629,6 +669,61 @@ This project implements comprehensive security controls based on the OWASP Top 1
 - `security-auditor` agent — Specialized threat modeling and vulnerability analysis
 - `.claude/skills/security/` — Comprehensive OWASP Top 10 guidance (auto-loaded for security tasks)
 
+### CSRF Protection (Double Submit Cookie Pattern)
+
+**Implementation:** `apps/api/src/middleware/csrf.ts`
+
+The project uses a **factory pattern** for CSRF protection middleware to enable testing while maintaining security in production:
+
+**Architecture:**
+
+- `createCsrfProtection(options)` — Factory function that returns configured middleware
+- `csrfProtection` — Default instance (environment-based: skips in test, enables in dev/prod)
+- `shouldSkipCsrf()` — Centralized environment check (exported from `lib/env.ts` for mocking)
+
+**How it works:**
+
+1. **Safe methods (GET, HEAD, OPTIONS):** Generate cryptographically random CSRF token (32 bytes), set as cookie
+2. **State-changing methods (POST, PATCH, DELETE, PUT):** Validate token from both cookie AND header
+3. **Skip validation for:**
+   - Test environment (`NODE_ENV=test`) — CSRF has dedicated test suite (`csrf.test.ts`)
+   - API key authentication (`Bearer sk_*` tokens don't use cookies)
+   - Public endpoints (login, register, refresh, invitation acceptance)
+
+**Security properties:**
+
+- Token is cryptographically random (32 bytes from `crypto.randomBytes`)
+- Constant-time comparison prevents timing attacks
+- Cookie (`csrf-token`, httpOnly=false) + Header (`X-CSRF-Token`) requirement prevents CSRF
+- Works alongside `SameSite=strict` for defense-in-depth
+
+**Testing pattern:**
+
+```typescript
+// Production app (uses environment defaults)
+app.use(csrfProtection)
+
+// Test with CSRF enabled (override environment)
+const testApp = express()
+testApp.use(createCsrfProtection({ skipCsrf: false, isProduction: false }))
+```
+
+**Configuration options:**
+
+- `skipCsrf` — Completely disable CSRF protection (defaults to `shouldSkipCsrf()`)
+- `isProduction` — Override environment for secure cookie flag (defaults to `env.NODE_ENV === 'production'`)
+
+**Rationale for factory pattern:**
+
+- ✅ **Testability:** Allows CSRF-specific tests to enable protection in test environment
+- ✅ **Flexibility:** Supports future use cases (e.g., separate CSRF config for admin API)
+- ✅ **Centralized logic:** `shouldSkipCsrf()` in `lib/env.ts` is mockable in tests
+- ✅ **Production safety:** Default instance uses environment-based behavior (no opt-in required)
+
+**Reference:** [OWASP CSRF Prevention Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Cross-Site_Request_Forgery_Prevention_Cheat_Sheet.html#double-submit-cookie)
+
+---
+
 ### Security Checklist (for every new endpoint)
 
 **Access Control (A01 - CRITICAL):**
@@ -652,6 +747,12 @@ This project implements comprehensive security controls based on the OWASP Top 1
 - [ ] All inputs validated with Zod before database operations
 - [ ] No `$queryRawUnsafe` or `$executeRawUnsafe` usage
 - [ ] No `dangerouslySetInnerHTML` without DOMPurify sanitization
+
+**CSRF Protection (A08 - Data Integrity Failures):**
+
+- [ ] State-changing endpoints protected by `csrfProtection` middleware (unless public/API-key-only)
+- [ ] Public endpoints explicitly documented as CSRF-exempt (login, register, refresh, invitation acceptance)
+- [ ] API key endpoints skip CSRF (Bearer tokens don't use cookies)
 
 **Configuration (A02 - CRITICAL):**
 

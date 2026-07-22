@@ -71,8 +71,13 @@ services:
       # Mount source code
       - ./apps/api:/app/apps/api
       - ./packages:/app/packages
-      - ./tsconfig.json:/app/tsconfig.json:ro
+      # Mount root configuration files (required by workspace tools)
+      - ./tsconfig.base.json:/app/tsconfig.base.json:ro
+      - ./tsconfig.node.json:/app/tsconfig.node.json:ro
+      - ./tsconfig.bundler.json:/app/tsconfig.bundler.json:ro
+      - ./eslint.config.js:/app/eslint.config.js:ro
       - ./.prettierrc.json:/app/.prettierrc.json:ro
+      - ./.prettierignore:/app/.prettierignore:ro
       # Mount root package files
       - ./package.json:/app/package.json:ro
       - ./pnpm-lock.yaml:/app/pnpm-lock.yaml:ro
@@ -108,8 +113,13 @@ services:
       # Mount source code
       - ./apps/web:/app/apps/web
       - ./packages:/app/packages
-      - ./tsconfig.json:/app/tsconfig.json:ro
+      # Mount root configuration files (required by workspace tools)
+      - ./tsconfig.base.json:/app/tsconfig.base.json:ro
+      - ./tsconfig.node.json:/app/tsconfig.node.json:ro
+      - ./tsconfig.bundler.json:/app/tsconfig.bundler.json:ro
+      - ./eslint.config.js:/app/eslint.config.js:ro
       - ./.prettierrc.json:/app/.prettierrc.json:ro
+      - ./.prettierignore:/app/.prettierignore:ro
       # Mount root package files
       - ./package.json:/app/package.json:ro
       - ./pnpm-lock.yaml:/app/pnpm-lock.yaml:ro

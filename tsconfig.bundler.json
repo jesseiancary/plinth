@@ -1,0 +1,12 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    /* Bundler Module Resolution (Vite, esbuild, etc.) */
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+
+    /* Bundler-specific features */
+    "allowImportingTsExtensions": true,
+    "noEmit": true
+  }
+}

@@ -5,8 +5,6 @@
   "scripts": {
     "validate": "redocly lint openapi.yaml",
     "generate:types": "openapi-typescript openapi.yaml -o ../types/src/generated.ts && prettier --write ../types/src/generated.ts",
-    "lint": "prettier --check openapi.yaml",
-    "lint:fix": "prettier --write openapi.yaml",
     "clean": "rm -rf dist"
   },
   "devDependencies": {

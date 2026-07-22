@@ -1,0 +1,14 @@
+# Redocly OpenAPI Linter Configuration
+# https://redocly.com/docs/cli/configuration/
+
+extends:
+  - recommended
+
+rules:
+  # Allow localhost server URL in development
+  # Production deployment will use different server URLs
+  no-server-example.com: off
+
+  # Keep other recommended rules enabled
+  info-license: warn
+  no-unused-components: error

@@ -1,31 +1,60 @@
+import cookieParser from 'cookie-parser'
+import express from 'express'
 import request from 'supertest'
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it } from 'vitest'
 
-import { app } from '../app.js'
 import { generateApiKey, hashApiKey } from '../lib/api-key.js'
 import { prisma } from '../lib/db.js'
 import { hashPassword } from '../lib/password.js'
+import { authRouter } from '../routes/auth.js'
+import orgRoutes from '../routes/orgs.js'
+
+import { authenticateJWT } from './auth.js'
+import { createCsrfProtection } from './csrf.js'
+import { errorHandler } from './error-handler.js'
+
+/**
+ * CSRF Protection Tests
+ *
+ * Note: CSRF middleware is disabled in test environment (NODE_ENV=test) to simplify
+ * integration tests. These tests use createCsrfProtection() factory to create a
+ * test app with CSRF explicitly enabled, avoiding the need for mocking.
+ */
+
+// Create a test Express app with CSRF protection enabled
+const createTestApp = () => {
+  const testApp = express()
+  testApp.use(express.json())
+  testApp.use(cookieParser())
+
+  // Enable CSRF protection explicitly for testing
+  testApp.use(createCsrfProtection({ skipCsrf: false, isProduction: false }))
+
+  // Add authentication middleware
+  testApp.use(authenticateJWT)
+
+  // Mount real routes
+  testApp.use('/api/v1/auth', authRouter)
+  testApp.use('/api/v1/orgs', orgRoutes)
+
+  // Error handler must be last
+  testApp.use(errorHandler)
+
+  return testApp
+}
 
 describe('CSRF Protection', () => {
+  let app: ReturnType<typeof createTestApp>
   let accessToken: string
   let refreshTokenCookie: string
   let csrfToken: string
   let orgId: string
   let orgSlug: string
-  let originalNodeEnv: string | undefined
-
-  // Temporarily disable test mode for CSRF tests
-  // These tests specifically need to test the CSRF middleware behavior
-  beforeAll(() => {
-    originalNodeEnv = process.env.NODE_ENV
-    process.env.NODE_ENV = 'development'
-  })
-
-  afterAll(() => {
-    process.env.NODE_ENV = originalNodeEnv
-  })
 
   beforeEach(async () => {
+    // Create fresh test app instance with CSRF enabled
+    app = createTestApp()
+
     // Clean database
     await prisma.$transaction([
       prisma.apiKey.deleteMany(),
@@ -305,7 +334,7 @@ describe('CSRF Protection', () => {
       // Standard deviation should be relatively small
       // (allowing for some network/system variance)
       // More lenient threshold for CI environments where load varies
-      const maxVariance = process.env.CI === 'true' ? 1.0 : 0.5
+      const maxVariance = process.env['CI'] === 'true' ? 1.0 : 0.5
       expect(stdDev).toBeLessThan(mean * maxVariance)
     })
   })

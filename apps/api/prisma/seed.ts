@@ -3,6 +3,7 @@ import * as crypto from 'crypto'
 
 import { TIME } from '../src/lib/constants.js'
 import { prisma } from '../src/lib/db.js'
+import { env } from '../src/lib/env.js'
 import { logger } from '../src/lib/logger.js'
 
 // Helper function to generate SHA-256 hash
@@ -11,7 +12,7 @@ function sha256(input: string): string {
 }
 
 async function main() {
-  logger.info('Seeding database', { environment: process.env.NODE_ENV })
+  logger.info('Seeding database', { environment: env.NODE_ENV })
 
   // Create test users
   const hashedPassword = await bcrypt.hash('P@ssword123', 10)

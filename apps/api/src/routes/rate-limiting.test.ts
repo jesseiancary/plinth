@@ -2,9 +2,9 @@ import type { Response } from 'supertest'
 import request from 'supertest'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
-import { app } from '../app'
-import { prisma } from '../lib/db'
-import { clearDatabase, createTestUser } from '../lib/test-helpers'
+import { app } from '../app.js'
+import { prisma } from '../lib/db.js'
+import { clearDatabase, createTestUser } from '../lib/test-helpers.js'
 
 /**
  * Rate Limiting Integration Tests
@@ -170,7 +170,7 @@ describe('Rate Limiting Configuration', () => {
 
 describe('Rate Limiting Security Properties', () => {
   it('should skip rate limiting in test environment', async () => {
-    expect(process.env.NODE_ENV).toBe('test')
+    expect(process.env['NODE_ENV']).toBe('test')
 
     // We can make many requests without hitting rate limits
     const { user, password } = await createTestUser()

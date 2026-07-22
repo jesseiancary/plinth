@@ -3,7 +3,7 @@ import { forwardRef, useId, useState } from 'react'
 
 interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   label?: string
-  error?: string
+  error?: string | undefined
   helperText?: string
 }
 

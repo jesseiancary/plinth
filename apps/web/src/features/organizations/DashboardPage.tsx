@@ -33,9 +33,9 @@ export function DashboardPage() {
   // Auto-select first org if none selected
   useEffect(() => {
     if (user && !activeOrgSlug && user.memberships.length > 0) {
-      const firstOrg = user.memberships[0].organization
-      setActiveOrgSlug(firstOrg.slug)
-      void navigate(`/orgs/${firstOrg.slug}/members`, { replace: true })
+      const firstOrg = user.memberships[0]?.organization
+      setActiveOrgSlug(firstOrg?.slug || '')
+      void navigate(`/orgs/${firstOrg?.slug || ''}/members`, { replace: true })
     }
   }, [user, activeOrgSlug, navigate, setActiveOrgSlug])
 

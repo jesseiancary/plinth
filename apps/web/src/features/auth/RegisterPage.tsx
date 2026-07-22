@@ -25,7 +25,9 @@ export function RegisterPage() {
     password: '',
     name: '',
   })
-  const [errors, setErrors] = useState<Partial<Record<keyof RegisterFormData, string>>>({})
+  const [errors, setErrors] = useState<Partial<Record<keyof RegisterFormData, string | undefined>>>(
+    {},
+  )
 
   const registerMutation = useMutation<
     { accessToken: string; user: User },

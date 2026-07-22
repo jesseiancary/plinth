@@ -1,13 +1,13 @@
 import path from 'node:path'
 
-import winston from 'winston'
+import * as winston from 'winston'
 import DailyRotateFile from 'winston-daily-rotate-file'
 
 import { env } from './env.js'
 
 const getLogLevel = (): string => {
-  if (process.env.LOG_LEVEL) {
-    return process.env.LOG_LEVEL
+  if (env.LOG_LEVEL) {
+    return env.LOG_LEVEL
   }
 
   if (env.NODE_ENV === 'test') {

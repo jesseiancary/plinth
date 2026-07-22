@@ -26,7 +26,7 @@ export function ApiKeysPage() {
     isLoading,
     error,
   } = useQuery<ApiKeysResponse>({
-    queryKey: queryKeys.apiKeys.list(orgSlug!),
+    queryKey: queryKeys.apiKeys.list(orgSlug ?? ''),
     queryFn: () => api.get(`/api/v1/orgs/${orgSlug}/api-keys`),
     enabled: Boolean(orgSlug),
   })

@@ -1,7 +1,8 @@
 import { rateLimit } from 'express-rate-limit'
 import type { HelmetOptions } from 'helmet'
 
-import { RATE_LIMIT, TIME } from './constants'
+import { RATE_LIMIT, TIME } from './constants.js'
+import { env } from './env.js'
 
 const helmetConfig = {
   development: {
@@ -46,10 +47,10 @@ const helmetConfig = {
 } as const satisfies Record<'development' | 'production', HelmetOptions>
 
 export const getHelmetConfig = (): HelmetOptions =>
-  process.env.NODE_ENV === 'production' ? helmetConfig.production : helmetConfig.development
+  env.NODE_ENV === 'production' ? helmetConfig.production : helmetConfig.development
 
 // Disable rate limiting in test environment to avoid interference with integration tests
-const isTestEnv = process.env.NODE_ENV === 'test'
+const isTestEnv = env.NODE_ENV === 'test'
 
 export const rateLimitConfig = {
   authLogin: rateLimit({

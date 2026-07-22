@@ -4,6 +4,7 @@ import { hashApiKey } from '../lib/api-key.js'
 import { prisma } from '../lib/db.js'
 import { AppError } from '../lib/errors.js'
 import { verifyAccessToken } from '../lib/jwt.js'
+import { orgSlugParamSchema } from '../lib/validation/orgs.js'
 
 // Extend Express Request type to include user and tenantId
 declare global {
@@ -88,7 +89,7 @@ export function requireRole(...allowedRoles: string[]) {
       }
 
       // Extract organization slug from params
-      const orgSlug = req.params.slug
+      const { slug: orgSlug } = orgSlugParamSchema.parse(req.params)
 
       if (!orgSlug || typeof orgSlug !== 'string') {
         throw new AppError('Organization slug required', 400, 'ORG_SLUG_REQUIRED')
