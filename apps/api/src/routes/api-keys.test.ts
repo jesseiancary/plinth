@@ -35,8 +35,7 @@ describe('POST /api/v1/orgs/:slug/api-keys', () => {
         name: 'Production API Key',
         scopes: ['org:read', 'members:read'],
       })
-
-    expect(response.status).toBe(201)
+      .expect(201)
     expect(response.body.name).toBe('Production API Key')
     expect(response.body.key).toBeDefined()
     expect(response.body.key).toMatch(/^sk_live_/)
@@ -56,8 +55,7 @@ describe('POST /api/v1/orgs/:slug/api-keys', () => {
       .send({
         name: 'Test Key',
       })
-
-    expect(response.status).toBe(201)
+      .expect(201)
     expect(response.body.scopes).toEqual(['org:read'])
   })
 
@@ -75,8 +73,7 @@ describe('POST /api/v1/orgs/:slug/api-keys', () => {
         name: 'Test Key',
         scopes: ['invalid:scope'],
       })
-
-    expect(response.status).toBe(400)
+      .expect(400)
     expect(response.body.error.code).toBe('VALIDATION_ERROR')
   })
 
@@ -94,8 +91,7 @@ describe('POST /api/v1/orgs/:slug/api-keys', () => {
         name: 'Test Key',
         scopes: ['org:read'],
       })
-
-    expect(response.status).toBe(403)
+      .expect(403)
     expect(response.body.error.code).toBe('FORBIDDEN')
   })
 })
@@ -131,8 +127,7 @@ describe('GET /api/v1/orgs/:slug/api-keys', () => {
     const response = await request(app)
       .get('/api/v1/orgs/test-org/api-keys')
       .set('Authorization', `Bearer ${token}`)
-
-    expect(response.status).toBe(200)
+      .expect(200)
     expect(response.body.data).toHaveLength(2)
     expect(response.body.nextCursor).toBeNull()
 
@@ -163,8 +158,7 @@ describe('GET /api/v1/orgs/:slug/api-keys', () => {
     const response = await request(app)
       .get('/api/v1/orgs/test-org/api-keys?active=true')
       .set('Authorization', `Bearer ${token}`)
-
-    expect(response.status).toBe(200)
+      .expect(200)
     expect(response.body.data).toHaveLength(1)
     expect(response.body.data[0].name).toBe('Active Key')
     expect(response.body.data[0].revokedAt).toBeNull()
@@ -188,8 +182,7 @@ describe('GET /api/v1/orgs/:slug/api-keys', () => {
     const response = await request(app)
       .get('/api/v1/orgs/test-org/api-keys?limit=10')
       .set('Authorization', `Bearer ${token}`)
-
-    expect(response.status).toBe(200)
+      .expect(200)
     expect(response.body.data).toHaveLength(10)
     expect(response.body.nextCursor).toBeDefined()
     expect(response.body.nextCursor).not.toBeNull()
@@ -205,8 +198,7 @@ describe('GET /api/v1/orgs/:slug/api-keys', () => {
     const response = await request(app)
       .get('/api/v1/orgs/test-org/api-keys')
       .set('Authorization', `Bearer ${token}`)
-
-    expect(response.status).toBe(403)
+      .expect(403)
     expect(response.body.error.code).toBe('FORBIDDEN')
   })
 })
@@ -232,11 +224,10 @@ describe('DELETE /api/v1/orgs/:slug/api-keys/:keyId', () => {
 
     const token = await generateTestAccessToken(admin.id, admin.email)
 
-    const response = await request(app)
+    await request(app)
       .delete(`/api/v1/orgs/test-org/api-keys/${apiKey.id}`)
       .set('Authorization', `Bearer ${token}`)
-
-    expect(response.status).toBe(204)
+      .expect(204)
 
     // Verify soft deleted (revokedAt set)
     const revoked = await prisma.apiKey.findUnique({
@@ -264,8 +255,7 @@ describe('DELETE /api/v1/orgs/:slug/api-keys/:keyId', () => {
     const response = await request(app)
       .delete(`/api/v1/orgs/test-org/api-keys/${apiKey.id}`)
       .set('Authorization', `Bearer ${token}`)
-
-    expect(response.status).toBe(404)
+      .expect(404)
     expect(response.body.error.code).toBe('API_KEY_NOT_FOUND')
   })
 
@@ -279,8 +269,7 @@ describe('DELETE /api/v1/orgs/:slug/api-keys/:keyId', () => {
     const response = await request(app)
       .delete('/api/v1/orgs/test-org/api-keys/nonexistent-id')
       .set('Authorization', `Bearer ${token}`)
-
-    expect(response.status).toBe(404)
+      .expect(404)
     expect(response.body.error.code).toBe('API_KEY_NOT_FOUND')
   })
 
@@ -302,8 +291,7 @@ describe('DELETE /api/v1/orgs/:slug/api-keys/:keyId', () => {
     const response = await request(app)
       .delete(`/api/v1/orgs/test-org/api-keys/${apiKey.id}`)
       .set('Authorization', `Bearer ${token}`)
-
-    expect(response.status).toBe(403)
+      .expect(403)
     expect(response.body.error.code).toBe('FORBIDDEN')
   })
 
@@ -328,8 +316,7 @@ describe('DELETE /api/v1/orgs/:slug/api-keys/:keyId', () => {
     const response = await request(app)
       .delete(`/api/v1/orgs/org-1/api-keys/${apiKey.id}`)
       .set('Authorization', `Bearer ${token}`)
-
-    expect(response.status).toBe(404)
+      .expect(404)
     expect(response.body.error.code).toBe('API_KEY_NOT_FOUND')
 
     // Verify key is still active

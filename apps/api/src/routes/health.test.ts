@@ -11,9 +11,8 @@ interface HealthResponse {
 
 describe('GET /health', () => {
   it('returns 200 and health status', async () => {
-    const response = await request(app).get('/health')
+    const response = await request(app).get('/health').expect(200)
 
-    expect(response.status).toBe(200)
     expect(response.body as HealthResponse).toMatchObject({
       status: 'ok',
       database: expect.any(String) as string,
