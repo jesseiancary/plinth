@@ -2,6 +2,32 @@
 
 Run a comprehensive pre-PR checklist before creating a pull request.
 
+## Workflow
+
+### 1. Style & Quality Review (Optional - Uncommitted Changes Only)
+
+If you have uncommitted changes, start with a fast style review:
+
+```bash
+git status --porcelain
+```
+
+If there are uncommitted changes:
+
+- Launch `quality-and-style-reviewer` agent to analyze the diff
+- Reviews: naming, duplication, consistency, style rule conformance
+- Does NOT cover: security, correctness, tests (those come next)
+- Fast feedback before running full checks
+
+**Skip this step if:**
+- No uncommitted changes (working tree clean)
+- Changes are trivial (typo fix, comment update)
+- You've already committed and just want PR validation
+
+### 2. Comprehensive Checklist
+
+Run through the following checklist after style review (or directly if no uncommitted changes):
+
 ## Checklist
 
 ### Type Safety
