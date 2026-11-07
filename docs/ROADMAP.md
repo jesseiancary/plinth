@@ -282,7 +282,7 @@
 
 ### Core Dashboard UI (Remaining)
 
-- [ ] Members page: list, role badges, remove member action
+- [x] Members page: list (cursor pagination), role badges, inline role change, remove member / leave org
 - [ ] Invite member modal: email + role selector, pending invites list, revoke action
 - [ ] Org settings page: rename org, danger zone (delete org, transfer ownership)
 - [ ] API Keys page: generate key (show once modal), list keys, revoke
