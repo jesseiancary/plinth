@@ -6,6 +6,7 @@ import { createStorage } from '../../../lib/storage'
 interface OrgContextValue {
   activeOrgSlug: string | null
   setActiveOrgSlug: (slug: string) => void
+  clearActiveOrg: () => void
 }
 
 const OrgContext = createContext<OrgContextValue | undefined>(undefined)
@@ -19,11 +20,17 @@ export function OrgProvider({ children }: { children: ReactNode }) {
     activeOrgStorage.set(slug)
   }
 
+  const clearActiveOrg = () => {
+    setActiveOrgSlug(null)
+    activeOrgStorage.remove()
+  }
+
   return (
     <OrgContext.Provider
       value={{
         activeOrgSlug,
         setActiveOrgSlug: handleSetActiveOrgSlug,
+        clearActiveOrg,
       }}
     >
       {children}

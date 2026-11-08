@@ -26,6 +26,11 @@ export const queryKeys = {
     lists: () => [...queryKeys.members.all, 'list'] as const,
     list: (orgSlug: string, cursor?: string) =>
       [...queryKeys.members.lists(), orgSlug, { cursor }] as const,
+    // Flat member list (not InfiniteData) for the transfer-ownership picker. Kept
+    // separate from `list` so its response shape never collides with the infinite
+    // list cache under the same key.
+    transferCandidates: (orgSlug: string) =>
+      [...queryKeys.members.all, 'transfer-candidates', orgSlug] as const,
   },
 
   // Invitation keys

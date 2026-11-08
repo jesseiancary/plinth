@@ -100,4 +100,33 @@ describe('ConfirmDialog', () => {
 
     expect(screen.getByText('This is the only owner.')).toBeInTheDocument()
   })
+
+  it('keeps confirm disabled until the confirmation phrase is typed exactly', async () => {
+    const onConfirm = vi.fn()
+    const user = userEvent.setup()
+    render(
+      <ConfirmDialog
+        isOpen
+        title="Delete organization"
+        message="This cannot be undone."
+        confirmLabel="Delete organization"
+        confirmationPhrase="acme"
+        onConfirm={onConfirm}
+        onClose={vi.fn()}
+      />,
+    )
+
+    const confirmButton = screen.getByRole('button', { name: 'Delete organization' })
+    expect(confirmButton).toBeDisabled()
+
+    const input = screen.getByLabelText('Type "acme" to confirm')
+    await user.type(input, 'acm')
+    expect(confirmButton).toBeDisabled()
+
+    await user.type(input, 'e')
+    expect(confirmButton).toBeEnabled()
+
+    await user.click(confirmButton)
+    expect(onConfirm).toHaveBeenCalledOnce()
+  })
 })
