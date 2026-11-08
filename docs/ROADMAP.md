@@ -283,7 +283,7 @@
 ### Core Dashboard UI (Remaining)
 
 - [x] Members page: list (cursor pagination), role badges, inline role change, remove member / leave org
-- [ ] Invite member modal: email + role selector, pending invites list, revoke action
+- [x] Invitations: dedicated page + sidebar nav, invite member modal (email + role), pending invites list (cursor pagination), revoke
 - [ ] Org settings page: rename org, danger zone (delete org, transfer ownership)
 - [ ] API Keys page: generate key (show once modal), list keys, revoke
 
@@ -291,6 +291,14 @@
 
 - [ ] Public `/invite/:token` page — shows org name + role, login/register to accept
 - [ ] Handle already-logged-in user accepting invite
+
+### Deferred Frontend Refactors
+
+> Follow-ups surfaced while building the dashboard pages. Non-blocking; see
+> [PHASE_5_DASHBOARD_UI_PLAN.md](PHASE_5_DASHBOARD_UI_PLAN.md#deferred-refactors-follow-ups) for detail.
+
+- [ ] Extract a shared list-page component/hook (MembersPage / InvitationsPage / ApiKeysPage duplication) — trigger: during/after the API Keys page
+- [ ] Extract a `SidebarNavLink` subcomponent in `DashboardLayout`
 
 **Files Created (5a-5f):**
 

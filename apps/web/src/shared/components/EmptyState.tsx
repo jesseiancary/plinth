@@ -4,10 +4,12 @@ interface EmptyStateProps {
   title: string
   description: string
   icon?: ReactNode
-  action?: {
-    label: string
-    onClick: () => void
-  }
+  action?:
+    | {
+        label: string
+        onClick: () => void
+      }
+    | undefined
 }
 
 export function EmptyState({ title, description, icon, action }: EmptyStateProps) {

@@ -168,6 +168,16 @@ export function MembersPage() {
             }
             title="No team members"
             description="This organization doesn't have any members yet."
+            action={
+              current.isAdmin
+                ? {
+                    label: 'Invite member',
+                    onClick: () => {
+                      void navigate(`/orgs/${orgSlug}/invitations`)
+                    },
+                  }
+                : undefined
+            }
           />
         )}
 

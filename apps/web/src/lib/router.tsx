@@ -6,6 +6,7 @@ import { SecurityPage } from '@/features/auth/pages/SecurityPage'
 import { RegisterPage } from '@/features/auth/RegisterPage'
 import { DashboardPage } from '@/features/organizations/DashboardPage'
 import { ApiKeysPage } from '@/features/organizations/pages/ApiKeysPage'
+import { InvitationsPage } from '@/features/organizations/pages/InvitationsPage'
 import { MembersPage } from '@/features/organizations/pages/MembersPage'
 import { SettingsPage } from '@/features/organizations/pages/SettingsPage'
 import { DashboardLayout } from '@/shared/components/DashboardLayout'
@@ -50,6 +51,10 @@ export const router = createBrowserRouter([
       {
         path: '/orgs/:orgSlug/members',
         element: <MembersPage />,
+      },
+      {
+        path: '/orgs/:orgSlug/invitations',
+        element: <InvitationsPage />,
       },
       {
         path: '/orgs/:orgSlug/settings',
