@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useParams } from 'react-router-dom'
-import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 
 import type { components } from '@plinth/types'
 
@@ -17,13 +17,11 @@ import { DashboardLayout } from '@/shared/components/DashboardLayout'
 import { EmptyState } from '@/shared/components/EmptyState'
 import { ErrorMessage } from '@/shared/components/ErrorMessage'
 import { LoadingSpinner } from '@/shared/components/LoadingSpinner'
+import { PageHeader } from '@/shared/components/PageHeader'
+import { ResourceTable } from '@/shared/components/ResourceTable'
+import { usePaginatedList } from '@/shared/hooks/usePaginatedList'
 
 type Invitation = components['schemas']['Invitation']
-
-interface InvitationsResponse {
-  data: Invitation[]
-  nextCursor: string | null
-}
 
 export function InvitationsPage() {
   const { orgSlug } = useParams<{ orgSlug: string }>()
@@ -36,19 +34,21 @@ export function InvitationsPage() {
 
   const listKey = queryKeys.invitations.list(orgSlug ?? '')
 
-  const { data, isLoading, error, fetchNextPage, hasNextPage, isFetchingNextPage } =
-    useInfiniteQuery({
-      queryKey: listKey, // stable key; the cursor is the pageParam, not part of the key
-      queryFn: ({ pageParam }: { pageParam: string | undefined }): Promise<InvitationsResponse> =>
-        api.get(
-          `/api/v1/orgs/${orgSlug}/invitations?status=PENDING${
-            pageParam ? `&cursor=${pageParam}` : ''
-          }`,
-        ),
-      initialPageParam: undefined as string | undefined,
-      getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
-      enabled: Boolean(orgSlug) && current.isAdmin,
-    })
+  const {
+    items: invitations,
+    isLoading,
+    error,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = usePaginatedList<Invitation>({
+    queryKey: listKey,
+    queryFn: (cursor) =>
+      api.get(
+        `/api/v1/orgs/${orgSlug}/invitations?status=PENDING${cursor ? `&cursor=${cursor}` : ''}`,
+      ),
+    enabled: Boolean(orgSlug) && current.isAdmin,
+  })
 
   const revokeMutation = useMutation({
     mutationFn: (invitationId: string) =>
@@ -83,27 +83,23 @@ export function InvitationsPage() {
     setActionError(null)
   }
 
-  const invitations = data?.pages.flatMap((page) => page.data) ?? []
-
   return (
     <DashboardLayout>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="mb-6 flex items-start justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">Invitations</h1>
-            <p className="mt-2 text-gray-600">
-              Invite people to your organization and manage pending invites
-            </p>
-          </div>
-          {current.isAdmin && (
-            <button
-              className="px-4 py-2 bg-brand-600 text-white rounded-md hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500"
-              onClick={() => setIsInviteOpen(true)}
-            >
-              Invite member
-            </button>
-          )}
-        </div>
+        <PageHeader
+          title="Invitations"
+          description="Invite people to your organization and manage pending invites"
+          action={
+            current.isAdmin && (
+              <button
+                className="px-4 py-2 bg-brand-600 text-white rounded-md hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500"
+                onClick={() => setIsInviteOpen(true)}
+              >
+                Invite member
+              </button>
+            )
+          }
+        />
 
         {current.isLoading && (
           <div className="flex justify-center py-12">
@@ -173,77 +169,40 @@ export function InvitationsPage() {
         )}
 
         {current.isAdmin && !isLoading && !error && invitations.length > 0 && (
-          <div className="bg-white shadow rounded-lg overflow-hidden">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th
-                    scope="col"
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                  >
-                    Email
-                  </th>
-                  <th
-                    scope="col"
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                  >
-                    Role
-                  </th>
-                  <th
-                    scope="col"
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                  >
-                    Expires
-                  </th>
-                  <th scope="col" className="relative px-6 py-3">
-                    <span className="sr-only">Actions</span>
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {invitations.map((invitation) => (
-                  <tr key={invitation.id}>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                      {sanitizeDisplayText(invitation.email)}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <Badge variant={invitation.role === 'ADMIN' ? 'warning' : 'default'}>
-                        {invitation.role.toLowerCase()}
-                      </Badge>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {new Date(invitation.expiresAt).toLocaleDateString()}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      {current.isAdmin ? (
-                        <button
-                          className="text-red-600 hover:text-red-900"
-                          onClick={() => openRevokeDialog(invitation)}
-                        >
-                          Revoke
-                        </button>
-                      ) : (
-                        <span className="text-gray-300">—</span>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            {hasNextPage && (
-              <div className="flex justify-center border-t border-gray-200 bg-gray-50 px-6 py-3">
-                <button
-                  className="text-sm font-medium text-brand-600 hover:text-brand-900 disabled:opacity-50"
-                  disabled={isFetchingNextPage}
-                  onClick={() => {
-                    void fetchNextPage()
-                  }}
-                >
-                  {isFetchingNextPage ? 'Loading…' : 'Load more'}
-                </button>
-              </div>
-            )}
-          </div>
+          <ResourceTable
+            columns={['Email', 'Role', 'Expires']}
+            hasNextPage={hasNextPage}
+            isFetchingNextPage={isFetchingNextPage}
+            onLoadMore={() => void fetchNextPage()}
+          >
+            {invitations.map((invitation) => (
+              <tr key={invitation.id}>
+                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                  {sanitizeDisplayText(invitation.email)}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <Badge variant={invitation.role === 'ADMIN' ? 'warning' : 'default'}>
+                    {invitation.role.toLowerCase()}
+                  </Badge>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  {new Date(invitation.expiresAt).toLocaleDateString()}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                  {current.isAdmin ? (
+                    <button
+                      className="text-red-600 hover:text-red-900"
+                      onClick={() => openRevokeDialog(invitation)}
+                    >
+                      Revoke
+                    </button>
+                  ) : (
+                    <span className="text-gray-300">—</span>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </ResourceTable>
         )}
       </div>
 
