@@ -1,6 +1,6 @@
 import type { SubmitEvent } from 'react'
 import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useMutation } from '@tanstack/react-query'
 import type { z } from 'zod'
 
@@ -19,6 +19,7 @@ type RegisterFormData = z.infer<typeof registerSchema>
 
 export function RegisterPage() {
   const navigate = useNavigate()
+  const location = useLocation()
   const { login } = useAuth()
   const [formData, setFormData] = useState<RegisterFormData>({
     email: '',
@@ -37,7 +38,9 @@ export function RegisterPage() {
     mutationFn: (data) => api.post('/api/v1/auth/register', data),
     onSuccess: async (data) => {
       login(data.accessToken, data.user)
-      await navigate('/')
+      // Return to the page that sent the user here (e.g. an invite link), else home.
+      const from = (location.state as { from?: { pathname: string } } | null)?.from?.pathname || '/'
+      await navigate(from, { replace: true })
     },
   })
 

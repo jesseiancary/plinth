@@ -39,6 +39,8 @@ export const queryKeys = {
     lists: () => [...queryKeys.invitations.all, 'list'] as const,
     list: (orgSlug: string, cursor?: string) =>
       [...queryKeys.invitations.lists(), orgSlug, { cursor }] as const,
+    // Public single-token validation for the accept-invite page.
+    validate: (token: string) => [...queryKeys.invitations.all, 'validate', token] as const,
   },
 
   // API key keys
