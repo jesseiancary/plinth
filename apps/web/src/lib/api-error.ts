@@ -3,7 +3,7 @@ import axios from 'axios'
 /**
  * Type guard for API error response
  */
-function isApiErrorResponse(data: unknown): data is { error: { message: string } } {
+function isApiErrorResponse(data: unknown): data is { error: { message: string; code?: string } } {
   return (
     typeof data === 'object' &&
     data !== null &&
@@ -44,4 +44,23 @@ export function getApiErrorMessage(error: unknown): string {
 
   // Unknown error type
   return 'An unexpected error occurred'
+}
+
+/**
+ * Extract the machine-readable error code from an API error response
+ * (`{ error: { code, message } }`), for branching on a specific failure
+ * (e.g. `USER_ALREADY_MEMBER`) without matching on the human message.
+ *
+ * Returns `null` when the error is not an Axios error carrying our envelope
+ * or the envelope omits a `code`.
+ */
+export function getApiErrorCode(error: unknown): string | null {
+  if (axios.isAxiosError(error)) {
+    const responseData: unknown = error.response?.data
+    if (isApiErrorResponse(responseData) && typeof responseData.error.code === 'string') {
+      return responseData.error.code
+    }
+  }
+
+  return null
 }

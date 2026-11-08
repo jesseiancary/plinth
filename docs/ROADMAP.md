@@ -237,7 +237,7 @@
 
 ## Phase 5 — React Frontend
 
-**Status:** In Progress (5a-5f Complete, 5g-5j Remaining)
+**Status:** Complete (Core Dashboard UI + Accept Invitation Flow shipped)
 **Completion Date (Partial):** 2026-05-29
 **Test Coverage:** Vitest + RTL configured, MSW mocking infrastructure ready
 
@@ -280,17 +280,17 @@
 - [x] Dashboard layout (top nav + sidebar + main content)
 - [x] Dashboard home page (auto-select first org)
 
-### Core Dashboard UI (Remaining)
+### Core Dashboard UI
 
 - [x] Members page: list (cursor pagination), role badges, inline role change, remove member / leave org
 - [x] Invitations: dedicated page + sidebar nav, invite member modal (email + role), pending invites list (cursor pagination), revoke
 - [x] Org settings page: rename org, danger zone (delete org, transfer ownership)
 - [x] API Keys page: generate key (show once modal with scope selection), list keys (cursor pagination), revoke
 
-### Accept Invitation Flow (Remaining)
+### Accept Invitation Flow
 
-- [ ] Public `/invite/:token` page — shows org name + role, login/register to accept
-- [ ] Handle already-logged-in user accepting invite
+- [x] Public `/invite/:token` page — shows org name + role, login/register to accept
+- [x] Handle already-logged-in user accepting invite
 
 ### Deferred Frontend Refactors
 

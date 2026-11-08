@@ -5,6 +5,7 @@ import { LoginPage } from '@/features/auth/LoginPage'
 import { SecurityPage } from '@/features/auth/pages/SecurityPage'
 import { RegisterPage } from '@/features/auth/RegisterPage'
 import { DashboardPage } from '@/features/organizations/DashboardPage'
+import { AcceptInvitePage } from '@/features/organizations/pages/AcceptInvitePage'
 import { ApiKeysPage } from '@/features/organizations/pages/ApiKeysPage'
 import { InvitationsPage } from '@/features/organizations/pages/InvitationsPage'
 import { MembersPage } from '@/features/organizations/pages/MembersPage'
@@ -37,7 +38,7 @@ export const router = createBrowserRouter([
   },
   {
     path: '/invite/:token',
-    element: <PlaceholderPage title="Accept Invitation" />,
+    element: <AcceptInvitePage />,
   },
 
   // Protected routes

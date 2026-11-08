@@ -128,6 +128,38 @@ export const handlers = [
     () => new HttpResponse(null, { status: 204 }),
   ),
 
+  // Public invitation validation + acceptance (accept-invite page)
+  http.get(`${API_URL}/api/v1/invitations/validate/:token`, () =>
+    HttpResponse.json({
+      email: 'invitee@example.com',
+      role: 'MEMBER',
+      organization: { name: 'Acme', slug: 'acme' },
+      expiresAt: new Date(Date.now() + 72 * 60 * 60 * 1000).toISOString(),
+    }),
+  ),
+
+  http.post(`${API_URL}/api/v1/invitations/accept`, () =>
+    HttpResponse.json(
+      {
+        membership: {
+          id: 'membership-id',
+          role: 'MEMBER',
+          userId: 'test-user-id',
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        },
+        organization: {
+          id: 'org-id',
+          name: 'Acme',
+          slug: 'acme',
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        },
+      },
+      { status: 201 },
+    ),
+  ),
+
   // API keys
   http.get(`${API_URL}/api/v1/orgs/:slug/api-keys`, () =>
     HttpResponse.json({ data: [], nextCursor: null }),
