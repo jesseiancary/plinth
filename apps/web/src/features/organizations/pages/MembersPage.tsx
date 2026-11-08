@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import type { InfiniteData } from '@tanstack/react-query'
-import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 
 import type { components } from '@plinth/types'
 
@@ -17,14 +17,13 @@ import { DashboardLayout } from '@/shared/components/DashboardLayout'
 import { EmptyState } from '@/shared/components/EmptyState'
 import { ErrorMessage } from '@/shared/components/ErrorMessage'
 import { LoadingSpinner } from '@/shared/components/LoadingSpinner'
+import { PageHeader } from '@/shared/components/PageHeader'
+import { ResourceTable } from '@/shared/components/ResourceTable'
+import type { Page } from '@/shared/hooks/usePaginatedList'
+import { usePaginatedList } from '@/shared/hooks/usePaginatedList'
 
 type Membership = components['schemas']['Membership']
 type Role = Membership['role']
-
-interface MembersResponse {
-  data: Membership[]
-  nextCursor: string | null
-}
 
 export function MembersPage() {
   const { orgSlug } = useParams<{ orgSlug: string }>()
@@ -37,15 +36,19 @@ export function MembersPage() {
 
   const listKey = queryKeys.members.list(orgSlug ?? '')
 
-  const { data, isLoading, error, fetchNextPage, hasNextPage, isFetchingNextPage } =
-    useInfiniteQuery({
-      queryKey: listKey, // stable key; the cursor is the pageParam, not part of the key
-      queryFn: ({ pageParam }: { pageParam: string | undefined }): Promise<MembersResponse> =>
-        api.get(`/api/v1/orgs/${orgSlug}/members${pageParam ? `?cursor=${pageParam}` : ''}`),
-      initialPageParam: undefined as string | undefined,
-      getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
-      enabled: Boolean(orgSlug),
-    })
+  const {
+    items: members,
+    isLoading,
+    error,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = usePaginatedList<Membership>({
+    queryKey: listKey,
+    queryFn: (cursor) =>
+      api.get(`/api/v1/orgs/${orgSlug}/members${cursor ? `?cursor=${cursor}` : ''}`),
+    enabled: Boolean(orgSlug),
+  })
 
   const roleMutation = useMutation({
     mutationFn: ({ memberId, role }: { memberId: string; role: Role }) =>
@@ -55,7 +58,7 @@ export function MembersPage() {
       setActionError(null)
       await queryClient.cancelQueries({ queryKey: listKey })
       const previous = queryClient.getQueryData(listKey)
-      queryClient.setQueryData<InfiniteData<MembersResponse>>(
+      queryClient.setQueryData<InfiniteData<Page<Membership>>>(
         listKey,
         (old) =>
           old && {
@@ -121,7 +124,6 @@ export function MembersPage() {
     setActionError(null)
   }
 
-  const members = data?.pages.flatMap((page) => page.data) ?? []
   const removingSelf = Boolean(
     memberToRemove && current.userId && memberToRemove.userId === current.userId,
   )
@@ -129,10 +131,7 @@ export function MembersPage() {
   return (
     <DashboardLayout>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold text-gray-900">Members</h1>
-          <p className="mt-2 text-gray-600">Manage your organization's team members</p>
-        </div>
+        <PageHeader title="Members" description="Manage your organization's team members" />
 
         {actionError && !memberToRemove && (
           <div className="mb-4 rounded-md bg-red-50 p-4" role="alert">
@@ -182,130 +181,93 @@ export function MembersPage() {
         )}
 
         {!isLoading && !error && members.length > 0 && (
-          <div className="bg-white shadow rounded-lg overflow-hidden">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th
-                    scope="col"
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                  >
-                    Member
-                  </th>
-                  <th
-                    scope="col"
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                  >
-                    Role
-                  </th>
-                  <th
-                    scope="col"
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                  >
-                    Joined
-                  </th>
-                  <th scope="col" className="relative px-6 py-3">
-                    <span className="sr-only">Actions</span>
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {members.map((member) => {
-                  const isSelf = member.userId === current.userId
-                  const isOwnerRow = member.role === 'OWNER'
-                  // Admins may manage members; only owners may change an owner's role.
-                  const canManage = current.isAdmin && !isSelf && (!isOwnerRow || current.isOwner)
-                  const isRoleMutating =
-                    roleMutation.isPending && roleMutation.variables?.memberId === member.id
+          <ResourceTable
+            columns={['Member', 'Role', 'Joined']}
+            hasNextPage={hasNextPage}
+            isFetchingNextPage={isFetchingNextPage}
+            onLoadMore={() => void fetchNextPage()}
+          >
+            {members.map((member) => {
+              const isSelf = member.userId === current.userId
+              const isOwnerRow = member.role === 'OWNER'
+              // Admins may manage members; only owners may change an owner's role.
+              const canManage = current.isAdmin && !isSelf && (!isOwnerRow || current.isOwner)
+              const isRoleMutating =
+                roleMutation.isPending && roleMutation.variables?.memberId === member.id
 
-                  return (
-                    <tr key={member.id}>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div>
-                          <div className="text-sm font-medium text-gray-900">
-                            {sanitizeDisplayText(member.user.name)}
-                            {isSelf && <span className="ml-2 text-xs text-gray-400">(you)</span>}
-                          </div>
-                          <div className="text-sm text-gray-500">
-                            {sanitizeDisplayText(member.user.email)}
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        {canManage ? (
-                          <label className="sr-only" htmlFor={`role-${member.id}`}>
-                            Change role for {sanitizeDisplayText(member.user.name)}
-                          </label>
-                        ) : null}
-                        {canManage ? (
-                          <select
-                            id={`role-${member.id}`}
-                            value={member.role}
-                            disabled={isRoleMutating}
-                            onChange={(e) => {
-                              handleRoleChange(member.id, e.currentTarget.value as Role)
-                            }}
-                            className="rounded-md border-gray-300 text-sm focus:border-brand-500 focus:ring-brand-500 disabled:opacity-50"
-                          >
-                            {isOwnerRow && <option value="OWNER">Owner</option>}
-                            <option value="ADMIN">Admin</option>
-                            <option value="MEMBER">Member</option>
-                          </select>
-                        ) : (
-                          <Badge
-                            variant={
-                              member.role === 'OWNER'
-                                ? 'success'
-                                : member.role === 'ADMIN'
-                                  ? 'warning'
-                                  : 'default'
-                            }
-                          >
-                            {member.role.toLowerCase()}
-                          </Badge>
-                        )}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {new Date(member.createdAt).toLocaleDateString()}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                        {isSelf ? (
-                          <button
-                            className="text-red-600 hover:text-red-900"
-                            onClick={() => openRemoveDialog(member)}
-                          >
-                            Leave
-                          </button>
-                        ) : canManage ? (
-                          <button
-                            className="text-red-600 hover:text-red-900"
-                            onClick={() => openRemoveDialog(member)}
-                          >
-                            Remove
-                          </button>
-                        ) : (
-                          <span className="text-gray-300">—</span>
-                        )}
-                      </td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
-            {hasNextPage && (
-              <div className="flex justify-center border-t border-gray-200 bg-gray-50 px-6 py-3">
-                <button
-                  className="text-sm font-medium text-brand-600 hover:text-brand-900 disabled:opacity-50"
-                  disabled={isFetchingNextPage}
-                  onClick={() => {
-                    void fetchNextPage()
-                  }}
-                >
-                  {isFetchingNextPage ? 'Loading…' : 'Load more'}
-                </button>
-              </div>
-            )}
-          </div>
+              return (
+                <tr key={member.id}>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div>
+                      <div className="text-sm font-medium text-gray-900">
+                        {sanitizeDisplayText(member.user.name)}
+                        {isSelf && <span className="ml-2 text-xs text-gray-400">(you)</span>}
+                      </div>
+                      <div className="text-sm text-gray-500">
+                        {sanitizeDisplayText(member.user.email)}
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    {canManage ? (
+                      <label className="sr-only" htmlFor={`role-${member.id}`}>
+                        Change role for {sanitizeDisplayText(member.user.name)}
+                      </label>
+                    ) : null}
+                    {canManage ? (
+                      <select
+                        id={`role-${member.id}`}
+                        value={member.role}
+                        disabled={isRoleMutating}
+                        onChange={(e) => {
+                          handleRoleChange(member.id, e.currentTarget.value as Role)
+                        }}
+                        className="rounded-md border-gray-300 text-sm focus:border-brand-500 focus:ring-brand-500 disabled:opacity-50"
+                      >
+                        {isOwnerRow && <option value="OWNER">Owner</option>}
+                        <option value="ADMIN">Admin</option>
+                        <option value="MEMBER">Member</option>
+                      </select>
+                    ) : (
+                      <Badge
+                        variant={
+                          member.role === 'OWNER'
+                            ? 'success'
+                            : member.role === 'ADMIN'
+                              ? 'warning'
+                              : 'default'
+                        }
+                      >
+                        {member.role.toLowerCase()}
+                      </Badge>
+                    )}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {new Date(member.createdAt).toLocaleDateString()}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                    {isSelf ? (
+                      <button
+                        className="text-red-600 hover:text-red-900"
+                        onClick={() => openRemoveDialog(member)}
+                      >
+                        Leave
+                      </button>
+                    ) : canManage ? (
+                      <button
+                        className="text-red-600 hover:text-red-900"
+                        onClick={() => openRemoveDialog(member)}
+                      >
+                        Remove
+                      </button>
+                    ) : (
+                      <span className="text-gray-300">—</span>
+                    )}
+                  </td>
+                </tr>
+              )
+            })}
+          </ResourceTable>
         )}
       </div>
 

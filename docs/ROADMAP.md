@@ -294,11 +294,8 @@
 
 ### Deferred Frontend Refactors
 
-> Follow-ups surfaced while building the dashboard pages. Non-blocking; see
-> [PHASE_5_DASHBOARD_UI_PLAN.md](PHASE_5_DASHBOARD_UI_PLAN.md#deferred-refactors-follow-ups) for detail.
-
-- [ ] Extract a shared list-page component/hook (MembersPage / InvitationsPage / ApiKeysPage duplication) — trigger: during/after the API Keys page
-- [ ] Extract a `SidebarNavLink` subcomponent in `DashboardLayout`
+- [x] Extract a shared list-page component/hook (MembersPage / InvitationsPage / ApiKeysPage duplication) — trigger: during/after the API Keys page
+- [x] Extract a `SidebarNavLink` subcomponent in `DashboardLayout`
 
 **Files Created (5a-5f):**
 

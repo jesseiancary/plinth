@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useParams } from 'react-router-dom'
-import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 
 import type { components } from '@plinth/types'
 
@@ -17,13 +17,11 @@ import { DashboardLayout } from '@/shared/components/DashboardLayout'
 import { EmptyState } from '@/shared/components/EmptyState'
 import { ErrorMessage } from '@/shared/components/ErrorMessage'
 import { LoadingSpinner } from '@/shared/components/LoadingSpinner'
+import { PageHeader } from '@/shared/components/PageHeader'
+import { ResourceTable } from '@/shared/components/ResourceTable'
+import { usePaginatedList } from '@/shared/hooks/usePaginatedList'
 
 type ApiKey = components['schemas']['ApiKey']
-
-interface ApiKeysResponse {
-  data: ApiKey[]
-  nextCursor: string | null
-}
 
 export function ApiKeysPage() {
   const { orgSlug } = useParams<{ orgSlug: string }>()
@@ -34,17 +32,19 @@ export function ApiKeysPage() {
   const [actionError, setActionError] = useState<string | null>(null)
   const [keyToRevoke, setKeyToRevoke] = useState<ApiKey | null>(null)
 
-  const { data, isLoading, error, fetchNextPage, hasNextPage, isFetchingNextPage } =
-    useInfiniteQuery({
-      queryKey: queryKeys.apiKeys.list(orgSlug ?? ''), // stable key; cursor is the pageParam
-      queryFn: ({ pageParam }: { pageParam: string | undefined }): Promise<ApiKeysResponse> =>
-        api.get(
-          `/api/v1/orgs/${orgSlug}/api-keys?active=true${pageParam ? `&cursor=${pageParam}` : ''}`,
-        ),
-      initialPageParam: undefined as string | undefined,
-      getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
-      enabled: Boolean(orgSlug) && current.isAdmin,
-    })
+  const {
+    items: apiKeys,
+    isLoading,
+    error,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = usePaginatedList<ApiKey>({
+    queryKey: queryKeys.apiKeys.list(orgSlug ?? ''),
+    queryFn: (cursor) =>
+      api.get(`/api/v1/orgs/${orgSlug}/api-keys?active=true${cursor ? `&cursor=${cursor}` : ''}`),
+    enabled: Boolean(orgSlug) && current.isAdmin,
+  })
 
   const revokeMutation = useMutation({
     mutationFn: (keyId: string) => api.delete(`/api/v1/orgs/${orgSlug}/api-keys/${keyId}`),
@@ -78,27 +78,23 @@ export function ApiKeysPage() {
     setActionError(null)
   }
 
-  const apiKeys = data?.pages.flatMap((page) => page.data) ?? []
-
   return (
     <DashboardLayout>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="mb-6 flex items-start justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">API Keys</h1>
-            <p className="mt-2 text-gray-600">
-              Manage API keys for programmatic access to your organization
-            </p>
-          </div>
-          {current.isAdmin && (
-            <button
-              className="px-4 py-2 bg-brand-600 text-white rounded-md hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500"
-              onClick={() => setIsCreateOpen(true)}
-            >
-              Create API key
-            </button>
-          )}
-        </div>
+        <PageHeader
+          title="API Keys"
+          description="Manage API keys for programmatic access to your organization"
+          action={
+            current.isAdmin && (
+              <button
+                className="px-4 py-2 bg-brand-600 text-white rounded-md hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500"
+                onClick={() => setIsCreateOpen(true)}
+              >
+                Create API key
+              </button>
+            )
+          }
+        />
 
         {current.isLoading && (
           <div className="flex justify-center py-12">
@@ -166,101 +162,57 @@ export function ApiKeysPage() {
         )}
 
         {current.isAdmin && !isLoading && !error && apiKeys.length > 0 && (
-          <div className="bg-white shadow rounded-lg overflow-hidden">
-            <div className="px-6 py-4 border-b border-gray-200">
-              <h2 className="text-lg font-medium text-gray-900">Active API Keys</h2>
-              <p className="mt-1 text-sm text-gray-600">
-                Keep your API keys secure and never share them publicly
-              </p>
-            </div>
-
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th
-                    scope="col"
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                  >
-                    Name
-                  </th>
-                  <th
-                    scope="col"
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                  >
-                    Scopes
-                  </th>
-                  <th
-                    scope="col"
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                  >
-                    Last Used
-                  </th>
-                  <th
-                    scope="col"
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                  >
-                    Created
-                  </th>
-                  <th scope="col" className="relative px-6 py-3">
-                    <span className="sr-only">Actions</span>
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {apiKeys.map((apiKey) => (
-                  <tr key={apiKey.id}>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-gray-900">
-                        {sanitizeDisplayText(apiKey.name)}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex flex-wrap gap-1">
-                        {apiKey.scopes.map((scope) => (
-                          <Badge key={scope} variant="info">
-                            {scope}
-                          </Badge>
-                        ))}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {apiKey.lastUsedAt
-                        ? new Date(apiKey.lastUsedAt).toLocaleDateString()
-                        : 'Never'}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {new Date(apiKey.createdAt).toLocaleDateString()}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      {current.isAdmin ? (
-                        <button
-                          className="text-red-600 hover:text-red-900"
-                          onClick={() => openRevokeDialog(apiKey)}
-                        >
-                          Revoke
-                        </button>
-                      ) : (
-                        <span className="text-gray-300">—</span>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            {hasNextPage && (
-              <div className="flex justify-center border-t border-gray-200 bg-gray-50 px-6 py-3">
-                <button
-                  className="text-sm font-medium text-brand-600 hover:text-brand-900 disabled:opacity-50"
-                  disabled={isFetchingNextPage}
-                  onClick={() => {
-                    void fetchNextPage()
-                  }}
-                >
-                  {isFetchingNextPage ? 'Loading…' : 'Load more'}
-                </button>
+          <ResourceTable
+            columns={['Name', 'Scopes', 'Last Used', 'Created']}
+            hasNextPage={hasNextPage}
+            isFetchingNextPage={isFetchingNextPage}
+            onLoadMore={() => void fetchNextPage()}
+            header={
+              <div className="px-6 py-4 border-b border-gray-200">
+                <h2 className="text-lg font-medium text-gray-900">Active API Keys</h2>
+                <p className="mt-1 text-sm text-gray-600">
+                  Keep your API keys secure and never share them publicly
+                </p>
               </div>
-            )}
-          </div>
+            }
+          >
+            {apiKeys.map((apiKey) => (
+              <tr key={apiKey.id}>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <div className="text-sm font-medium text-gray-900">
+                    {sanitizeDisplayText(apiKey.name)}
+                  </div>
+                </td>
+                <td className="px-6 py-4">
+                  <div className="flex flex-wrap gap-1">
+                    {apiKey.scopes.map((scope) => (
+                      <Badge key={scope} variant="info">
+                        {scope}
+                      </Badge>
+                    ))}
+                  </div>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  {apiKey.lastUsedAt ? new Date(apiKey.lastUsedAt).toLocaleDateString() : 'Never'}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  {new Date(apiKey.createdAt).toLocaleDateString()}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                  {current.isAdmin ? (
+                    <button
+                      className="text-red-600 hover:text-red-900"
+                      onClick={() => openRevokeDialog(apiKey)}
+                    >
+                      Revoke
+                    </button>
+                  ) : (
+                    <span className="text-gray-300">—</span>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </ResourceTable>
         )}
       </div>
 
