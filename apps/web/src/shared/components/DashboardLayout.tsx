@@ -3,6 +3,7 @@ import { Link, NavLink, useParams } from 'react-router-dom'
 
 import { UserMenu } from '@/features/auth/components/UserMenu'
 import { OrgSwitcher } from '@/features/organizations/components/OrgSwitcher'
+import { useCurrentMembership } from '@/features/organizations/hooks/useCurrentMembership'
 
 interface DashboardLayoutProps {
   children: ReactNode
@@ -10,6 +11,7 @@ interface DashboardLayoutProps {
 
 export function DashboardLayout({ children }: DashboardLayoutProps) {
   const { orgSlug } = useParams<{ orgSlug: string }>()
+  const current = useCurrentMembership(orgSlug)
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -62,32 +64,34 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                 </svg>
                 Members
               </NavLink>
-              <NavLink
-                to={`/orgs/${orgSlug}/invitations`}
-                className={({ isActive }) =>
-                  `flex items-center px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-                    isActive
-                      ? 'bg-brand-50 text-brand-700 border-l-4 border-brand-600 -ml-[1px]'
-                      : 'text-gray-700 hover:bg-gray-100'
-                  }`
-                }
-              >
-                <svg
-                  className="w-5 h-5 mr-3"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  aria-hidden="true"
+              {current.isAdmin && (
+                <NavLink
+                  to={`/orgs/${orgSlug}/invitations`}
+                  className={({ isActive }) =>
+                    `flex items-center px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                      isActive
+                        ? 'bg-brand-50 text-brand-700 border-l-4 border-brand-600 -ml-[1px]'
+                        : 'text-gray-700 hover:bg-gray-100'
+                    }`
+                  }
                 >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
-                  />
-                </svg>
-                Invitations
-              </NavLink>
+                  <svg
+                    className="w-5 h-5 mr-3"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    aria-hidden="true"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+                    />
+                  </svg>
+                  Invitations
+                </NavLink>
+              )}
               <NavLink
                 to={`/orgs/${orgSlug}/settings`}
                 className={({ isActive }) =>
@@ -120,32 +124,34 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                 </svg>
                 Settings
               </NavLink>
-              <NavLink
-                to={`/orgs/${orgSlug}/api-keys`}
-                className={({ isActive }) =>
-                  `flex items-center px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-                    isActive
-                      ? 'bg-brand-50 text-brand-700 border-l-4 border-brand-600 -ml-[1px]'
-                      : 'text-gray-700 hover:bg-gray-100'
-                  }`
-                }
-              >
-                <svg
-                  className="w-5 h-5 mr-3"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  aria-hidden="true"
+              {current.isAdmin && (
+                <NavLink
+                  to={`/orgs/${orgSlug}/api-keys`}
+                  className={({ isActive }) =>
+                    `flex items-center px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                      isActive
+                        ? 'bg-brand-50 text-brand-700 border-l-4 border-brand-600 -ml-[1px]'
+                        : 'text-gray-700 hover:bg-gray-100'
+                    }`
+                  }
                 >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"
-                  />
-                </svg>
-                API Keys
-              </NavLink>
+                  <svg
+                    className="w-5 h-5 mr-3"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    aria-hidden="true"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"
+                    />
+                  </svg>
+                  API Keys
+                </NavLink>
+              )}
             </nav>
           </aside>
         )}

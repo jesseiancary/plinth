@@ -81,4 +81,28 @@ export const handlers = [
     `${API_URL}/api/v1/orgs/:slug/invitations/:invitationId`,
     () => new HttpResponse(null, { status: 204 }),
   ),
+
+  // API keys
+  http.get(`${API_URL}/api/v1/orgs/:slug/api-keys`, () =>
+    HttpResponse.json({ data: [], nextCursor: null }),
+  ),
+
+  http.post(`${API_URL}/api/v1/orgs/:slug/api-keys`, async ({ request }) => {
+    const body = (await request.json()) as { name: string; scopes: string[] }
+    return HttpResponse.json(
+      {
+        id: 'api-key-id',
+        name: body.name,
+        key: 'sk_live_test_key',
+        scopes: body.scopes,
+        createdAt: new Date().toISOString(),
+      },
+      { status: 201 },
+    )
+  }),
+
+  http.delete(
+    `${API_URL}/api/v1/orgs/:slug/api-keys/:keyId`,
+    () => new HttpResponse(null, { status: 204 }),
+  ),
 ]

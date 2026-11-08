@@ -47,7 +47,7 @@ export function InvitationsPage() {
         ),
       initialPageParam: undefined as string | undefined,
       getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
-      enabled: Boolean(orgSlug),
+      enabled: Boolean(orgSlug) && current.isAdmin,
     })
 
   const revokeMutation = useMutation({
@@ -105,15 +105,46 @@ export function InvitationsPage() {
           )}
         </div>
 
-        {isLoading && (
+        {current.isLoading && (
           <div className="flex justify-center py-12">
             <LoadingSpinner size="lg" />
           </div>
         )}
 
-        {error && <ErrorMessage error={error} title="Failed to load invitations" />}
+        {!current.isLoading && !current.isAdmin && (
+          <EmptyState
+            icon={
+              <svg
+                className="w-12 h-12 text-gray-400"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                aria-hidden="true"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={1.5}
+                  d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+                />
+              </svg>
+            }
+            title="You don't have access"
+            description="You need admin access to manage invitations for this organization."
+          />
+        )}
 
-        {!isLoading && !error && invitations.length === 0 && (
+        {!current.isLoading && current.isAdmin && isLoading && (
+          <div className="flex justify-center py-12">
+            <LoadingSpinner size="lg" />
+          </div>
+        )}
+
+        {current.isAdmin && error && (
+          <ErrorMessage error={error} title="Failed to load invitations" />
+        )}
+
+        {current.isAdmin && !isLoading && !error && invitations.length === 0 && (
           <EmptyState
             icon={
               <svg
@@ -141,7 +172,7 @@ export function InvitationsPage() {
           />
         )}
 
-        {!isLoading && !error && invitations.length > 0 && (
+        {current.isAdmin && !isLoading && !error && invitations.length > 0 && (
           <div className="bg-white shadow rounded-lg overflow-hidden">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
