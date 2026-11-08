@@ -24,6 +24,52 @@ export const handlers = [
 
   http.patch(`${API_URL}/api/v1/auth/password`, () => new HttpResponse(null, { status: 204 })),
 
+  // Organization detail + settings
+  http.get<{ slug: string }>(`${API_URL}/api/v1/orgs/:slug`, ({ params }) =>
+    HttpResponse.json({
+      id: 'org-id',
+      name: 'Acme',
+      slug: params.slug,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    }),
+  ),
+
+  http.patch<{ slug: string }>(`${API_URL}/api/v1/orgs/:slug`, async ({ request, params }) => {
+    const body = (await request.json()) as { name?: string; slug?: string }
+    return HttpResponse.json({
+      id: 'org-id',
+      name: body.name ?? 'Acme',
+      slug: body.slug ?? params.slug,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    })
+  }),
+
+  http.delete(`${API_URL}/api/v1/orgs/:slug`, () => new HttpResponse(null, { status: 204 })),
+
+  http.post<{ slug: string }>(
+    `${API_URL}/api/v1/orgs/:slug/transfer-ownership`,
+    async ({ request, params }) => {
+      const body = (await request.json()) as { newOwnerId: string }
+      return HttpResponse.json({
+        organization: {
+          id: 'org-id',
+          name: 'Acme',
+          slug: params.slug,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        },
+        newOwner: {
+          id: 'membership-id',
+          userId: body.newOwnerId,
+          role: 'OWNER',
+          updatedAt: new Date().toISOString(),
+        },
+      })
+    },
+  ),
+
   // Members
   http.get(`${API_URL}/api/v1/orgs/:slug/members`, () =>
     HttpResponse.json({ data: [], nextCursor: null }),

@@ -284,7 +284,7 @@
 
 - [x] Members page: list (cursor pagination), role badges, inline role change, remove member / leave org
 - [x] Invitations: dedicated page + sidebar nav, invite member modal (email + role), pending invites list (cursor pagination), revoke
-- [ ] Org settings page: rename org, danger zone (delete org, transfer ownership)
+- [x] Org settings page: rename org, danger zone (delete org, transfer ownership)
 - [x] API Keys page: generate key (show once modal with scope selection), list keys (cursor pagination), revoke
 
 ### Accept Invitation Flow (Remaining)
