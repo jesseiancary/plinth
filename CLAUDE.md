@@ -778,8 +778,8 @@ testApp.use(createCsrfProtection({ skipCsrf: false, isProduction: false }))
 
 > Update this section as phases are completed.
 
-**Active:** Phase 5 — React Frontend ✅ Complete (Core Dashboard UI + Accept Invitation Flow shipped)
-**Next:** Phase 6 — Claude Code AI Integration Showcase
+**Active:** Phase 6 — Claude Code AI Integration Showcase ✅ Complete (`.claude/` system + `AI_DEVELOPMENT.md` shipped)
+**Next:** Phase 7 — Testing & Quality
 **Completed:**
 
 - Phase 0 — Repo & Tooling Setup ✅
@@ -788,6 +788,7 @@ testApp.use(createCsrfProtection({ skipCsrf: false, isProduction: false }))
 - Phase 3 — Multi-Tenancy Core ✅ (2026-05-28)
 - Phase 4 — OpenAPI Spec & Scalar Docs ✅ (2026-05-28)
 - Phase 5 — React Frontend ✅ (foundation 2026-05-29; dashboard UI + accept-invite flow 2026-11-07)
+- Phase 6 — Claude Code AI Integration Showcase ✅ (2026-11-08)
 
 See `docs/ROADMAP.md` for full checklist.
 
