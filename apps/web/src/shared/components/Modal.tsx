@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { useEffect, useRef } from 'react'
+import { useEffect, useId, useRef } from 'react'
 import { createPortal } from 'react-dom'
 
 interface ModalProps {
@@ -12,6 +12,14 @@ interface ModalProps {
 export function Modal({ isOpen, onClose, title, children }: ModalProps) {
   const modalRef = useRef<HTMLDivElement>(null)
   const previousActiveElement = useRef<Element | null>(null)
+  // Unique per instance so multiple modals never collide on the same id.
+  const titleId = useId()
+
+  // Keep the latest onClose in a ref so the focus effect depends only on
+  // `isOpen`. Otherwise an unstable onClose identity re-runs the effect on every
+  // render, stealing focus from inputs inside the modal on each keystroke.
+  const onCloseRef = useRef(onClose)
+  onCloseRef.current = onClose
 
   // Focus trap and keyboard handling
   useEffect(() => {
@@ -22,15 +30,16 @@ export function Modal({ isOpen, onClose, title, children }: ModalProps) {
     // Store the previously focused element
     previousActiveElement.current = document.activeElement
 
-    // Focus the modal container
-    if (modalRef.current) {
+    // Focus the modal container, unless something inside it already holds focus
+    // (e.g. a field rendered with autoFocus) so we don't steal it.
+    if (modalRef.current && !modalRef.current.contains(document.activeElement)) {
       modalRef.current.focus()
     }
 
     const handleKeyDown = (e: KeyboardEvent) => {
       // Handle Escape key
       if (e.key === 'Escape') {
-        onClose()
+        onCloseRef.current()
         return
       }
 
@@ -75,7 +84,7 @@ export function Modal({ isOpen, onClose, title, children }: ModalProps) {
         previousActiveElement.current.focus()
       }
     }
-  }, [isOpen, onClose])
+  }, [isOpen])
 
   if (!isOpen) {
     return null
@@ -87,7 +96,7 @@ export function Modal({ isOpen, onClose, title, children }: ModalProps) {
       onClick={onClose}
       role="dialog"
       aria-modal="true"
-      aria-labelledby="modal-title"
+      aria-labelledby={titleId}
     >
       {/* Backdrop */}
       <div className="absolute inset-0 bg-black/50" aria-hidden="true" />
@@ -101,7 +110,7 @@ export function Modal({ isOpen, onClose, title, children }: ModalProps) {
       >
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
-          <h2 id="modal-title" className="text-lg font-semibold text-gray-900">
+          <h2 id={titleId} className="text-lg font-semibold text-gray-900">
             {title}
           </h2>
           <button
