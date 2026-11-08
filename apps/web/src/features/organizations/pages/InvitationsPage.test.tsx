@@ -248,7 +248,11 @@ describe('InvitationsPage', () => {
     renderPage()
 
     await screen.findByText('No pending invitations')
-    await user.click((await screen.findAllByRole('button', { name: 'Invite member' }))[0])
+    const [inviteButton] = await screen.findAllByRole('button', { name: 'Invite member' })
+    if (!inviteButton) {
+      throw new Error('expected an invite button')
+    }
+    await user.click(inviteButton)
 
     await user.type(screen.getByLabelText('Email address'), 'fresh@acme.test')
     await user.click(screen.getByRole('button', { name: 'Send invitation' }))
