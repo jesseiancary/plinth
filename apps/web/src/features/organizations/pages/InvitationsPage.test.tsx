@@ -107,14 +107,15 @@ describe('InvitationsPage', () => {
     expect(screen.getByText('pending-member@acme.test')).toBeInTheDocument()
   })
 
-  it('hides invite and revoke controls from a plain member', async () => {
+  it('shows an access-denied state and hides controls from a plain member', async () => {
     seedHandlers('MEMBER', 'user-member')
     renderPage()
 
-    await screen.findByText('pending-admin@acme.test')
-
+    expect(await screen.findByText("You don't have access")).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Invite member' })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Revoke' })).not.toBeInTheDocument()
+    // The admin-only sidebar link is hidden for members.
+    expect(screen.queryByRole('link', { name: 'Invitations' })).not.toBeInTheDocument()
   })
 
   it('revokes an invitation after confirmation', async () => {
