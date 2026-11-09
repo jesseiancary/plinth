@@ -125,6 +125,18 @@ router.post(
       throw new AppError('Invitation has expired', 410, 'INVITATION_EXPIRED')
     }
 
+    // Bind acceptance to the invited email: the authenticated user must be the
+    // person the invitation was addressed to. Invitation emails are stored
+    // lowercased, but user emails are not normalized on registration, so
+    // compare case-insensitively.
+    if (invitation.email.toLowerCase() !== req.user.email.toLowerCase()) {
+      throw new AppError(
+        'This invitation was sent to a different email address.',
+        403,
+        'INVITATION_EMAIL_MISMATCH',
+      )
+    }
+
     // Check if user is already a member
     const existingMembership = await prisma.membership.findUnique({
       where: {
