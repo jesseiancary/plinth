@@ -288,11 +288,13 @@ jobs:
         with:
           version: 11
 
+      # No cache: 'pnpm' here — this job runs no `pnpm install`, so there is no
+      # pnpm store to cache and setup-node's cache step would error on the
+      # missing path.
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '26'
-          cache: 'pnpm'
 
       # Audits the committed pnpm-lock.yaml against the registry advisory DB.
       # Fails the job on any prod-shipping high or critical advisory. The broader
