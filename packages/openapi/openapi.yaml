@@ -1789,6 +1789,20 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+        '403':
+          description: Authenticated user is not the invited recipient
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                emailMismatch:
+                  summary: Invitation was addressed to a different email
+                  value:
+                    error:
+                      code: INVITATION_EMAIL_MISMATCH
+                      message: This invitation was sent to a different email address.
+                      details: {}
         '404':
           description: Invalid token
           content:

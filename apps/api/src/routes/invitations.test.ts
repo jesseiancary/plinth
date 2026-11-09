@@ -427,6 +427,77 @@ describe('POST /api/v1/invitations/accept', () => {
     expect(response.body.error.code).toBe('USER_ALREADY_MEMBER')
   })
 
+  it('returns 403 when the authenticated user is not the invited email', async () => {
+    const { user: admin } = await createTestUser({ email: 'admin@example.com' })
+    const { user: attacker } = await createTestUser({ email: 'attacker@example.com' })
+
+    const org = await createTestOrg({ slug: 'test-org' })
+    await createTestMembership(admin.id, org.id, 'ADMIN')
+
+    const { token: inviteToken } = await createTestInvitation({
+      email: 'invitee@example.com',
+      organizationId: org.id,
+      invitedById: admin.id,
+      role: 'MEMBER',
+      status: 'PENDING',
+    })
+
+    const accessToken = await generateTestAccessToken(attacker.id, attacker.email)
+
+    const response = await request(app)
+      .post('/api/v1/invitations/accept')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .send({
+        token: inviteToken,
+      })
+      .expect(403)
+    expect(response.body.error.code).toBe('INVITATION_EMAIL_MISMATCH')
+
+    // Invitation must remain usable by its intended recipient
+    const tokenHash = sha256(inviteToken)
+    const invitation = await prisma.invitation.findUnique({ where: { tokenHash } })
+    expect(invitation?.status).toBe('PENDING')
+
+    // No membership should have been created for the attacker
+    const membership = await prisma.membership.findUnique({
+      where: {
+        userId_organizationId: {
+          userId: attacker.id,
+          organizationId: org.id,
+        },
+      },
+    })
+    expect(membership).toBeNull()
+  })
+
+  it('accepts when the user email differs only in case from the invite', async () => {
+    const { user: admin } = await createTestUser({ email: 'admin@example.com' })
+    // Invitation emails are lowercased on write; user emails are not normalized.
+    const { user: invitee } = await createTestUser({ email: 'Invitee@Example.com' })
+
+    const org = await createTestOrg({ slug: 'test-org' })
+    await createTestMembership(admin.id, org.id, 'ADMIN')
+
+    const { token: inviteToken } = await createTestInvitation({
+      email: 'invitee@example.com',
+      organizationId: org.id,
+      invitedById: admin.id,
+      role: 'MEMBER',
+      status: 'PENDING',
+    })
+
+    const accessToken = await generateTestAccessToken(invitee.id, invitee.email)
+
+    const response = await request(app)
+      .post('/api/v1/invitations/accept')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .send({
+        token: inviteToken,
+      })
+      .expect(201)
+    expect(response.body.membership.role).toBe('MEMBER')
+  })
+
   it('returns 410 for expired invitation', async () => {
     const { user: admin } = await createTestUser({ email: 'admin@example.com' })
     const { user: invitee } = await createTestUser({ email: 'invitee@example.com' })

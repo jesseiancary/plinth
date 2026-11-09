@@ -1690,6 +1690,15 @@ export interface operations {
           'application/json': components['schemas']['Error']
         }
       }
+      /** @description Authenticated user is not the invited recipient */
+      403: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['Error']
+        }
+      }
       /** @description Invalid token */
       404: {
         headers: {
