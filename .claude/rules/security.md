@@ -81,9 +81,9 @@ throw new AppError('User-friendly message', statusCode, 'ERROR_CODE')
 
 ### Dependency Management
 
-- [ ] Run `pnpm audit` before every commit (automated in CI)
 - [ ] Review all dependency updates (don't auto-merge Dependabot PRs blindly)
-- [ ] Pin exact versions in `package.json` (no `^` or `~` in production)
+- [ ] Use semver ranges in `package.json` backed by a committed `pnpm-lock.yaml` — the lockfile pins the exact resolved versions, and ranges keep patched transitives reachable via `pnpm update` / `pnpm.overrides`
+- [ ] Prod-shipping highs and criticals are gated in CI by the `security-audit` job (`pnpm audit --prod --audit-level=high`); the broader `--audit-level=moderate` scan stays advisory in the local pre-commit hook
 - [ ] Audit licenses (no GPL/AGPL in SaaS without legal review)
 
 ### Package Installation
