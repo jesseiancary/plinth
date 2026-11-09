@@ -13,6 +13,12 @@ overrides:
   #   resolves vulnerable 1.2.1 (event-loop DoS, patched 1.2.2). Within
   #   magicast's source-map-js@^1.2.1 range.
   source-map-js: '^1.2.2'
+  # follow-redirects: apps/web > axios > follow-redirects resolves vulnerable
+  #   1.16.0 (credential-header leaks on cross-origin redirects, patched
+  #   1.16.2). Bumping axios to ^1.20.0 clears the axios advisories but does
+  #   not float follow-redirects up, so pin it here. Within axios's
+  #   follow-redirects@^1.16.0 range.
+  follow-redirects: '^1.16.2'
 allowBuilds:
   '@prisma/client': true
   '@prisma/engines': true
