@@ -85,6 +85,11 @@ services:
       # Use named volumes for node_modules
       - api_test_node_modules:/app/node_modules
       - api_test_app_node_modules:/app/apps/api/node_modules
+      # Shadow workspace package node_modules so the container's (root) install
+      # does not write them back into the host bind mount as root-owned files.
+      - api_test_openapi_node_modules:/app/packages/openapi/node_modules
+      - api_test_types_node_modules:/app/packages/types/node_modules
+      - api_test_validation_node_modules:/app/packages/validation/node_modules
       # Share pnpm store
       - pnpm_test_store:/root/.local/share/pnpm/store
     depends_on:
@@ -127,6 +132,11 @@ services:
       # Use named volumes for node_modules
       - web_test_node_modules:/app/node_modules
       - web_test_app_node_modules:/app/apps/web/node_modules
+      # Shadow workspace package node_modules so the container's (root) install
+      # does not write them back into the host bind mount as root-owned files.
+      - web_test_openapi_node_modules:/app/packages/openapi/node_modules
+      - web_test_types_node_modules:/app/packages/types/node_modules
+      - web_test_validation_node_modules:/app/packages/validation/node_modules
       # Share pnpm store
       - pnpm_test_store:/root/.local/share/pnpm/store
     depends_on:
@@ -146,9 +156,21 @@ volumes:
     driver: local
   api_test_app_node_modules:
     driver: local
+  api_test_openapi_node_modules:
+    driver: local
+  api_test_types_node_modules:
+    driver: local
+  api_test_validation_node_modules:
+    driver: local
   web_test_node_modules:
     driver: local
   web_test_app_node_modules:
+    driver: local
+  web_test_openapi_node_modules:
+    driver: local
+  web_test_types_node_modules:
+    driver: local
+  web_test_validation_node_modules:
     driver: local
   pnpm_test_store:
     driver: local
