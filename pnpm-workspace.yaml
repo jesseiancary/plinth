@@ -1,6 +1,18 @@
 packages:
   - 'apps/*'
   - 'packages/*'
+overrides:
+  # Patched transitives buried in Prisma's dev/config tooling graph that a
+  # Prisma bump alone does not move. See docs/SECURITY_FOLLOWUP.md item 4.
+  #
+  # fast-uri: prisma > @prisma/dev > @prisma/streams-local > ajv > fast-uri
+  #   resolves vulnerable 3.1.3. Constrained to ^3.x to satisfy ajv's
+  #   fast-uri@^3.0.1 range (4.x would break it).
+  fast-uri: '^3.1.9'
+  # source-map-js: prisma > @prisma/config > c12 > magicast > source-map-js
+  #   resolves vulnerable 1.2.1 (event-loop DoS, patched 1.2.2). Within
+  #   magicast's source-map-js@^1.2.1 range.
+  source-map-js: '^1.2.2'
 allowBuilds:
   '@prisma/client': true
   '@prisma/engines': true
