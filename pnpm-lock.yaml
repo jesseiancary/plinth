@@ -7,6 +7,7 @@ settings:
 overrides:
   fast-uri: ^3.1.9
   source-map-js: ^1.2.2
+  follow-redirects: ^1.16.2
 
 importers:
 
@@ -155,8 +156,8 @@ importers:
         specifier: ^5.101.2
         version: 5.101.2(react@19.2.7)
       axios:
-        specifier: ^1.18.1
-        version: 1.18.1(supports-color@10.2.2)
+        specifier: ^1.20.0
+        version: 1.21.0(supports-color@10.2.2)
       react:
         specifier: ^19.2.7
         version: 19.2.7
@@ -1703,8 +1704,8 @@ packages:
     resolution: {integrity: sha512-NZKeq9AfyQvEeNlN0zSYAaWrmBffJh3IELMZfRpJVWgrpEbtEpnjvzqBPf+mxoI287JohRDoa+/nsfqqiZmF6g==}
     engines: {node: '>= 6.0.0'}
 
-  axios@1.18.1:
-    resolution: {integrity: sha512-3nTvFlvpn9Zu/RkHUqtc7/+al4UpRW5az71ap5zccp6e8RAYEzhMTecX8Dz1wWDYrPpUoB1HAQEGEAEvUr7S9g==}
+  axios@1.21.0:
+    resolution: {integrity: sha512-YCzXMB53Q9PZBsh7yN7wtapit4WepwcHS2fP8QhGsBxSz5YtgYobV7GGlWlAJi+RxfU77GQTQi2DSLUma42EYA==}
 
   balanced-match@1.0.2:
     resolution: {integrity: sha512-3oSeUO0TMV67hN1AmbXsK4yaqU7tjiHlbxRDZOpH0KW9+CeX4bRAaX0Anxt0tx2MrpRpWwQaPwIlISEJhYU5Pw==}
@@ -2297,8 +2298,8 @@ packages:
   fn.name@1.1.0:
     resolution: {integrity: sha512-GRnmB5gPyJpAhTQdSZTSp9uaPSvl09KoYcMQtsB9rQoOmzs9dH6ffeccH+Z+cv6P68Hu5bC6JjRh4Ah/mHSNRw==}
 
-  follow-redirects@1.16.0:
-    resolution: {integrity: sha512-y5rN/uOsadFT/JfYwhxRS5R7Qce+g3zG97+JrtFZlC9klX/W5hD7iiLzScI4nZqUS7DNUdhPgw4xI8W2LuXlUw==}
+  follow-redirects@1.16.3:
+    resolution: {integrity: sha512-toOSoqN6d51Wjf1aOFJYcoVv1aND9rj/CwjLU0Vz40oDuSpWDayCeKe4JpL5NL0WdFvoOOCI3BRo69HahjbR1A==}
     engines: {node: '>=4.0'}
     peerDependencies:
       debug: '*'
@@ -5005,9 +5006,9 @@ snapshots:
 
   aws-ssl-profiles@1.1.2: {}
 
-  axios@1.18.1(supports-color@10.2.2):
+  axios@1.21.0(supports-color@10.2.2):
     dependencies:
-      follow-redirects: 1.16.0
+      follow-redirects: 1.16.3
       form-data: 4.0.6
       https-proxy-agent: 5.0.1(supports-color@10.2.2)
       proxy-from-env: 2.1.0
@@ -5632,7 +5633,7 @@ snapshots:
 
   fn.name@1.1.0: {}
 
-  follow-redirects@1.16.0: {}
+  follow-redirects@1.16.3: {}
 
   foreground-child@3.3.1:
     dependencies:
