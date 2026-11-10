@@ -225,7 +225,7 @@
 
 **Phase 6 (Performance & Production Hardening):**
 
-- [ ] Implement and document rate limiting (429 responses)
+- [x] Implement and document rate limiting (429 responses)
 - [ ] Add authentication for detailed health endpoint status
 - [ ] Implement `vitest-openapi` for automated contract testing (3-4 hour investment)
 
@@ -373,13 +373,13 @@ than `SKILL.md`; the content requirement is satisfied and skills load correctly.
 
 ## Phase 7 — Testing & Quality
 
-- [ ] API integration test suite covering all happy paths (Vitest + Supertest)
-- [ ] RBAC edge case tests: owner demotion, last-owner removal, cross-tenant access attempts
-- [ ] Invitation edge case tests: expired token, already-accepted, revoked
+- [x] API integration test suite covering all happy paths (Vitest + Supertest)
+- [x] RBAC edge case tests: owner demotion, last-owner removal, cross-tenant access attempts
+- [x] Invitation edge case tests: expired token, already-accepted, revoked
 - [ ] API key scope enforcement tests
-- [ ] Frontend: React Testing Library for auth flows and invite acceptance
+- [x] Frontend: React Testing Library for auth flows and invite acceptance
 - [ ] Add test coverage threshold to CI (80% on API)
-- [ ] Add OpenAPI spec drift detection to CI
+- [x] Add OpenAPI spec drift detection to CI
 
 ---
 
