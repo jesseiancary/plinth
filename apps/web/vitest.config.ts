@@ -12,6 +12,9 @@ export default defineConfig({
     // jsdom provides its own Storage implementation which is more battle-tested
     env: {
       NODE_OPTIONS: '--no-webstorage',
+      // Define the API base URL for tests so MSW handlers and the axios client
+      // always agree, independent of the gitignored apps/web/.env (absent in CI).
+      VITE_API_URL: 'https://localhost',
     },
   },
   resolve: {
