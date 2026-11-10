@@ -305,8 +305,14 @@ describe('POST /api/v1/orgs/:slug/transfer-ownership', () => {
       .expect(200)
     expect(response.body.newOwner.role).toBe('OWNER')
     expect(response.body.newOwner.userId).toBe(newOwner.id)
+    expect(response.body.newOwner.user.id).toBe(newOwner.id)
+    expect(response.body.newOwner.user.email).toBe('newowner@example.com')
+    expect(response.body.newOwner.createdAt).toBeDefined()
     expect(response.body.formerOwner.role).toBe('ADMIN')
     expect(response.body.formerOwner.userId).toBe(owner.id)
+    expect(response.body.formerOwner.user.id).toBe(owner.id)
+    expect(response.body.formerOwner.user.email).toBe('owner@example.com')
+    expect(response.body.formerOwner.createdAt).toBeDefined()
   })
 
   it('returns 400 when trying to transfer to self', async () => {

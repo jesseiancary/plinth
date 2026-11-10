@@ -231,7 +231,7 @@
 
 **Phase 7 (API Refinements):**
 
-- [ ] Align transfer ownership response shape (implementation vs OpenAPI)
+- [x] Align transfer ownership response shape (implementation vs OpenAPI)
 
 ---
 

@@ -339,14 +339,18 @@ router.post(
       },
       newOwner: {
         id: newOwner.id,
-        userId: newOwner.userId,
         role: newOwner.role,
+        userId: newOwner.userId,
+        user: newOwner.user,
+        createdAt: newOwner.createdAt,
         updatedAt: newOwner.updatedAt,
       },
       formerOwner: {
         id: formerOwner.id,
-        userId: formerOwner.userId,
         role: formerOwner.role,
+        userId: formerOwner.userId,
+        user: formerOwner.user,
+        createdAt: formerOwner.createdAt,
         updatedAt: formerOwner.updatedAt,
       },
     })
