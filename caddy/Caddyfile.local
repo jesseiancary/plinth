@@ -37,8 +37,9 @@ localhost {
 	# API Routes (reverse proxy to API container)
 	# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-	# API health endpoint (no /api prefix)
-	handle /health {
+	# API health endpoints (no /api prefix): /health and /health/detailed
+	@health path /health /health/*
+	handle @health {
 		reverse_proxy api:3000 {
 			header_up Host {host}
 			header_up X-Real-IP {remote_host}
