@@ -9,7 +9,7 @@
 .PHONY: shell-api shell-web shell-db
 .PHONY: test test-api test-web test-coverage
 .PHONY: test-docker test-docker-api test-docker-web test-docker-clean
-.PHONY: lint lint-fix format format-check typecheck check
+.PHONY: lint lint-fix format format-check typecheck check validate-openapi generate-openapi
 .PHONY: build build-prod
 .PHONY: db-connect db-migrate db-seed db-reset db-studio
 .PHONY: setup
@@ -66,6 +66,7 @@ help: ## Show this help message
 	@echo "  make format-check       Check code formatting"
 	@echo "  make typecheck          Run TypeScript type checking (all packages)"
 	@echo "  make validate-openapi   Validate OpenAPI specification"
+	@echo "  make generate-openapi   Regenerate TypeScript types from the OpenAPI spec"
 	@echo "  make check              Run ALL checks (lint + format + typecheck + openapi)"
 	@echo ""
 	@echo "🏗️  Build:"
@@ -273,6 +274,11 @@ validate-openapi: ## Validate OpenAPI specification
 	@echo "📋 Validating OpenAPI spec..."
 	@docker compose exec api pnpm --filter openapi validate
 	@echo "✅ OpenAPI spec valid"
+
+generate-openapi: ## Regenerate TypeScript types from the OpenAPI spec
+	@echo "⚙️  Generating OpenAPI types..."
+	@docker compose exec api pnpm --filter openapi generate:types
+	@echo "✅ OpenAPI types generated"
 
 check: lint format-check typecheck validate-openapi ## Run ALL quality checks
 	@echo "✅ All quality checks passed!"
