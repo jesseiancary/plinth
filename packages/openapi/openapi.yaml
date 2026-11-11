@@ -760,6 +760,8 @@ paths:
                       code: UNAUTHENTICATED
                       message: Authentication required
                       details: {}
+        '403':
+          $ref: '#/components/responses/InsufficientScope'
         '404':
           description: Organization not found or not a member
           content:
@@ -871,7 +873,7 @@ paths:
                       message: Authentication required
                       details: {}
         '403':
-          description: Insufficient permissions (requires ADMIN)
+          description: Insufficient permissions (requires ADMIN role) or API key scope
           content:
             application/json:
               schema:
@@ -883,6 +885,13 @@ paths:
                     error:
                       code: FORBIDDEN
                       message: Insufficient permissions
+                      details: {}
+                insufficientScope:
+                  summary: API key missing required scope
+                  value:
+                    error:
+                      code: INSUFFICIENT_SCOPE
+                      message: Insufficient scope for this operation
                       details: {}
         '404':
           description: Organization not found or not a member
@@ -1088,6 +1097,8 @@ paths:
                       code: UNAUTHENTICATED
                       message: Authentication required
                       details: {}
+        '403':
+          $ref: '#/components/responses/InsufficientScope'
         '404':
           description: Organization not found or not a member
           content:
@@ -1114,7 +1125,6 @@ paths:
         - Members
       security:
         - bearerAuth: []
-        - apiKeyAuth: []
       parameters:
         - name: slug
           in: path
@@ -1424,7 +1434,6 @@ paths:
         - Invitations
       security:
         - bearerAuth: []
-        - apiKeyAuth: []
       parameters:
         - name: slug
           in: path
@@ -1573,11 +1582,26 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
         '403':
-          description: Insufficient permissions (requires ADMIN)
+          description: Insufficient permissions (requires ADMIN role) or API key scope
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+              examples:
+                forbidden:
+                  summary: User does not have ADMIN role
+                  value:
+                    error:
+                      code: FORBIDDEN
+                      message: Insufficient permissions
+                      details: {}
+                insufficientScope:
+                  summary: API key missing invitations:read scope
+                  value:
+                    error:
+                      code: INSUFFICIENT_SCOPE
+                      message: Insufficient scope for this operation
+                      details: {}
         '404':
           description: Organization not found or not a member
           content:
@@ -1620,11 +1644,26 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
         '403':
-          description: Insufficient permissions (requires ADMIN)
+          description: Insufficient permissions (requires ADMIN role) or API key scope
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+              examples:
+                forbidden:
+                  summary: User does not have ADMIN role
+                  value:
+                    error:
+                      code: FORBIDDEN
+                      message: Insufficient permissions
+                      details: {}
+                insufficientScope:
+                  summary: API key missing invitations:write scope
+                  value:
+                    error:
+                      code: INSUFFICIENT_SCOPE
+                      message: Insufficient scope for this operation
+                      details: {}
         '404':
           description: Organization or invitation not found
           content:
@@ -2029,11 +2068,26 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
         '403':
-          description: Insufficient permissions (requires ADMIN)
+          description: Insufficient permissions (requires ADMIN role) or API key scope
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+              examples:
+                forbidden:
+                  summary: User does not have ADMIN role
+                  value:
+                    error:
+                      code: FORBIDDEN
+                      message: Insufficient permissions
+                      details: {}
+                insufficientScope:
+                  summary: API key missing api-keys:read scope
+                  value:
+                    error:
+                      code: INSUFFICIENT_SCOPE
+                      message: Insufficient scope for this operation
+                      details: {}
         '404':
           description: Organization not found or not a member
           content:
@@ -2359,6 +2413,21 @@ components:
                   code: RATE_LIMIT_EXCEEDED
                   message: Invitation limit reached. Please try again later.
 
+    InsufficientScope:
+      description: Authenticated via API key, but the key lacks the required scope
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          examples:
+            insufficientScope:
+              summary: API key missing required scope
+              value:
+                error:
+                  code: INSUFFICIENT_SCOPE
+                  message: Insufficient scope for this operation
+                  details: {}
+
   securitySchemes:
     bearerAuth:
       type: http
@@ -2374,7 +2443,6 @@ components:
 
 security:
   - bearerAuth: []
-  - apiKeyAuth: []
 
 tags:
   - name: Health

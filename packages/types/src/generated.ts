@@ -573,6 +573,15 @@ export interface components {
         }
       }
     }
+    /** @description Authenticated via API key, but the key lacks the required scope */
+    InsufficientScope: {
+      headers: {
+        [name: string]: unknown
+      }
+      content: {
+        'application/json': components['schemas']['Error']
+      }
+    }
   }
   parameters: never
   requestBodies: never
@@ -982,6 +991,7 @@ export interface operations {
           'application/json': components['schemas']['Error']
         }
       }
+      403: components['responses']['InsufficientScope']
       /** @description Organization not found or not a member */
       404: {
         headers: {
@@ -1091,7 +1101,7 @@ export interface operations {
           'application/json': components['schemas']['Error']
         }
       }
-      /** @description Insufficient permissions (requires ADMIN) */
+      /** @description Insufficient permissions (requires ADMIN role) or API key scope */
       403: {
         headers: {
           [name: string]: unknown
@@ -1158,6 +1168,7 @@ export interface operations {
           'application/json': components['schemas']['Error']
         }
       }
+      403: components['responses']['InsufficientScope']
       /** @description Organization not found or not a member */
       404: {
         headers: {
@@ -1421,7 +1432,7 @@ export interface operations {
           'application/json': components['schemas']['Error']
         }
       }
-      /** @description Insufficient permissions (requires ADMIN) */
+      /** @description Insufficient permissions (requires ADMIN role) or API key scope */
       403: {
         headers: {
           [name: string]: unknown
@@ -1561,7 +1572,7 @@ export interface operations {
           'application/json': components['schemas']['Error']
         }
       }
-      /** @description Insufficient permissions (requires ADMIN) */
+      /** @description Insufficient permissions (requires ADMIN role) or API key scope */
       403: {
         headers: {
           [name: string]: unknown
@@ -1768,7 +1779,7 @@ export interface operations {
           'application/json': components['schemas']['Error']
         }
       }
-      /** @description Insufficient permissions (requires ADMIN) */
+      /** @description Insufficient permissions (requires ADMIN role) or API key scope */
       403: {
         headers: {
           [name: string]: unknown

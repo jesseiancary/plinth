@@ -11,7 +11,12 @@ import {
   invitationIdParamSchema,
   listInvitationsQuerySchema,
 } from '../lib/validation/invitations.js'
-import { authenticateJWT, requireRole } from '../middleware/auth.js'
+import {
+  authenticateApiKeyOptional,
+  authenticateJWT,
+  requireRole,
+  requireRoleOrScope,
+} from '../middleware/auth.js'
 
 const router = Router()
 
@@ -107,7 +112,8 @@ router.get(
   '/:slug/invitations',
   rateLimitConfig.readOperations,
   authenticateJWT,
-  requireRole('OWNER', 'ADMIN'),
+  authenticateApiKeyOptional,
+  requireRoleOrScope(['OWNER', 'ADMIN'], 'invitations:read'),
   asyncHandler(async (req: Request, res: Response) => {
     const query = listInvitationsQuerySchema.parse(req.query)
 
@@ -155,7 +161,8 @@ router.delete(
   '/:slug/invitations/:invitationId',
   rateLimitConfig.writeOperations,
   authenticateJWT,
-  requireRole('OWNER', 'ADMIN'),
+  authenticateApiKeyOptional,
+  requireRoleOrScope(['OWNER', 'ADMIN'], 'invitations:write'),
   asyncHandler(async (req: Request, res: Response) => {
     const { invitationId } = invitationIdParamSchema.parse(req.params)
 

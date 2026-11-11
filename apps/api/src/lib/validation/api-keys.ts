@@ -1,6 +1,15 @@
 import { z } from 'zod'
 
-// Valid API key scopes
+// Valid API key scopes.
+//
+// Enforced today (see requireRoleOrScope wiring): org:read, org:write,
+// members:read, invitations:read, invitations:write, api-keys:read.
+//
+// Reserved for destructive / privilege-escalating actions that remain JWT-only
+// (human) and are therefore never reachable by an API key: org:delete,
+// members:write, api-keys:write. They stay in the vocabulary so keys can be
+// provisioned ahead of future support; granting them currently confers nothing
+// (fail-safe — a key is never granted more than the API enforces).
 const validScopes = [
   'org:read',
   'org:write',
