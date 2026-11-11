@@ -171,7 +171,7 @@ export const handlers = [
       {
         id: 'api-key-id',
         name: body.name,
-        key: 'sk_live_test_key',
+        key: 'mock-plaintext-api-key',
         scopes: body.scopes,
         createdAt: new Date().toISOString(),
       },

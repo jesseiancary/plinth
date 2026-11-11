@@ -231,7 +231,7 @@ describe('ApiKeysPage', () => {
           {
             id: 'key-new',
             name: body.name,
-            key: 'sk_live_test_key',
+            key: 'mock-plaintext-api-key',
             scopes: body.scopes,
             createdAt: '2024-01-05T00:00:00Z',
           },
