@@ -9,3 +9,6 @@ config()
 
 // Ensure LOG_LEVEL is not set in test environment (should use NODE_ENV-based default)
 delete process.env['LOG_LEVEL']
+
+// Enable the detailed health endpoint in tests with a known token
+process.env['HEALTH_CHECK_TOKEN'] = 'test-health-check-token-0123456789'

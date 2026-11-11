@@ -107,6 +107,169 @@ paths:
                     timestamp: '2026-05-28T14:32:15.123Z'
                     database: disconnected
 
+  /health/detailed:
+    get:
+      summary: Detailed health check
+      description: >
+        Extended health status including database latency, process uptime,
+        memory usage, and version information. Protected by a dedicated
+        health-check token (HEALTH_CHECK_TOKEN) so infrastructure monitoring
+        tools can poll it without a user session. Returns 404 when the token is
+        not configured (endpoint disabled).
+      operationId: healthCheckDetailed
+      tags:
+        - Health
+      security:
+        - healthToken: []
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - status
+                  - timestamp
+                  - database
+                  - uptimeSeconds
+                  - memory
+                  - version
+                  - nodeVersion
+                  - environment
+                properties:
+                  status:
+                    type: string
+                    enum: [ok]
+                  timestamp:
+                    type: string
+                    format: date-time
+                  database:
+                    type: object
+                    required:
+                      - status
+                      - latencyMs
+                    properties:
+                      status:
+                        type: string
+                        enum: [connected]
+                      latencyMs:
+                        type: integer
+                  uptimeSeconds:
+                    type: integer
+                  memory:
+                    type: object
+                    required:
+                      - rssMb
+                      - heapUsedMb
+                      - heapTotalMb
+                    properties:
+                      rssMb:
+                        type: number
+                      heapUsedMb:
+                        type: number
+                      heapTotalMb:
+                        type: number
+                  version:
+                    type: string
+                  nodeVersion:
+                    type: string
+                  environment:
+                    type: string
+                    enum: [development, production, test]
+              examples:
+                healthy:
+                  summary: Service healthy
+                  value:
+                    status: ok
+                    timestamp: '2026-05-28T14:32:15.123Z'
+                    database:
+                      status: connected
+                      latencyMs: 3
+                    uptimeSeconds: 8421
+                    memory:
+                      rssMb: 128.45
+                      heapUsedMb: 54.12
+                      heapTotalMb: 72.3
+                    version: 0.0.0
+                    nodeVersion: v24.0.0
+                    environment: production
+        '401':
+          description: Missing or invalid health-check token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                unauthenticated:
+                  summary: Token missing or incorrect
+                  value:
+                    error:
+                      code: UNAUTHENTICATED
+                      message: Authentication required
+                      details: {}
+        '404':
+          description: Detailed health endpoint is not configured
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                disabled:
+                  summary: HEALTH_CHECK_TOKEN not set
+                  value:
+                    error:
+                      code: NOT_FOUND
+                      message: Not found
+                      details: {}
+        '503':
+          description: Service is unhealthy (database unreachable)
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - status
+                  - timestamp
+                  - database
+                  - uptimeSeconds
+                  - memory
+                  - version
+                  - nodeVersion
+                  - environment
+                properties:
+                  status:
+                    type: string
+                    enum: [error]
+                  timestamp:
+                    type: string
+                    format: date-time
+                  database:
+                    type: object
+                    required:
+                      - status
+                    properties:
+                      status:
+                        type: string
+                        enum: [disconnected]
+                  uptimeSeconds:
+                    type: integer
+                  memory:
+                    type: object
+                    properties:
+                      rssMb:
+                        type: number
+                      heapUsedMb:
+                        type: number
+                      heapTotalMb:
+                        type: number
+                  version:
+                    type: string
+                  nodeVersion:
+                    type: string
+                  environment:
+                    type: string
+
   /api/v1/auth/register:
     post:
       summary: Register new user
@@ -2440,6 +2603,11 @@ components:
       scheme: bearer
       bearerFormat: API Key
       description: API key (format sk_live_...)
+
+    healthToken:
+      type: http
+      scheme: bearer
+      description: Shared health-check token (HEALTH_CHECK_TOKEN) for the detailed health endpoint
 
 security:
   - bearerAuth: []
