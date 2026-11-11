@@ -11,12 +11,19 @@ import {
   createApiKeySchema,
   listApiKeysQuerySchema,
 } from '../lib/validation/api-keys.js'
-import { authenticateJWT, requireRole } from '../middleware/auth.js'
+import {
+  authenticateApiKeyOptional,
+  authenticateJWT,
+  requireRole,
+  requireRoleOrScope,
+} from '../middleware/auth.js'
 
 const router = Router()
 
-// Apply JWT authentication to all API key routes
-router.use(authenticateJWT)
+// Populate req.user (JWT) and/or req.apiKey (sk_live_ key) for all API key routes.
+// Listing accepts either; minting and revoking keys stay JWT-only so a key can
+// neither mint successors nor revoke peers (no self-propagating credentials).
+router.use(authenticateJWT, authenticateApiKeyOptional)
 
 /**
  * POST /api/v1/orgs/:slug/api-keys
@@ -64,7 +71,7 @@ router.post(
 router.get(
   '/:slug/api-keys',
   rateLimitConfig.readOperations,
-  requireRole('OWNER', 'ADMIN'),
+  requireRoleOrScope(['OWNER', 'ADMIN'], 'api-keys:read'),
   asyncHandler(async (req: Request, res: Response) => {
     const query = listApiKeysQuerySchema.parse(req.query)
 

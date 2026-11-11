@@ -376,7 +376,7 @@ than `SKILL.md`; the content requirement is satisfied and skills load correctly.
 - [x] API integration test suite covering all happy paths (Vitest + Supertest)
 - [x] RBAC edge case tests: owner demotion, last-owner removal, cross-tenant access attempts
 - [x] Invitation edge case tests: expired token, already-accepted, revoked
-- [ ] API key scope enforcement tests
+- [x] API key scope enforcement tests
 - [x] Frontend: React Testing Library for auth flows and invite acceptance
 - [x] Add test coverage threshold to CI (80% on API)
 - [x] Add OpenAPI spec drift detection to CI

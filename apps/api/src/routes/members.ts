@@ -11,12 +11,19 @@ import {
   transferOwnershipSchema,
   updateMemberRoleSchema,
 } from '../lib/validation/members.js'
-import { authenticateJWT, requireRole } from '../middleware/auth.js'
+import {
+  authenticateApiKeyOptional,
+  authenticateJWT,
+  requireRole,
+  requireRoleOrScope,
+} from '../middleware/auth.js'
 
 const router = Router()
 
-// Apply JWT authentication to all member routes
-router.use(authenticateJWT)
+// Populate req.user (JWT) and/or req.apiKey (sk_live_ key) for all member routes.
+// Listing accepts either; role mutation and ownership transfer stay JWT-only
+// (they resolve the acting member from req.user).
+router.use(authenticateJWT, authenticateApiKeyOptional)
 
 /**
  * GET /api/v1/orgs/:slug/members
@@ -25,7 +32,7 @@ router.use(authenticateJWT)
 router.get(
   '/:slug/members',
   rateLimitConfig.readOperations,
-  requireRole('OWNER', 'ADMIN', 'MEMBER'),
+  requireRoleOrScope(['OWNER', 'ADMIN', 'MEMBER'], 'members:read'),
   asyncHandler(async (req: Request, res: Response) => {
     const query = listMembersQuerySchema.parse(req.query)
 
