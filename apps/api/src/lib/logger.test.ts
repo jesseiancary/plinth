@@ -66,7 +66,7 @@ describe('sanitizeLogData', () => {
   it('should redact API key fields', () => {
     const data = {
       organizationId: 'org-123',
-      apiKey: 'sk_live_abcdefg',
+      apiKey: 'dummy-api-key',
     }
 
     const sanitized = sanitizeLogData(data)
@@ -141,7 +141,7 @@ describe('sanitizeLogData', () => {
         password: 'secret',
         profile: {
           name: 'John',
-          apiKey: 'sk_live_xyz',
+          apiKey: 'dummy-api-key',
         },
       },
     }
@@ -183,7 +183,7 @@ describe('sanitizeLogData', () => {
     const data = {
       PASSWORD: 'secret',
       AccessToken: 'token123',
-      ApiKey: 'sk_live_xyz',
+      ApiKey: 'dummy-api-key',
     }
 
     const sanitized = sanitizeLogData(data)

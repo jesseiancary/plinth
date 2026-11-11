@@ -147,6 +147,27 @@ jobs:
       - name: Run web tests
         run: pnpm --filter web test
 
+  secret-scan:
+    name: Secret Scan (gitleaks)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Use the gitleaks binary (MIT) rather than gitleaks/gitleaks-action,
+      # which gates organization use behind a GITLEAKS_LICENSE secret.
+      - name: Install gitleaks
+        run: |
+          GITLEAKS_VERSION=8.30.1
+          curl -sSfL "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz" \
+            | tar -xz gitleaks
+          sudo mv gitleaks /usr/local/bin/gitleaks
+
+      # Scan the current tree (not full history) so the gate reflects the PR's
+      # committed state; --redact keeps any finding out of the logs.
+      - name: Scan working tree for secrets
+        run: gitleaks dir . --redact --config .gitleaks.toml
+
   openapi-validate:
     name: Validate OpenAPI Spec
     runs-on: ubuntu-latest

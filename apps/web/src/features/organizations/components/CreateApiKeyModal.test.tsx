@@ -66,11 +66,11 @@ describe('CreateApiKeyModal', () => {
     await user.type(screen.getByLabelText('Name'), 'CI key')
     await user.click(screen.getByRole('button', { name: 'Create key' }))
 
-    expect(await screen.findByDisplayValue('sk_live_test_key')).toBeInTheDocument()
+    expect(await screen.findByDisplayValue('mock-plaintext-api-key')).toBeInTheDocument()
 
     await user.click(screen.getByRole('button', { name: 'Copy key' }))
     expect(await screen.findByRole('button', { name: 'Copied!' })).toBeInTheDocument()
-    expect(await navigator.clipboard.readText()).toBe('sk_live_test_key')
+    expect(await navigator.clipboard.readText()).toBe('mock-plaintext-api-key')
   })
 
   it('falls back to manual copy when the clipboard write fails', async () => {
@@ -83,7 +83,7 @@ describe('CreateApiKeyModal', () => {
 
     await user.type(screen.getByLabelText('Name'), 'CI key')
     await user.click(screen.getByRole('button', { name: 'Create key' }))
-    await screen.findByDisplayValue('sk_live_test_key')
+    await screen.findByDisplayValue('mock-plaintext-api-key')
 
     await user.click(screen.getByRole('button', { name: 'Copy key' }))
 
@@ -121,7 +121,7 @@ describe('CreateApiKeyModal', () => {
           {
             id: 'k1',
             name: body.name,
-            key: 'sk_live_test_key',
+            key: 'mock-plaintext-api-key',
             scopes: body.scopes,
             createdAt: '2024-01-01T00:00:00Z',
           },

@@ -1,0 +1,40 @@
+title = "plinth gitleaks config"
+
+# Build on gitleaks' bundled rules (which already include the Stripe-style
+# sk_live_ secret-key pattern this project's API keys also use).
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Generator template, gitignored artifacts, and intentional test/example credentials"
+
+paths = [
+  # API-key generator composes the sk_live_ prefix from a template, not a literal.
+  '''apps/api/src/lib/api-key\.ts''',
+  # Dependency caches / build output / runtime logs / local env file. These are
+  # gitignored and absent in CI's fresh checkout; listed for local-scan parity.
+  '''(^|/)node_modules/''',
+  '''(^|/)\.pnpm-store/''',
+  '''(^|/)coverage/''',
+  '''(^|/)logs/''',
+  '''(^|/)dist/''',
+  '''(^|/)\.env$''',
+]
+
+# Intentional non-production credentials that legitimately appear in committed
+# files (CI workflow, test compose, docs). Matched against the detected value,
+# so they are ignored wherever they occur without weakening scanning elsewhere.
+regexes = [
+  '''0123456798abcfef0123456789abcdef''',
+  '''test-secret-key-for-ci-must-be-at-least-32-chars-long''',
+  '''test-refresh-secret-key-for-ci-must-be-32-chars''',
+  # Fake example JWT access tokens in the OpenAPI response examples. Keyed on the
+  # literal placeholder signature segment (".signature"/".new_signature"), which a
+  # real JWT never has, so the rest of the spec stays scanned for genuine secrets.
+  '''eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.(?:signature|new_signature)''',
+]
+
+# Obvious placeholder tokens used in command/doc examples.
+stopwords = [
+  '''YOUR_TOKEN''',
+]
