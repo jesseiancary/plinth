@@ -15,6 +15,7 @@ const envSchema = z.object({
   SMTP_PASS: z.string().optional(),
   BCRYPT_WORK_FACTOR: z.string().default('10'),
   LOG_LEVEL: z.enum(['error', 'warn', 'info', 'http', 'debug', 'silent']).optional(),
+  HEALTH_CHECK_TOKEN: z.string().min(16).optional(),
 })
 
 export const env = envSchema.parse(process.env)

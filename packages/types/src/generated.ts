@@ -24,6 +24,26 @@ export interface paths {
     patch?: never
     trace?: never
   }
+  '/health/detailed': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /**
+     * Detailed health check
+     * @description Extended health status including database latency, process uptime, memory usage, and version information. Protected by a dedicated health-check token (HEALTH_CHECK_TOKEN) so infrastructure monitoring tools can poll it without a user session. Returns 404 when the token is not configured (endpoint disabled).
+     */
+    get: operations['healthCheckDetailed']
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
   '/api/v1/auth/register': {
     parameters: {
       query?: never
@@ -628,6 +648,91 @@ export interface operations {
             timestamp: string
             /** @enum {string} */
             database: 'disconnected'
+          }
+        }
+      }
+    }
+  }
+  healthCheckDetailed: {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description Service is healthy */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': {
+            /** @enum {string} */
+            status: 'ok'
+            /** Format: date-time */
+            timestamp: string
+            database: {
+              /** @enum {string} */
+              status: 'connected'
+              latencyMs: number
+            }
+            uptimeSeconds: number
+            memory: {
+              rssMb: number
+              heapUsedMb: number
+              heapTotalMb: number
+            }
+            version: string
+            nodeVersion: string
+            /** @enum {string} */
+            environment: 'development' | 'production' | 'test'
+          }
+        }
+      }
+      /** @description Missing or invalid health-check token */
+      401: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['Error']
+        }
+      }
+      /** @description Detailed health endpoint is not configured */
+      404: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['Error']
+        }
+      }
+      /** @description Service is unhealthy (database unreachable) */
+      503: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': {
+            /** @enum {string} */
+            status: 'error'
+            /** Format: date-time */
+            timestamp: string
+            database: {
+              /** @enum {string} */
+              status: 'disconnected'
+            }
+            uptimeSeconds: number
+            memory: {
+              rssMb?: number
+              heapUsedMb?: number
+              heapTotalMb?: number
+            }
+            version: string
+            nodeVersion: string
+            environment: string
           }
         }
       }

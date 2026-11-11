@@ -333,6 +333,8 @@ SMTP_PASS=
 API_URL=https://localhost
 NODE_ENV=development
 PORT=3000
+# Optional: shared token gating GET /health/detailed (unset = endpoint disabled, returns 404)
+HEALTH_CHECK_TOKEN=
 ```
 
 **`apps/web/.env`**
