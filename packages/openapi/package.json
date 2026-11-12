@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "validate": "redocly lint openapi.yaml",
-    "generate:types": "openapi-typescript openapi.yaml -o ../types/src/generated.ts && prettier --write ../types/src/generated.ts",
+    "generate:types": "openapi-typescript openapi.yaml --redocly redocly.codegen.yaml -o ../types/src/generated.ts && prettier --write ../types/src/generated.ts",
     "clean": "rm -rf dist"
   },
   "devDependencies": {
