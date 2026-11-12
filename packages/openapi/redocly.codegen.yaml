@@ -1,0 +1,14 @@
+# Redocly config used ONLY for TypeScript type generation (openapi-typescript).
+#
+# It inherits the strict lint config but disables `operation-4xx-response`.
+# openapi-typescript surfaces that rule as noise because it does not honor
+# `.redocly.lint-ignore.yaml`, where `/health` and `/auth/logout` are
+# intentionally exempted (they have no client-error responses).
+#
+# Enforcement of the rule is unchanged: `redocly lint` (the `validate` script
+# and CI) still reads `redocly.yaml` + `.redocly.lint-ignore.yaml` and flags any
+# OTHER operation that is missing a 4xx response.
+extends:
+  - ./redocly.yaml
+rules:
+  operation-4xx-response: off
