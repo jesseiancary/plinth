@@ -2334,9 +2334,15 @@ components:
               type: string
               description: Human-readable error message
             details:
-              type: object
-              description: Additional error context
-              additionalProperties: true
+              description: >
+                Additional error context. Shape varies by error type: an object
+                for most errors, or an array of validation issues for schema
+                validation failures.
+              oneOf:
+                - type: object
+                  additionalProperties: true
+                - type: array
+                  items: {}
 
     User:
       type: object

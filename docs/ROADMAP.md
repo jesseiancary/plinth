@@ -226,8 +226,8 @@
 **Phase 6 (Performance & Production Hardening):**
 
 - [x] Implement and document rate limiting (429 responses)
-- [ ] Add authentication for detailed health endpoint status
-- [ ] Implement `vitest-openapi` for automated contract testing (3-4 hour investment)
+- [x] Add authentication for detailed health endpoint status
+- [x] Implement `vitest-openapi` for automated contract testing (3-4 hour investment)
 
 **Phase 7 (API Refinements):**
 
