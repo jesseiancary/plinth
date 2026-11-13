@@ -346,5 +346,25 @@ describe('API key authentication (dual-auth endpoints)', () => {
 
       expect(response.body.error.code).toBe('UNAUTHENTICATED')
     })
+
+    it('returns UNAUTHENTICATED (not API_KEY_REVOKED) for a revoked key on a JWT-only route', async () => {
+      // Guards that authenticateApiKeyOptional is NOT wired on JWT-only routes: if it
+      // were, verifyApiKey would reject the revoked key with 401 API_KEY_REVOKED. Since
+      // it isn't, the non-JWT token falls through to requireRole -> 401 UNAUTHENTICATED.
+      const org = await createTestOrg({ slug: 'acme' })
+      const { key } = await createTestApiKey({
+        name: 'Revoked deleter',
+        organizationId: org.id,
+        scopes: ['org:delete'],
+        revokedAt: new Date(),
+      })
+
+      const response = await request(app)
+        .delete('/api/v1/orgs/acme')
+        .set('Authorization', `Bearer ${key}`)
+        .expect(401)
+
+      expect(response.body.error.code).toBe('UNAUTHENTICATED')
+    })
   })
 })

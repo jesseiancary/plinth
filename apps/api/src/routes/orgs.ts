@@ -8,7 +8,6 @@ import { rateLimitConfig } from '../lib/security.js'
 import { createOrgSchema, orgSlugParamSchema, updateOrgSchema } from '../lib/validation/orgs.js'
 import {
   authenticateApiKeyOptional,
-  authenticateJWT,
   requireAuth,
   requireRole,
   requireRoleOrScope,
@@ -16,9 +15,9 @@ import {
 
 const router = Router()
 
-// Populate req.user (JWT) and/or req.apiKey (sk_live_ key) for all org routes.
-// Read + PATCH accept either; create/delete remain JWT-only (human actions).
-router.use(authenticateJWT, authenticateApiKeyOptional)
+// JWT parsing is global (app.ts). Only authenticateApiKeyOptional is wired per-route
+// — on the dual-auth read/update routes — so JWT-only routes never touch the API-key
+// hash lookup / lastUsedAt write.
 
 /**
  * POST /api/v1/orgs
@@ -92,6 +91,7 @@ router.post(
 router.get(
   '/:slug',
   rateLimitConfig.readOperations,
+  authenticateApiKeyOptional,
   requireRoleOrScope(['OWNER', 'ADMIN', 'MEMBER'], 'org:read'),
   asyncHandler(async (req: Request, res: Response) => {
     const { slug } = orgSlugParamSchema.parse(req.params)
@@ -121,6 +121,7 @@ router.get(
 router.patch(
   '/:slug',
   rateLimitConfig.writeOperations,
+  authenticateApiKeyOptional,
   requireRoleOrScope(['OWNER', 'ADMIN'], 'org:write'),
   asyncHandler(async (req: Request, res: Response) => {
     const { slug } = orgSlugParamSchema.parse(req.params)
