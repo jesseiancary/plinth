@@ -446,10 +446,12 @@ export interface components {
         code: string
         /** @description Human-readable error message */
         message: string
-        /** @description Additional error context */
-        details?: {
-          [key: string]: unknown
-        }
+        /** @description Additional error context. Shape varies by error type: an object for most errors, or an array of validation issues for schema validation failures. */
+        details?:
+          | {
+              [key: string]: unknown
+            }
+          | unknown[]
       }
     }
     User: {
