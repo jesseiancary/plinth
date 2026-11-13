@@ -80,11 +80,27 @@ export async function authenticateJWT(
 }
 
 /**
+ * Emit a WARN security event when an `sk_live_` key is presented to a JWT-only
+ * route. Header-only detection — no DB lookup — so JWT-only routes stay off the
+ * API-key validation path (authenticateApiKeyOptional is not wired on them) while
+ * still surfacing credential-abuse probes. We can't tell invalid from revoked
+ * without a lookup; "a key hit a route that forbids keys" is the signal we keep.
+ */
+function logApiKeyOnJwtOnlyRoute(req: Request): void {
+  if (req.headers.authorization?.startsWith('Bearer sk_live_')) {
+    logSecurityEvent('AUTHORIZATION_FAILURE', req, {
+      reason: 'api_key_on_jwt_only_route',
+    })
+  }
+}
+
+/**
  * Middleware to require authentication
  * Must be used after authenticateJWT
  */
 export function requireAuth(req: Request, _res: Response, next: NextFunction): void {
   if (!req.user) {
+    logApiKeyOnJwtOnlyRoute(req)
     throw new AppError('Authentication required', 401, 'UNAUTHENTICATED')
   }
   next()
@@ -97,6 +113,7 @@ export function requireAuth(req: Request, _res: Response, next: NextFunction): v
  */
 async function resolveMembershipRole(req: Request, allowedRoles: string[]): Promise<void> {
   if (!req.user) {
+    logApiKeyOnJwtOnlyRoute(req)
     throw new AppError('Authentication required', 401, 'UNAUTHENTICATED')
   }
 

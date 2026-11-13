@@ -11,14 +11,13 @@ import {
   invitationIdParamSchema,
   listInvitationsQuerySchema,
 } from '../lib/validation/invitations.js'
-import {
-  authenticateApiKeyOptional,
-  authenticateJWT,
-  requireRole,
-  requireRoleOrScope,
-} from '../middleware/auth.js'
+import { authenticateApiKeyOptional, requireRole, requireRoleOrScope } from '../middleware/auth.js'
 
 const router = Router()
+
+// JWT parsing is global (app.ts). Only authenticateApiKeyOptional is wired per-route
+// — on the dual-auth GET/DELETE — so the JWT-only POST never touches the API-key hash
+// lookup / lastUsedAt write.
 
 /**
  * POST /api/v1/orgs/:slug/invitations
@@ -27,7 +26,6 @@ const router = Router()
 router.post(
   '/:slug/invitations',
   rateLimitConfig.invitationCreate,
-  authenticateJWT,
   requireRole('OWNER', 'ADMIN'),
   asyncHandler(async (req: Request, res: Response) => {
     const body = createInvitationSchema.parse(req.body)
@@ -111,7 +109,6 @@ router.post(
 router.get(
   '/:slug/invitations',
   rateLimitConfig.readOperations,
-  authenticateJWT,
   authenticateApiKeyOptional,
   requireRoleOrScope(['OWNER', 'ADMIN'], 'invitations:read'),
   asyncHandler(async (req: Request, res: Response) => {
@@ -160,7 +157,6 @@ router.get(
 router.delete(
   '/:slug/invitations/:invitationId',
   rateLimitConfig.writeOperations,
-  authenticateJWT,
   authenticateApiKeyOptional,
   requireRoleOrScope(['OWNER', 'ADMIN'], 'invitations:write'),
   asyncHandler(async (req: Request, res: Response) => {

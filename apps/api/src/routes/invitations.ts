@@ -10,7 +10,7 @@ import {
   acceptInvitationSchema,
   invitationTokenParamSchema,
 } from '../lib/validation/invitations.js'
-import { authenticateJWT, requireAuth } from '../middleware/auth.js'
+import { requireAuth } from '../middleware/auth.js'
 
 const router = Router()
 
@@ -83,7 +83,6 @@ router.get(
 router.post(
   '/accept',
   rateLimitConfig.invitationAccept,
-  authenticateJWT,
   requireAuth,
   asyncHandler(async (req: Request, res: Response) => {
     const body = acceptInvitationSchema.parse(req.body)
