@@ -93,15 +93,11 @@ router.get(
   rateLimitConfig.readOperations,
   authenticateApiKeyOptional,
   requireRoleOrScope(['OWNER', 'ADMIN', 'MEMBER'], 'org:read'),
-  asyncHandler(async (req: Request, res: Response) => {
-    const { slug } = orgSlugParamSchema.parse(req.params)
-
-    const organization = await prisma.organization.findUnique({
-      where: { slug },
-    })
-
+  asyncHandler((req: Request, res: Response) => {
+    // Resolved by requireRoleOrScope (JWT or API-key path); no re-query needed.
+    const { organization } = req
     if (!organization) {
-      throw new AppError('Organization not found', 404, 'ORG_NOT_FOUND')
+      throw new AppError('Tenant context required', 500, 'INTERNAL_ERROR')
     }
 
     res.json({
