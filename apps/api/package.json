@@ -16,7 +16,7 @@
     "clean": "rm -rf dist",
     "db:migrate": "prisma migrate dev && prisma generate",
     "db:migrate:deploy": "prisma migrate deploy",
-    "db:reset": "prisma migrate reset && prisma generate",
+    "db:reset": "prisma migrate reset --force && prisma generate",
     "db:generate": "prisma generate",
     "db:seed": "tsx --env-file=.env prisma/seed.ts",
     "db:studio": "prisma studio"
