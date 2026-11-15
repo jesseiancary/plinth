@@ -323,13 +323,10 @@ router.post(
       }),
     ])
 
-    // Get organization details
-    const organization = await prisma.organization.findUnique({
-      where: { id: req.tenantId },
-    })
-
+    // Resolved by requireRole while setting tenantId; no re-query needed.
+    const { organization } = req
     if (!organization) {
-      throw new AppError('Organization not found', 404, 'ORG_NOT_FOUND')
+      throw new AppError('Tenant context required', 500, 'INTERNAL_ERROR')
     }
 
     res.json({

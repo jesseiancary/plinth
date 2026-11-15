@@ -1,12 +1,17 @@
 import type { NextFunction, Request, Response } from 'express'
 
 /**
- * Wrapper for async route handlers to ensure errors are caught and passed to next()
+ * Wrapper for route handlers that funnels errors to next() for the error
+ * middleware. Catches both async rejections (via .catch) and synchronous throws
+ * (via try/catch), so the guarantee holds independent of Express's own error
+ * forwarding. Accepts async or sync handlers.
  */
-export function asyncHandler(
-  fn: (req: Request, res: Response, next: NextFunction) => Promise<unknown>,
-) {
+export function asyncHandler(fn: (req: Request, res: Response, next: NextFunction) => unknown) {
   return (req: Request, res: Response, next: NextFunction): void => {
-    Promise.resolve(fn(req, res, next)).catch(next)
+    try {
+      Promise.resolve(fn(req, res, next)).catch(next)
+    } catch (err) {
+      next(err)
+    }
   }
 }
