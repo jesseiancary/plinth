@@ -5,14 +5,14 @@ export default defineConfig({
     globals: true,
     environment: 'node',
     setupFiles: ['./src/lib/test-setup.ts'],
-    include: ['src/**/*.test.ts'],
+    include: ['src/**/*.test.{ts,tsx}'],
     exclude: ['node_modules/**', 'dist/**'],
     // Run tests sequentially to avoid database isolation issues
     fileParallelism: false,
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],
-      exclude: ['node_modules/**', 'dist/**', 'prisma/**', '**/*.test.ts', '**/*.config.ts'],
+      exclude: ['node_modules/**', 'dist/**', 'prisma/**', '**/*.test.{ts,tsx}', '**/*.config.ts'],
       // Enforced in CI via `pnpm --filter api test:coverage` (vitest exits non-zero when
       // a metric falls below its floor). Statements/functions/lines are gated at the
       // project's 80% target (currently ~87%). Branch coverage sits at ~75%, so it is

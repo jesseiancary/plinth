@@ -268,6 +268,30 @@ web:
     - api # Start after API
 ```
 
+**Mailpit Service (email catcher — development only):**
+
+```yaml
+mailpit:
+  image: axllent/mailpit:latest
+  ports:
+    - '8025:8025' # Web UI at http://localhost:8025
+  expose:
+    - '1025' # SMTP - internal only, reached by the API as host 'mailpit'
+  networks:
+    - plinth-network
+```
+
+Mailpit captures **all** outbound email in development so no real SMTP provider or
+credentials are needed. The API sends via `SMTP_HOST=mailpit` / `SMTP_PORT=1025`
+(see `apps/api/.env.example`), and every message the app sends will be viewable in
+the Mailpit inbox — the transactional flows that use it (verification, password
+reset, invitations) land in later Phase 8 PRs:
+
+- **Web UI:** http://localhost:8025 (the only Mailpit port exposed to the host)
+
+In production, point `SMTP_HOST`/`SMTP_PORT`/`SMTP_USER`/`SMTP_PASS`/`SMTP_FROM` at a
+real provider (SendGrid, Postmark, AWS SES, …); Mailpit is not deployed.
+
 ### Named Volumes
 
 ```yaml

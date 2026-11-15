@@ -19,6 +19,8 @@ export type BusinessEventType =
   | 'INVITATION_REVOKED'
   | 'API_KEY_CREATED'
   | 'API_KEY_REVOKED'
+  | 'EMAIL_SENT'
+  | 'EMAIL_SEND_FAILED'
 
 /**
  * Log user registration event
@@ -421,4 +423,52 @@ export const logApiKeyEvent = (params: {
     revokedBy: params.revokedBy,
     timestamp: new Date().toISOString(),
   })
+}
+
+/**
+ * Log transactional email dispatch outcomes.
+ *
+ * Logs metadata only — never the rendered subject-independent body, which may
+ * carry verification/reset tokens or invitation links. Successful sends use INFO;
+ * failures use WARN so a missing/half-configured SMTP setup is visible in logs.
+ *
+ * @param params - Email event details
+ * @param params.event - EMAIL_SENT (success) or EMAIL_SEND_FAILED (dispatch error)
+ * @param params.to - Recipient email address
+ * @param params.subject - Email subject line
+ * @param params.error - Error message (EMAIL_SEND_FAILED only)
+ *
+ * @example
+ * ```typescript
+ * logEmailEvent({ event: 'EMAIL_SENT', to: 'user@example.com', subject: 'Verify your email' })
+ * ```
+ */
+const MAX_EMAIL_ERROR_LENGTH = 200
+
+export const logEmailEvent = (params: {
+  event: 'EMAIL_SENT' | 'EMAIL_SEND_FAILED'
+  to: string
+  subject: string
+  error?: string | undefined
+}) => {
+  // Cap the SMTP server's error text so a verbose provider response can't spill
+  // account/recipient detail into logs.
+  const error =
+    params.error && params.error.length > MAX_EMAIL_ERROR_LENGTH
+      ? `${params.error.slice(0, MAX_EMAIL_ERROR_LENGTH)}…`
+      : params.error
+
+  const meta = {
+    event: params.event,
+    to: params.to,
+    subject: params.subject,
+    error,
+    timestamp: new Date().toISOString(),
+  }
+
+  if (params.event === 'EMAIL_SEND_FAILED') {
+    logger.warn('Email send failed', meta)
+  } else {
+    logger.info('Email sent', meta)
+  }
 }

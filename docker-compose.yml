@@ -25,6 +25,23 @@ services:
       - plinth-network
 
   # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  # Mailpit Service (Email Catcher) — development only
+  # Captures ALL outbound SMTP so no real provider/credentials are needed in dev.
+  # SMTP listens on 1025 (internal); the web UI is exposed on 8025.
+  # Production uses a real SMTP provider (SendGrid, Postmark, AWS SES, etc.).
+  # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: plinth-mailpit
+    restart: unless-stopped
+    ports:
+      - '8025:8025' # Web UI at http://localhost:8025
+    expose:
+      - '1025' # SMTP - internal only, reached by the API as host "mailpit"
+    networks:
+      - plinth-network
+
+  # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   # Caddy Service (Reverse Proxy)
   # Routes HTTPS traffic to API and Web services (development only)
   # Production uses AWS ALB/CloudFront
@@ -92,6 +109,8 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      mailpit:
+        condition: service_started
     healthcheck:
       # Health check runs INSIDE the API container, so localhost:3000 is correct
       # (refers to the container itself, not the host machine)
