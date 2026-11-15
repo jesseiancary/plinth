@@ -18,6 +18,33 @@ export interface ApiKeyContext {
   scopes: string[]
 }
 
+/**
+ * Scalar projection of the `:slug` organization attached to the request by
+ * requireRole / requireRoleOrScope. Exposes only the fields handlers serialize —
+ * no relations — so both auth paths populate an identical shape.
+ */
+export interface OrgContext {
+  id: string
+  name: string
+  slug: string
+  createdAt: Date
+  updatedAt: Date
+}
+
+/**
+ * Project a resolved organization down to the scalar OrgContext. Accepts the
+ * Prisma org from either auth path (the JWT path additionally carries a
+ * `memberships` relation) via structural width subtyping; the returned literal
+ * strips any extras.
+ */
+const toOrgContext = (org: OrgContext): OrgContext => ({
+  id: org.id,
+  name: org.name,
+  slug: org.slug,
+  createdAt: org.createdAt,
+  updatedAt: org.updatedAt,
+})
+
 // Extend Express Request type to include user, API key, and tenantId
 declare global {
   // eslint-disable-next-line @typescript-eslint/no-namespace
@@ -29,6 +56,12 @@ declare global {
       }
       apiKey?: ApiKeyContext
       tenantId?: string
+      /**
+       * The `:slug` organization resolved by requireRole / requireRoleOrScope while
+       * setting tenantId. Handlers read this instead of re-querying the same row.
+       * Both auth paths populate the identical scalar shape (see toOrgContext).
+       */
+      organization?: OrgContext
     }
   }
 }
@@ -151,8 +184,9 @@ async function resolveMembershipRole(req: Request, allowedRoles: string[]): Prom
     throw new AppError('Insufficient permissions', 403, 'FORBIDDEN')
   }
 
-  // Attach tenant ID to request for query scoping
+  // Attach tenant ID + resolved org to request for query scoping / handler reuse
   req.tenantId = organization.id
+  req.organization = toOrgContext(organization)
 }
 
 /**
@@ -212,6 +246,7 @@ export function requireRoleOrScope(allowedRoles: string[], scope: Scope) {
         }
 
         req.tenantId = organization.id
+        req.organization = toOrgContext(organization)
         next()
         return
       }
