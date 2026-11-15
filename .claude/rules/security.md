@@ -141,9 +141,14 @@ throw new AppError('User-friendly message', statusCode, 'ERROR_CODE')
 
 ### Password Requirements
 
-- Minimum 12 characters (enforced via Zod)
-- No password complexity requirements (NIST 800-63B)
+- Minimum 8 characters, maximum 128 (enforced via Zod `strongPasswordSchema` in
+  `packages/validation/src/auth.ts`)
+- Complexity required: at least one uppercase letter, one lowercase letter, one number, and
+  one special character
 - No password expiration
+
+> Note: the complexity rules above diverge from NIST 800-63B, which recommends against
+> composition requirements. Revisit if strict NIST alignment is desired.
 
 ### Rate Limiting
 
