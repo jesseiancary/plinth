@@ -55,7 +55,15 @@ export interface paths {
     put?: never
     /**
      * Register new user
-     * @description Create a new user account and personal organization
+     * @description Record a pending registration and email a single-use verification link. No account is
+     *     created yet — the `User` (plus personal organization and OWNER membership) is
+     *     materialized only when the verification link is clicked, so email ownership (not
+     *     registration order) decides who controls an account. Each registration records its own
+     *     pending submission (own password + single-use link) and never disturbs another's, so a
+     *     third party re-registering the address cannot invalidate or hijack the real owner's
+     *     in-flight verification link. If a **verified** account already exists for the address,
+     *     the request returns a generic `400 REGISTRATION_FAILED` and an account-exists notice is
+     *     emailed to the holder (enumeration-safe).
      */
     post: operations['register']
     delete?: never
@@ -96,32 +104,13 @@ export interface paths {
     /**
      * Verify email address
      * @description Confirm ownership of an email address using the single-use token from the
-     *     verification link. Public endpoint (no session) and CSRF-exempt — the token is
-     *     the credential. On success the account is marked verified and the token is consumed.
+     *     verification link, and materialize the account from the pending registration the token
+     *     was issued for: the `User` (verified), its personal organization, and the OWNER
+     *     membership are created here. Public endpoint (no session) and CSRF-exempt — the token is
+     *     the credential. The token is consumed on success (single-use); replaying it returns
+     *     `400 INVALID_VERIFICATION_TOKEN`.
      */
     post: operations['verifyEmail']
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  '/api/v1/auth/resend-verification': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    get?: never
-    put?: never
-    /**
-     * Resend verification email
-     * @description Request a fresh verification email. Always returns a generic 200 with normalized
-     *     timing regardless of whether the email exists or is already verified, to prevent
-     *     account enumeration. Public endpoint (no session) and CSRF-exempt.
-     */
-    post: operations['resendVerification']
     delete?: never
     options?: never
     head?: never
@@ -813,9 +802,11 @@ export interface operations {
     }
     responses: {
       /**
-       * @description User created successfully. No session is issued — the account starts unverified
-       *     and a verification email is sent. The user must verify their email and then log in
-       *     before receiving tokens.
+       * @description Pending registration recorded and a verification email sent. No account exists yet
+       *     and no session is issued — the user must click the emailed link to materialize the
+       *     account, then log in. The response is a generic acknowledgement (no user object) and
+       *     is identical whether the address was new or already had a pending registration, to
+       *     avoid leaking which addresses are in flight.
        */
       201: {
         headers: {
@@ -823,7 +814,6 @@ export interface operations {
         }
         content: {
           'application/json': {
-            user: components['schemas']['User']
             /** @description Human-readable next-step guidance */
             message: string
           }
@@ -928,48 +918,6 @@ export interface operations {
         }
       }
       /** @description Invalid or expired verification token */
-      400: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['Error']
-        }
-      }
-      429: components['responses']['RateLimitExceeded']
-    }
-  }
-  resendVerification: {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    requestBody: {
-      content: {
-        'application/json': {
-          /**
-           * Format: email
-           * @description Email address to (re)send a verification link to
-           */
-          email: string
-        }
-      }
-    }
-    responses: {
-      /** @description Generic acknowledgement (enumeration-safe — identical for all inputs) */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': {
-            message: string
-          }
-        }
-      }
-      /** @description Validation error */
       400: {
         headers: {
           [name: string]: unknown

@@ -217,16 +217,6 @@ describe('CSRF Protection', () => {
       expect(res.body.error.code).toBe('INVALID_VERIFICATION_TOKEN')
     })
 
-    it('should allow resend-verification without CSRF token (public endpoint)', async () => {
-      // Enumeration-safe generic 200 regardless of input — and crucially not a CSRF 403.
-      const res = await request(app)
-        .post('/api/v1/auth/resend-verification')
-        .send({ email: 'nobody@example.com' })
-
-      expect(res.status).toBe(200)
-      expect(res.body.message).toBeDefined()
-    })
-
     it('should handle refresh endpoint with trailing slash', async () => {
       // First login to get refresh token
       const loginRes = await request(app).post('/api/v1/auth/login').send({

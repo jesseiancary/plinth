@@ -273,7 +273,16 @@ paths:
   /api/v1/auth/register:
     post:
       summary: Register new user
-      description: Create a new user account and personal organization
+      description: |
+        Record a pending registration and email a single-use verification link. No account is
+        created yet — the `User` (plus personal organization and OWNER membership) is
+        materialized only when the verification link is clicked, so email ownership (not
+        registration order) decides who controls an account. Each registration records its own
+        pending submission (own password + single-use link) and never disturbs another's, so a
+        third party re-registering the address cannot invalidate or hijack the real owner's
+        in-flight verification link. If a **verified** account already exists for the address,
+        the request returns a generic `400 REGISTRATION_FAILED` and an account-exists notice is
+        emailed to the holder (enumeration-safe).
       operationId: register
       tags:
         - Auth
@@ -314,32 +323,25 @@ paths:
       responses:
         '201':
           description: |
-            User created successfully. No session is issued — the account starts unverified
-            and a verification email is sent. The user must verify their email and then log in
-            before receiving tokens.
+            Pending registration recorded and a verification email sent. No account exists yet
+            and no session is issued — the user must click the emailed link to materialize the
+            account, then log in. The response is a generic acknowledgement (no user object) and
+            is identical whether the address was new or already had a pending registration, to
+            avoid leaking which addresses are in flight.
           content:
             application/json:
               schema:
                 type: object
                 required:
-                  - user
                   - message
                 properties:
-                  user:
-                    $ref: '#/components/schemas/User'
                   message:
                     type: string
                     description: Human-readable next-step guidance
               examples:
-                userCreated:
-                  summary: User registered successfully (verification required)
+                registrationPending:
+                  summary: Verification required
                   value:
-                    user:
-                      id: usr_4kL8mN2pQ9vR6wY3sF7tX1
-                      email: sarah.chen@example.com
-                      name: Sarah Chen
-                      emailVerified: false
-                      createdAt: '2026-05-28T14:32:15.123Z'
                     message: Account created. Check your email to verify your address before logging in.
         '400':
           description: Validation error
@@ -473,8 +475,11 @@ paths:
       summary: Verify email address
       description: |
         Confirm ownership of an email address using the single-use token from the
-        verification link. Public endpoint (no session) and CSRF-exempt — the token is
-        the credential. On success the account is marked verified and the token is consumed.
+        verification link, and materialize the account from the pending registration the token
+        was issued for: the `User` (verified), its personal organization, and the OWNER
+        membership are created here. Public endpoint (no session) and CSRF-exempt — the token is
+        the credential. The token is consumed on success (single-use); replaying it returns
+        `400 INVALID_VERIFICATION_TOKEN`.
       operationId: verifyEmail
       tags:
         - Auth
@@ -534,70 +539,6 @@ paths:
                       code: VERIFICATION_TOKEN_EXPIRED
                       message: This verification link has expired. Please request a new one.
                       details: {}
-        '429':
-          $ref: '#/components/responses/RateLimitExceeded'
-
-  /api/v1/auth/resend-verification:
-    post:
-      summary: Resend verification email
-      description: |
-        Request a fresh verification email. Always returns a generic 200 with normalized
-        timing regardless of whether the email exists or is already verified, to prevent
-        account enumeration. Public endpoint (no session) and CSRF-exempt.
-      operationId: resendVerification
-      tags:
-        - Auth
-      security: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required:
-                - email
-              properties:
-                email:
-                  type: string
-                  format: email
-                  description: Email address to (re)send a verification link to
-            examples:
-              resend:
-                summary: Resend to an address
-                value:
-                  email: sarah.chen@example.com
-      responses:
-        '200':
-          description: Generic acknowledgement (enumeration-safe — identical for all inputs)
-          content:
-            application/json:
-              schema:
-                type: object
-                required:
-                  - message
-                properties:
-                  message:
-                    type: string
-              examples:
-                acknowledged:
-                  summary: Generic response
-                  value:
-                    message: If an account exists and is unverified, a verification email has been sent.
-        '400':
-          description: Validation error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-              examples:
-                invalidEmail:
-                  summary: Invalid email format
-                  value:
-                    error:
-                      code: VALIDATION_ERROR
-                      message: Validation failed
-                      details:
-                        email: Invalid email address
         '429':
           $ref: '#/components/responses/RateLimitExceeded'
 
