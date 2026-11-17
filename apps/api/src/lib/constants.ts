@@ -34,6 +34,16 @@ export const RATE_LIMIT = {
   AUTH_VERIFY_EMAIL_WINDOW_MS: TIME.FIFTEEN_MINUTES_MS,
   AUTH_VERIFY_EMAIL_MAX: 10,
 
+  // Password reset request. security.md / the roadmap specify 3/hour *per email*; this keys
+  // per-IP instead (consistent with every other limiter here — there is no per-email limiter
+  // infrastructure), so it's a per-IP approximation of that intent, not the per-email bound.
+  AUTH_FORGOT_PASSWORD_WINDOW_MS: TIME.ONE_HOUR_MS,
+  AUTH_FORGOT_PASSWORD_MAX: 3,
+
+  // Reset consumption: allow a few more attempts (mistyped/expired links) within 15 minutes.
+  AUTH_RESET_PASSWORD_WINDOW_MS: TIME.FIFTEEN_MINUTES_MS,
+  AUTH_RESET_PASSWORD_MAX: 10,
+
   AUTH_REFRESH_WINDOW_MS: TIME.FIFTEEN_MINUTES_MS,
   AUTH_REFRESH_MAX: 20,
 

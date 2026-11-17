@@ -217,6 +217,38 @@ describe('CSRF Protection', () => {
       expect(res.body.error.code).toBe('INVALID_VERIFICATION_TOKEN')
     })
 
+    it('should allow forgot-password without CSRF token (public endpoint)', async () => {
+      // No CSRF token sent. An exempt endpoint reaches the handler and returns the generic 200,
+      // rather than being rejected with a CSRF 403.
+      const res = await request(app)
+        .post('/api/v1/auth/forgot-password')
+        .send({ email: 'nobody@example.com' })
+
+      expect(res.status).toBe(200)
+      expect(res.body.message).toBeDefined()
+    })
+
+    it('should allow reset-password without CSRF token (public endpoint)', async () => {
+      // No CSRF token sent. The request must reach the handler (a bad token yields a domain 400,
+      // not a CSRF 403), proving the endpoint is exempt.
+      const res = await request(app)
+        .post('/api/v1/auth/reset-password')
+        .send({ token: 'rst_nonexistent_token', newPassword: 'NewSecurePass123!' })
+
+      expect(res.status).toBe(400)
+      expect(res.body.error.code).toBe('INVALID_RESET_TOKEN')
+    })
+
+    it('should allow reset-password with trailing slash (no CSRF token required)', async () => {
+      // Exercises path normalization: the trailing-slash variant is still matched as exempt.
+      const res = await request(app)
+        .post('/api/v1/auth/reset-password/')
+        .send({ token: 'rst_nonexistent_token', newPassword: 'NewSecurePass123!' })
+
+      expect(res.status).toBe(400)
+      expect(res.body.error.code).toBe('INVALID_RESET_TOKEN')
+    })
+
     it('should handle refresh endpoint with trailing slash', async () => {
       // First login to get refresh token
       const loginRes = await request(app).post('/api/v1/auth/login').send({

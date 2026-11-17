@@ -9,10 +9,14 @@ import {
   clearDatabase,
   createTestPendingRegistration,
   createTestUser,
+  createTestUserWithResetToken,
 } from '../lib/test-helpers.js'
 
 const extractVerificationToken = (html: string | undefined): string | undefined =>
   html?.match(/verify-email\?token=([a-z0-9_]+)/i)?.[1]
+
+const extractResetToken = (html: string | undefined): string | undefined =>
+  html?.match(/reset-password\?token=([a-z0-9_]+)/i)?.[1]
 
 describe('POST /api/v1/auth/register', () => {
   beforeEach(async () => {
@@ -1295,5 +1299,296 @@ describe('Registration — email squatting / account takeover regression', () =>
       .post('/api/v1/auth/login')
       .send({ email: 'squat@example.com', password: 'Attacker@123' })
       .expect(401)
+  })
+})
+
+describe('POST /api/v1/auth/forgot-password', () => {
+  beforeEach(async () => {
+    await clearDatabase()
+    clearTestOutbox()
+  })
+
+  afterEach(async () => {
+    await clearDatabase()
+  })
+
+  it('persists a reset token and emails a link when the email maps to a real account', async () => {
+    const { user } = await createTestUser({ email: 'reset@example.com', name: 'Reset User' })
+
+    const response = await request(app)
+      .post('/api/v1/auth/forgot-password')
+      .send({ email: 'reset@example.com' })
+      .expect(200)
+
+    expect(response.body).toHaveProperty('message')
+
+    // A single-use reset token (hash + expiry) is persisted on the user.
+    const updated = await prisma.user.findUnique({
+      where: { id: user.id },
+      select: { passwordResetTokenHash: true, passwordResetExpiresAt: true },
+    })
+    expect(updated?.passwordResetTokenHash).not.toBeNull()
+    expect(updated?.passwordResetExpiresAt).not.toBeNull()
+    expect(updated?.passwordResetExpiresAt?.getTime()).toBeGreaterThan(Date.now())
+
+    // The emailed link carries the plaintext token whose hash was stored.
+    const token = extractResetToken(getTestOutbox().find((m) => m.to === 'reset@example.com')?.html)
+    expect(token).toBeDefined()
+    expect(updated?.passwordResetTokenHash).toBe(sha256(token as string))
+  })
+
+  it('returns an identical generic 200 and sends no email for an unknown address', async () => {
+    const response = await request(app)
+      .post('/api/v1/auth/forgot-password')
+      .send({ email: 'nobody@example.com' })
+      .expect(200)
+
+    expect(response.body).toHaveProperty('message')
+    // Enumeration-safe: no reset email is dispatched for a non-existent account.
+    expect(getTestOutbox().find((m) => m.to === 'nobody@example.com')).toBeUndefined()
+  })
+
+  it('returns the same message body for known and unknown emails', async () => {
+    await createTestUser({ email: 'known@example.com' })
+
+    const known = await request(app)
+      .post('/api/v1/auth/forgot-password')
+      .send({ email: 'known@example.com' })
+      .expect(200)
+
+    const unknown = await request(app)
+      .post('/api/v1/auth/forgot-password')
+      .send({ email: 'unknown@example.com' })
+      .expect(200)
+
+    expect(known.body).toEqual(unknown.body)
+  })
+
+  it('returns 400 VALIDATION_ERROR for a malformed email', async () => {
+    const response = await request(app)
+      .post('/api/v1/auth/forgot-password')
+      .send({ email: 'not-an-email' })
+      .expect(400)
+
+    expect(response.body.error.code).toBe('VALIDATION_ERROR')
+  })
+
+  it('re-issuing overwrites the prior in-flight reset token', async () => {
+    const { user } = await createTestUser({ email: 'reset@example.com' })
+
+    await request(app)
+      .post('/api/v1/auth/forgot-password')
+      .send({ email: 'reset@example.com' })
+      .expect(200)
+    const first = await prisma.user.findUnique({
+      where: { id: user.id },
+      select: { passwordResetTokenHash: true },
+    })
+
+    await request(app)
+      .post('/api/v1/auth/forgot-password')
+      .send({ email: 'reset@example.com' })
+      .expect(200)
+    const second = await prisma.user.findUnique({
+      where: { id: user.id },
+      select: { passwordResetTokenHash: true },
+    })
+
+    expect(second?.passwordResetTokenHash).not.toBe(first?.passwordResetTokenHash)
+  })
+})
+
+describe('POST /api/v1/auth/reset-password', () => {
+  beforeEach(async () => {
+    await clearDatabase()
+    clearTestOutbox()
+  })
+
+  afterEach(async () => {
+    await clearDatabase()
+  })
+
+  it('sets the new password, clears the token, and lets the user log in', async () => {
+    const { user, token } = await createTestUserWithResetToken({
+      email: 'reset@example.com',
+      password: 'OldP@ssword123',
+    })
+
+    await request(app)
+      .post('/api/v1/auth/reset-password')
+      .send({ token, newPassword: 'NewP@ssword456' })
+      .expect(200)
+
+    // Reset fields are cleared (single-use).
+    const updated = await prisma.user.findUnique({
+      where: { id: user.id },
+      select: { passwordResetTokenHash: true, passwordResetExpiresAt: true },
+    })
+    expect(updated?.passwordResetTokenHash).toBeNull()
+    expect(updated?.passwordResetExpiresAt).toBeNull()
+
+    // New password works; old password does not.
+    await request(app)
+      .post('/api/v1/auth/login')
+      .send({ email: 'reset@example.com', password: 'NewP@ssword456' })
+      .expect(200)
+
+    await request(app)
+      .post('/api/v1/auth/login')
+      .send({ email: 'reset@example.com', password: 'OldP@ssword123' })
+      .expect(401)
+  })
+
+  it('invalidates existing sessions by incrementing tokenVersion', async () => {
+    const { user, token, password } = await createTestUserWithResetToken({
+      email: 'reset@example.com',
+    })
+
+    // Establish a session before the reset.
+    const loginResponse = await request(app)
+      .post('/api/v1/auth/login')
+      .send({ email: 'reset@example.com', password })
+      .expect(200)
+    const cookies = loginResponse.headers['set-cookie'] as unknown as string[]
+
+    const before = await prisma.user.findUnique({
+      where: { id: user.id },
+      select: { tokenVersion: true },
+    })
+
+    await request(app)
+      .post('/api/v1/auth/reset-password')
+      .send({ token, newPassword: 'NewP@ssword456' })
+      .expect(200)
+
+    const after = await prisma.user.findUnique({
+      where: { id: user.id },
+      select: { tokenVersion: true },
+    })
+    expect(after?.tokenVersion).toBe((before?.tokenVersion ?? 0) + 1)
+
+    // The pre-reset refresh token is now rejected.
+    const refreshResponse = await request(app)
+      .post('/api/v1/auth/refresh')
+      .set('Cookie', cookies)
+      .expect(401)
+    expect(refreshResponse.body.error.code).toBe('INVALID_REFRESH_TOKEN')
+  })
+
+  it('returns 400 INVALID_RESET_TOKEN for an unknown token', async () => {
+    const response = await request(app)
+      .post('/api/v1/auth/reset-password')
+      .send({ token: 'rst_does_not_exist', newPassword: 'NewP@ssword456' })
+      .expect(400)
+
+    expect(response.body.error.code).toBe('INVALID_RESET_TOKEN')
+  })
+
+  it('returns 400 RESET_TOKEN_EXPIRED and clears the dead token', async () => {
+    const { user, token } = await createTestUserWithResetToken({
+      email: 'reset@example.com',
+      expiresAt: new Date(Date.now() - 1000),
+    })
+
+    const response = await request(app)
+      .post('/api/v1/auth/reset-password')
+      .send({ token, newPassword: 'NewP@ssword456' })
+      .expect(400)
+
+    expect(response.body.error.code).toBe('RESET_TOKEN_EXPIRED')
+
+    const updated = await prisma.user.findUnique({
+      where: { id: user.id },
+      select: { passwordResetTokenHash: true, passwordResetExpiresAt: true },
+    })
+    expect(updated?.passwordResetTokenHash).toBeNull()
+    expect(updated?.passwordResetExpiresAt).toBeNull()
+  })
+
+  it('enforces single use: a consumed token cannot be replayed', async () => {
+    const { token } = await createTestUserWithResetToken({ email: 'reset@example.com' })
+
+    await request(app)
+      .post('/api/v1/auth/reset-password')
+      .send({ token, newPassword: 'NewP@ssword456' })
+      .expect(200)
+
+    const replay = await request(app)
+      .post('/api/v1/auth/reset-password')
+      .send({ token, newPassword: 'AnotherP@ss789' })
+      .expect(400)
+    expect(replay.body.error.code).toBe('INVALID_RESET_TOKEN')
+  })
+
+  it('enforces single use under concurrent requests carrying the same token', async () => {
+    // TOCTOU guard: two requests with the same still-valid token race. Consumption is an atomic
+    // guarded update, so exactly one wins (200) and the other updates zero rows (400) — they can
+    // never both succeed regardless of interleaving.
+    const { token } = await createTestUserWithResetToken({ email: 'reset@example.com' })
+
+    const [first, second] = await Promise.all([
+      request(app)
+        .post('/api/v1/auth/reset-password')
+        .send({ token, newPassword: 'NewP@ssword456' }),
+      request(app)
+        .post('/api/v1/auth/reset-password')
+        .send({ token, newPassword: 'AnotherP@ss789' }),
+    ])
+
+    const statuses = [first.status, second.status].sort((a, b) => a - b)
+    expect(statuses).toEqual([200, 400])
+  })
+
+  it('returns 400 VALIDATION_ERROR when the new password is too weak', async () => {
+    const { token } = await createTestUserWithResetToken({ email: 'reset@example.com' })
+
+    const response = await request(app)
+      .post('/api/v1/auth/reset-password')
+      .send({ token, newPassword: 'weak' })
+      .expect(400)
+
+    expect(response.body.error.code).toBe('VALIDATION_ERROR')
+  })
+
+  it('returns 400 VALIDATION_ERROR when the token is missing', async () => {
+    const response = await request(app)
+      .post('/api/v1/auth/reset-password')
+      .send({ newPassword: 'NewP@ssword456' })
+      .expect(400)
+
+    expect(response.body.error.code).toBe('VALIDATION_ERROR')
+  })
+})
+
+describe('Password reset — enumeration-safe end-to-end', () => {
+  beforeEach(async () => {
+    await clearDatabase()
+    clearTestOutbox()
+  })
+
+  afterEach(async () => {
+    await clearDatabase()
+  })
+
+  it('drives the full forgot → email → reset → login flow', async () => {
+    await createTestUser({ email: 'flow@example.com', password: 'OldP@ssword123' })
+
+    await request(app)
+      .post('/api/v1/auth/forgot-password')
+      .send({ email: 'flow@example.com' })
+      .expect(200)
+
+    const token = extractResetToken(getTestOutbox().find((m) => m.to === 'flow@example.com')?.html)
+    expect(token).toBeDefined()
+
+    await request(app)
+      .post('/api/v1/auth/reset-password')
+      .send({ token, newPassword: 'BrandNewP@ss1' })
+      .expect(200)
+
+    await request(app)
+      .post('/api/v1/auth/login')
+      .send({ email: 'flow@example.com', password: 'BrandNewP@ss1' })
+      .expect(200)
   })
 })

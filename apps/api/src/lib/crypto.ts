@@ -8,21 +8,32 @@ export function sha256(input: string): string {
 }
 
 /**
- * Generate an invitation token with format: inv_<UUIDv7>
- * Uses UUIDv7 for time-ordering and better database indexing
+ * Generate a single-use secret token with a typed prefix and 256 bits of CSPRNG entropy
+ * (`crypto.randomBytes(32)`, hex-encoded). Only the SHA-256 hash of the token is ever persisted
+ * (the stored column is random regardless of plaintext, so there is no DB-ordering benefit to a
+ * time-based UUID here); the plaintext travels only in the emailed link.
  */
-export function generateInvitationToken(): string {
-  const uuid = crypto.randomUUIDv7()
-  const compactUuid = uuid.replace(/-/g, '')
-  return `inv_${compactUuid}`
+function generateSecretToken(prefix: string): string {
+  return `${prefix}_${crypto.randomBytes(32).toString('hex')}`
 }
 
 /**
- * Generate an email verification token with format: ver_<UUIDv7>
- * Only the SHA-256 hash is persisted; the plaintext travels in the emailed link.
+ * Generate an invitation token with format: inv_<64 hex chars>.
+ */
+export function generateInvitationToken(): string {
+  return generateSecretToken('inv')
+}
+
+/**
+ * Generate an email verification token with format: ver_<64 hex chars>.
  */
 export function generateVerificationToken(): string {
-  const uuid = crypto.randomUUIDv7()
-  const compactUuid = uuid.replace(/-/g, '')
-  return `ver_${compactUuid}`
+  return generateSecretToken('ver')
+}
+
+/**
+ * Generate a password-reset token with format: rst_<64 hex chars>.
+ */
+export function generateResetToken(): string {
+  return generateSecretToken('rst')
 }

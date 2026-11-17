@@ -29,6 +29,14 @@ model User {
 
   emailVerified Boolean @default(false) // Set true at account materialization; login is gated on this
 
+  // Self-service password reset. Only the SHA-256 hash of the emailed token is persisted
+  // (consistent with Invitation.tokenHash); the plaintext travels only in the reset link.
+  // `@unique` enforces single-issuance at the DB level (matching every other single-use
+  // secret-hash column) and indexes the lookup; Postgres permits many NULLs under it, which is
+  // the common state. Single-use: both fields cleared on consumption.
+  passwordResetTokenHash String?   @unique @db.VarChar(64)
+  passwordResetExpiresAt DateTime? @db.Timestamptz
+
   createdAt DateTime @default(now()) @db.Timestamptz
   updatedAt DateTime @updatedAt @db.Timestamptz
 

@@ -58,15 +58,33 @@ timestamp: new Date().toISOString() }`. Ad-hoc `logger.info('X happened', {...})
   endpoint is therefore only constant-time if its slow branch does no _awaited_ work that can
   itself exceed the floor (e.g. `await`ing a real SMTP send). The fix pattern adopted here is to
   dispatch the send fire-and-forget: `dispatchAuthEmail` → `void safeSend()` in non-test env
-  (apps/api/src/routes/auth.ts), so the real-send branch no longer blocks the response.
-  `POST /auth/resend-verification` and the duplicate-registration branch already follow this, so
-  do NOT re-flag them. When PR3's `forgot-password` lands (see `docs/PHASE_8_PLAN.md`), confirm it
-  reuses `dispatchAuthEmail` and awaits no email send before `normalizeAuthTiming` — an
-  `await sendEmail(...)` ahead of the timing normalizer would be a High (A07) timing oracle.
+  (apps/api/src/routes/auth.ts), so the real-send branch no longer blocks the response. Confirmed
+  in PR3 (`forgot-password`, 2026-11-17): it correctly reuses `dispatchAuthEmail` and awaits it
+  before `normalizeAuthTiming`, so this is resolved — note is kept only as the canonical example
+  if another enumeration-safe + email-send endpoint is added.
 - 2026-11-15: When a PR adds a new public (CSRF-exempt) auth endpoint and appends its path to the
   exemption list in `apps/api/src/middleware/csrf.ts`, check `apps/api/src/middleware/csrf.test.ts`
   for a matching `it('should allow <endpoint> without CSRF token ...')` test — that file has an
   established per-endpoint-exemption test pattern (including trailing-slash variants) that is easy
-  to forget to extend for newly-added exempt paths. (`/auth/verify-email` and
-  `/auth/resend-verification` did get matching exemption tests in `csrf.test.ts` — keep that up
-  for future exempt paths such as PR3's `forgot-password`/`reset-password`.)
+  to forget to extend for newly-added exempt paths. `/auth/verify-email` has one; `/auth/resend-
+verification` was later removed entirely (don't expect it). **Confirmed miss in PR3** (2026-11-17):
+  `forgot-password`/`reset-password` were added to the exemption list in `csrf.ts` but no matching
+  tests were added to `csrf.test.ts` — the exemption works (verified by reading the normalizedPath
+  check), but is untested. Keep flagging this gap every time a new exempt path is added until the
+  team closes it.
+- 2026-11-17: Single-use token consumption (`verify-email`'s pending-registration materialization,
+  `apps/api/src/lib/pending-registration.ts`) is made race-safe via a `$transaction` that relies on
+  a DB-level unique constraint (`users.email`) and catches the violation to collapse to the
+  already-consumed outcome. `reset-password` (PR3, `apps/api/src/routes/auth.ts`) does NOT follow
+  this: it's a plain `findFirst` → check → `update` with no atomicity, so two concurrent requests
+  bearing the same valid token can both pass validation and both write (last write wins), breaking
+  the single-use guarantee under a race. Flag this pattern (plain read-check-write on a
+  single-use/token-consumption field) as Medium whenever it reappears — the fix is `updateMany`
+  scoped to `{ id, <tokenHashField> }` and checking `count === 1`/`0`, mirroring the atomicity the
+  codebase already uses elsewhere for the same problem class.
+- 2026-11-17: Every other persisted single-use secret-hash column in `schema.prisma`
+  (`PendingRegistration.verificationTokenHash`, `Invitation.tokenHash`, `ApiKey.keyHash`) is
+  `@unique`. PR3's `User.passwordResetTokenHash` is only `@@index`-ed, not `@unique`, despite its
+  own comment claiming to be "consistent with Invitation.tokenHash." Nullable columns allow
+  multiple `NULL`s under a unique constraint in Postgres, so there's no cost to adding it. Flag as
+  Low/Medium (defense-in-depth + consistency) whenever a new hashed-token column skips `@unique`.

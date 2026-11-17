@@ -11,6 +11,7 @@ import {
   createTestMembership,
   createTestOrg,
   createTestUser,
+  createTestUserWithResetToken,
   generateTestAccessToken,
 } from '../lib/test-helpers.js'
 
@@ -50,6 +51,24 @@ describe('OpenAPI contract', () => {
         .post('/api/v1/auth/register')
         .send({ email: 'new@example.com', password: 'Password123!', name: 'New User' })
         .expect(201)
+      expect(response).toSatisfyApiSpec()
+    })
+
+    it('POST /api/v1/auth/forgot-password (generic 200)', async () => {
+      await createTestUser({ email: 'reset@example.com' })
+      const response = await request(app)
+        .post('/api/v1/auth/forgot-password')
+        .send({ email: 'reset@example.com' })
+        .expect(200)
+      expect(response).toSatisfyApiSpec()
+    })
+
+    it('POST /api/v1/auth/reset-password (200 message)', async () => {
+      const { token } = await createTestUserWithResetToken({ email: 'reset@example.com' })
+      const response = await request(app)
+        .post('/api/v1/auth/reset-password')
+        .send({ token, newPassword: 'NewSecureP@ss1' })
+        .expect(200)
       expect(response).toSatisfyApiSpec()
     })
 
@@ -98,13 +117,16 @@ describe('OpenAPI contract', () => {
       expect(response).toSatisfyApiSpec()
     })
 
-    it('400 validation error with object details (auth route)', async () => {
+    it('400 validation error with array details (auth route — canonical shape)', async () => {
+      // Auth routes now let ZodErrors flow to the global error handler like every other route,
+      // so their validation-error `details` is the same `err.issues` array (no per-route wrap).
       const response = await request(app)
         .post('/api/v1/auth/register')
         .send({ email: 'not-an-email', password: 'short', name: '' })
         .expect(400)
 
-      expect(Array.isArray(response.body.error.details)).toBe(false)
+      expect(Array.isArray(response.body.error.details)).toBe(true)
+      expect(response.body.error.code).toBe('VALIDATION_ERROR')
       expect(response).toSatisfyApiSpec()
     })
 
