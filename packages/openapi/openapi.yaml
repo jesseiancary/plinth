@@ -313,35 +313,34 @@ paths:
                   name: Sarah Chen
       responses:
         '201':
-          description: User created successfully
-          headers:
-            Set-Cookie:
-              schema:
-                type: string
-                example: refreshToken=...; HttpOnly; Secure; SameSite=Strict
+          description: |
+            User created successfully. No session is issued — the account starts unverified
+            and a verification email is sent. The user must verify their email and then log in
+            before receiving tokens.
           content:
             application/json:
               schema:
                 type: object
                 required:
-                  - accessToken
                   - user
+                  - message
                 properties:
-                  accessToken:
-                    type: string
-                    description: JWT access token
                   user:
                     $ref: '#/components/schemas/User'
+                  message:
+                    type: string
+                    description: Human-readable next-step guidance
               examples:
                 userCreated:
-                  summary: User registered successfully
+                  summary: User registered successfully (verification required)
                   value:
-                    accessToken: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJ1c3JfNGtMOG1OMnBROXZSNndZM3NGN3RYMSIsImlhdCI6MTcxNjg5MzIwMCwiZXhwIjoxNzE2ODk0MTAwfQ.signature
                     user:
                       id: usr_4kL8mN2pQ9vR6wY3sF7tX1
                       email: sarah.chen@example.com
                       name: Sarah Chen
+                      emailVerified: false
                       createdAt: '2026-05-28T14:32:15.123Z'
+                    message: Account created. Check your email to verify your address before logging in.
         '400':
           description: Validation error
           content:
@@ -452,6 +451,153 @@ paths:
                       code: INVALID_CREDENTIALS
                       message: Invalid credentials
                       details: {}
+        '403':
+          description: Email address not verified
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                emailNotVerified:
+                  summary: Account exists and password is correct, but email is unverified
+                  value:
+                    error:
+                      code: EMAIL_NOT_VERIFIED
+                      message: Please verify your email address before logging in.
+                      details: {}
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+
+  /api/v1/auth/verify-email:
+    post:
+      summary: Verify email address
+      description: |
+        Confirm ownership of an email address using the single-use token from the
+        verification link. Public endpoint (no session) and CSRF-exempt — the token is
+        the credential. On success the account is marked verified and the token is consumed.
+      operationId: verifyEmail
+      tags:
+        - Auth
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - token
+              properties:
+                token:
+                  type: string
+                  description: Single-use verification token from the emailed link
+            examples:
+              verify:
+                summary: Verify with emailed token
+                value:
+                  token: ver_0192f1e2a3b44c5d6e7f8a9b0c1d2e3f
+      responses:
+        '200':
+          description: Email verified successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - message
+                properties:
+                  message:
+                    type: string
+              examples:
+                verified:
+                  summary: Verification succeeded
+                  value:
+                    message: Email verified successfully. You can now log in.
+        '400':
+          description: Invalid or expired verification token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                invalidToken:
+                  summary: Token unknown or already consumed (single-use)
+                  value:
+                    error:
+                      code: INVALID_VERIFICATION_TOKEN
+                      message: Invalid or expired verification token
+                      details: {}
+                expiredToken:
+                  summary: Token past its expiry
+                  value:
+                    error:
+                      code: VERIFICATION_TOKEN_EXPIRED
+                      message: This verification link has expired. Please request a new one.
+                      details: {}
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+
+  /api/v1/auth/resend-verification:
+    post:
+      summary: Resend verification email
+      description: |
+        Request a fresh verification email. Always returns a generic 200 with normalized
+        timing regardless of whether the email exists or is already verified, to prevent
+        account enumeration. Public endpoint (no session) and CSRF-exempt.
+      operationId: resendVerification
+      tags:
+        - Auth
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+              properties:
+                email:
+                  type: string
+                  format: email
+                  description: Email address to (re)send a verification link to
+            examples:
+              resend:
+                summary: Resend to an address
+                value:
+                  email: sarah.chen@example.com
+      responses:
+        '200':
+          description: Generic acknowledgement (enumeration-safe — identical for all inputs)
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - message
+                properties:
+                  message:
+                    type: string
+              examples:
+                acknowledged:
+                  summary: Generic response
+                  value:
+                    message: If an account exists and is unverified, a verification email has been sent.
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                invalidEmail:
+                  summary: Invalid email format
+                  value:
+                    error:
+                      code: VALIDATION_ERROR
+                      message: Validation failed
+                      details:
+                        email: Invalid email address
         '429':
           $ref: '#/components/responses/RateLimitExceeded'
 
@@ -574,6 +720,9 @@ paths:
                   name:
                     type: string
                     description: User name
+                  emailVerified:
+                    type: boolean
+                    description: Whether the user has confirmed ownership of their email address
                   createdAt:
                     type: string
                     format: date-time
@@ -616,6 +765,7 @@ paths:
                     id: usr_4kL8mN2pQ9vR6wY3sF7tX1
                     email: sarah.chen@example.com
                     name: Sarah Chen
+                    emailVerified: true
                     createdAt: '2026-05-15T09:23:41.123Z'
                     memberships:
                       - id: mem_9zX2pL5qK8vN4wR7tY3sF6
@@ -2362,6 +2512,9 @@ components:
         name:
           type: string
           description: User full name
+        emailVerified:
+          type: boolean
+          description: Whether the user has confirmed ownership of their email address
         createdAt:
           type: string
           format: date-time

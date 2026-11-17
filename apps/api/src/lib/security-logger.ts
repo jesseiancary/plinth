@@ -18,6 +18,9 @@ export type SecurityEventType =
   | 'INVALID_INVITATION_TOKEN'
   | 'PASSWORD_CHANGED'
   | 'EMAIL_CHANGED'
+  | 'EMAIL_VERIFIED'
+  | 'VERIFICATION_RESENT'
+  | 'LOGIN_BLOCKED_UNVERIFIED'
 
 /**
  * Log a failed authentication attempt

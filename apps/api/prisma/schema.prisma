@@ -26,8 +26,13 @@ model User {
   password     String   @db.VarChar(255) // bcrypt hash
   name         String   @db.VarChar(255)
   tokenVersion Int      @default(0) // Increment to invalidate all refresh tokens
-  createdAt    DateTime @default(now()) @db.Timestamptz
-  updatedAt    DateTime @updatedAt @db.Timestamptz
+
+  emailVerified         Boolean   @default(false) // New registrations start unverified; login is gated on this
+  verificationTokenHash String?   @unique @db.VarChar(64) // SHA-256 of the emailed verification token (64 hex chars); single-use, like Invitation.tokenHash
+  verificationExpiresAt DateTime? @db.Timestamptz // When the current verification token expires
+
+  createdAt DateTime @default(now()) @db.Timestamptz
+  updatedAt DateTime @updatedAt @db.Timestamptz
 
   memberships        Membership[]
   createdInvitations Invitation[] @relation("InvitationCreatedBy")

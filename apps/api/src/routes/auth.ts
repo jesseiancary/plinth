@@ -6,11 +6,15 @@ import {
   changePasswordSchema,
   loginSchema,
   registerSchema,
+  resendVerificationSchema,
+  verifyEmailSchema,
 } from '@plinth/validation'
 
 import { asyncHandler } from '../lib/async-handler.js'
+import { sendAccountExistsEmail, sendVerificationEmail } from '../lib/auth-emails.js'
 import { logUserLogin, logUserLogout, logUserRegistration } from '../lib/business-logger.js'
 import { TIME } from '../lib/constants.js'
+import { generateVerificationToken, sha256 } from '../lib/crypto.js'
 import { prisma } from '../lib/db.js'
 import { env } from '../lib/env.js'
 import { AppError } from '../lib/errors.js'
@@ -22,6 +26,45 @@ import { generateUniqueSlug } from '../lib/slug.js'
 import { requireAuth } from '../middleware/auth.js'
 
 const router = Router()
+
+/**
+ * Verification tokens live for 24 hours (matches the copy in the VerifyEmail template).
+ */
+const VERIFICATION_TOKEN_TTL_MS = TIME.ONE_DAY_MS
+
+const isTestEnv = env.NODE_ENV === 'test'
+
+/**
+ * Dispatch a transactional auth email without letting it affect the HTTP response.
+ *
+ * Failures are swallowed (the email layer logs `EMAIL_SEND_FAILED` for both template-render
+ * and SMTP-delivery failures) so a transient outage can't fail the request — verification can
+ * always be re-triggered via `POST /auth/resend-verification`.
+ *
+ * In production the send is **fire-and-forget**: awaiting a slow SMTP round-trip would both
+ * delay the caller and, on the enumeration-safe endpoints (`resend-verification` and the
+ * duplicate-registration branch), create a timing oracle — `normalizeAuthTiming` only raises
+ * latency to a floor, it cannot cap it, so an awaited send would make the "account exists and
+ * is unverified" branch measurably slower than the no-op branches. In the test environment we
+ * await instead, so the in-memory outbox is populated deterministically for assertions.
+ */
+const dispatchAuthEmail = async (send: () => Promise<void>): Promise<void> => {
+  const safeSend = async (): Promise<void> => {
+    try {
+      await send()
+    } catch {
+      // Intentionally ignored — failure already logged by the email layer.
+    }
+  }
+
+  if (isTestEnv) {
+    await safeSend()
+    return
+  }
+
+  // Fire-and-forget: safeSend never rejects, so no unhandled rejection.
+  void safeSend()
+}
 
 /**
  * POST /api/v1/auth/register
@@ -43,6 +86,12 @@ router.post(
       })
 
       if (existingUser) {
+        // Enumeration-safe: the response is generic, but we notify the real account holder
+        // out-of-band so they're aware of the attempt without the request confirming the
+        // address exists.
+        await dispatchAuthEmail(() =>
+          sendAccountExistsEmail({ to: existingUser.email, name: existingUser.name }),
+        )
         await normalizeAuthTiming(startTime)
         logSecurityEvent('REGISTRATION_FAILED', req, { email: body.email })
         throw new AppError('Unable to complete registration', 400, 'REGISTRATION_FAILED')
@@ -54,12 +103,17 @@ router.post(
       // Generate unique slug for personal organization
       const orgSlug = await generateUniqueSlug(body.name)
 
-      // Create user and personal organization in a transaction
+      // Prepare a single-use email verification token (only the hash is persisted)
+      const verificationToken = generateVerificationToken()
+
+      // Create user (unverified) and personal organization in a transaction
       const user = await prisma.user.create({
         data: {
           email: body.email,
           password: passwordHash,
           name: body.name,
+          verificationTokenHash: sha256(verificationToken),
+          verificationExpiresAt: new Date(Date.now() + VERIFICATION_TOKEN_TTL_MS),
           memberships: {
             create: {
               role: 'OWNER',
@@ -81,25 +135,9 @@ router.post(
         },
       })
 
-      // Generate tokens
-      const accessToken = signAccessToken({
-        userId: user.id,
-        email: user.email,
-        tokenVersion: user.tokenVersion,
-      })
-
-      const refreshToken = signRefreshToken({
-        userId: user.id,
-        tokenVersion: user.tokenVersion,
-      })
-
-      // Set refresh token as httpOnly cookie
-      res.cookie('refreshToken', refreshToken, {
-        httpOnly: true,
-        secure: env.NODE_ENV === 'production',
-        sameSite: 'strict',
-        maxAge: TIME.ONE_WEEK_MS,
-      })
+      await dispatchAuthEmail(() =>
+        sendVerificationEmail({ to: user.email, name: user.name, token: verificationToken }),
+      )
 
       const personalOrg = user.memberships[0]?.organization
       if (personalOrg) {
@@ -112,14 +150,16 @@ router.post(
         })
       }
 
+      // No tokens/session are issued here — login is gated on email verification.
       res.status(201).json({
-        accessToken,
         user: {
           id: user.id,
           email: user.email,
           name: user.name,
+          emailVerified: user.emailVerified,
           createdAt: user.createdAt,
         },
+        message: 'Account created. Check your email to verify your address before logging in.',
       })
     } catch (error) {
       if (error instanceof AppError) {
@@ -179,6 +219,17 @@ router.post(
         throw new AppError('Invalid credentials', 401, 'INVALID_CREDENTIALS')
       }
 
+      // Gate login on email verification. Checked only after the password is confirmed valid
+      // so verification status is never revealed to someone who doesn't know the password.
+      if (!user.emailVerified) {
+        logSecurityEvent('LOGIN_BLOCKED_UNVERIFIED', req, { email: user.email })
+        throw new AppError(
+          'Please verify your email address before logging in.',
+          403,
+          'EMAIL_NOT_VERIFIED',
+        )
+      }
+
       // Generate tokens
       const accessToken = signAccessToken({
         userId: user.id,
@@ -211,8 +262,122 @@ router.post(
           id: user.id,
           email: user.email,
           name: user.name,
+          emailVerified: user.emailVerified,
           createdAt: user.createdAt,
         },
+      })
+    } catch (error) {
+      if (error instanceof AppError) {
+        throw error
+      }
+      if (error instanceof Error && error.name === 'ZodError') {
+        throw new AppError('Validation failed', 400, 'VALIDATION_ERROR', {
+          errors: error,
+        })
+      }
+      throw error
+    }
+  }),
+)
+
+/**
+ * POST /api/v1/auth/verify-email
+ * Confirm ownership of an email address using a single-use token from the verification link.
+ * Public (no session) and CSRF-exempt — the token itself is the credential.
+ */
+router.post(
+  '/verify-email',
+  rateLimitConfig.authVerifyEmail,
+  asyncHandler(async (req: Request, res: Response) => {
+    try {
+      const body = verifyEmailSchema.parse(req.body)
+
+      const user = await prisma.user.findUnique({
+        where: { verificationTokenHash: sha256(body.token) },
+      })
+
+      // Generic error for a missing/already-consumed token (single-use: fields are cleared
+      // on success, so a replayed token no longer matches).
+      if (!user) {
+        throw new AppError(
+          'Invalid or expired verification token',
+          400,
+          'INVALID_VERIFICATION_TOKEN',
+        )
+      }
+
+      if (!user.verificationExpiresAt || user.verificationExpiresAt < new Date()) {
+        throw new AppError(
+          'This verification link has expired. Please request a new one.',
+          400,
+          'VERIFICATION_TOKEN_EXPIRED',
+        )
+      }
+
+      await prisma.user.update({
+        where: { id: user.id },
+        data: {
+          emailVerified: true,
+          verificationTokenHash: null,
+          verificationExpiresAt: null,
+        },
+      })
+
+      logSecurityEvent('EMAIL_VERIFIED', req, { email: user.email })
+
+      res.json({ message: 'Email verified successfully. You can now log in.' })
+    } catch (error) {
+      if (error instanceof AppError) {
+        throw error
+      }
+      if (error instanceof Error && error.name === 'ZodError') {
+        throw new AppError('Validation failed', 400, 'VALIDATION_ERROR', {
+          errors: error,
+        })
+      }
+      throw error
+    }
+  }),
+)
+
+/**
+ * POST /api/v1/auth/resend-verification
+ * Re-send the verification email. Always returns a generic 200 (with normalized timing)
+ * regardless of whether the email exists or is already verified — enumeration-safe.
+ * Public (no session) and CSRF-exempt.
+ */
+router.post(
+  '/resend-verification',
+  rateLimitConfig.authResendVerification,
+  asyncHandler(async (req: Request, res: Response) => {
+    const startTime = Date.now()
+
+    try {
+      const body = resendVerificationSchema.parse(req.body)
+
+      const user = await prisma.user.findUnique({ where: { email: body.email } })
+
+      // Only do real work for an existing, still-unverified account. For unknown or
+      // already-verified addresses we silently fall through to the same generic response.
+      if (user && !user.emailVerified) {
+        const verificationToken = generateVerificationToken()
+        await prisma.user.update({
+          where: { id: user.id },
+          data: {
+            verificationTokenHash: sha256(verificationToken),
+            verificationExpiresAt: new Date(Date.now() + VERIFICATION_TOKEN_TTL_MS),
+          },
+        })
+        await dispatchAuthEmail(() =>
+          sendVerificationEmail({ to: user.email, name: user.name, token: verificationToken }),
+        )
+        logSecurityEvent('VERIFICATION_RESENT', req, { email: user.email })
+      }
+
+      await normalizeAuthTiming(startTime)
+
+      res.json({
+        message: 'If an account exists and is unverified, a verification email has been sent.',
       })
     } catch (error) {
       if (error instanceof AppError) {
@@ -384,6 +549,7 @@ router.get(
       id: user.id,
       email: user.email,
       name: user.name,
+      emailVerified: user.emailVerified,
       createdAt: user.createdAt,
       memberships: user.memberships.map((membership) => ({
         id: membership.id,

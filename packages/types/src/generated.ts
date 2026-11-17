@@ -84,6 +84,50 @@ export interface paths {
     patch?: never
     trace?: never
   }
+  '/api/v1/auth/verify-email': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /**
+     * Verify email address
+     * @description Confirm ownership of an email address using the single-use token from the
+     *     verification link. Public endpoint (no session) and CSRF-exempt — the token is
+     *     the credential. On success the account is marked verified and the token is consumed.
+     */
+    post: operations['verifyEmail']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/v1/auth/resend-verification': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /**
+     * Resend verification email
+     * @description Request a fresh verification email. Always returns a generic 200 with normalized
+     *     timing regardless of whether the email exists or is already verified, to prevent
+     *     account enumeration. Public endpoint (no session) and CSRF-exempt.
+     */
+    post: operations['resendVerification']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
   '/api/v1/auth/refresh': {
     parameters: {
       query?: never
@@ -464,6 +508,8 @@ export interface components {
       email: string
       /** @description User full name */
       name: string
+      /** @description Whether the user has confirmed ownership of their email address */
+      emailVerified?: boolean
       /**
        * Format: date-time
        * @description Account creation timestamp
@@ -766,17 +812,20 @@ export interface operations {
       }
     }
     responses: {
-      /** @description User created successfully */
+      /**
+       * @description User created successfully. No session is issued — the account starts unverified
+       *     and a verification email is sent. The user must verify their email and then log in
+       *     before receiving tokens.
+       */
       201: {
         headers: {
-          'Set-Cookie'?: string
           [name: string]: unknown
         }
         content: {
           'application/json': {
-            /** @description JWT access token */
-            accessToken: string
             user: components['schemas']['User']
+            /** @description Human-readable next-step guidance */
+            message: string
           }
         }
       }
@@ -832,6 +881,96 @@ export interface operations {
       }
       /** @description Invalid credentials */
       401: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['Error']
+        }
+      }
+      /** @description Email address not verified */
+      403: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['Error']
+        }
+      }
+      429: components['responses']['RateLimitExceeded']
+    }
+  }
+  verifyEmail: {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    requestBody: {
+      content: {
+        'application/json': {
+          /** @description Single-use verification token from the emailed link */
+          token: string
+        }
+      }
+    }
+    responses: {
+      /** @description Email verified successfully */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': {
+            message: string
+          }
+        }
+      }
+      /** @description Invalid or expired verification token */
+      400: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['Error']
+        }
+      }
+      429: components['responses']['RateLimitExceeded']
+    }
+  }
+  resendVerification: {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    requestBody: {
+      content: {
+        'application/json': {
+          /**
+           * Format: email
+           * @description Email address to (re)send a verification link to
+           */
+          email: string
+        }
+      }
+    }
+    responses: {
+      /** @description Generic acknowledgement (enumeration-safe — identical for all inputs) */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': {
+            message: string
+          }
+        }
+      }
+      /** @description Validation error */
+      400: {
         headers: {
           [name: string]: unknown
         }
@@ -919,6 +1058,8 @@ export interface operations {
             email: string
             /** @description User name */
             name: string
+            /** @description Whether the user has confirmed ownership of their email address */
+            emailVerified?: boolean
             /**
              * Format: date-time
              * @description Account creation timestamp

@@ -2,7 +2,9 @@ import request from 'supertest'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
 import { app } from '../app.js'
+import { generateVerificationToken, sha256 } from '../lib/crypto.js'
 import { prisma } from '../lib/db.js'
+import { clearTestOutbox, getTestOutbox } from '../lib/email.js'
 import { clearDatabase, createTestUser } from '../lib/test-helpers.js'
 
 describe('POST /api/v1/auth/register', () => {
@@ -14,7 +16,7 @@ describe('POST /api/v1/auth/register', () => {
     await clearDatabase()
   })
 
-  it('creates a new user and returns access token', async () => {
+  it('creates an unverified user without issuing a session (verification required)', async () => {
     const response = await request(app)
       .post('/api/v1/auth/register')
       .send({
@@ -24,15 +26,32 @@ describe('POST /api/v1/auth/register', () => {
       })
       .expect(201)
 
-    expect(response.body).toHaveProperty('accessToken')
-    expect(response.body).toHaveProperty('user')
+    // Login is gated on verification, so registration must not auto-issue a session.
+    expect(response.body).not.toHaveProperty('accessToken')
+    expect(response.body).toHaveProperty('message')
     expect(response.body.user).toMatchObject({
       email: 'newuser@example.com',
       name: 'New User',
+      emailVerified: false,
     })
   })
 
-  it('sets refresh token as httpOnly cookie', async () => {
+  it('does not set a refresh token cookie on registration', async () => {
+    const response = await request(app)
+      .post('/api/v1/auth/register')
+      .send({
+        email: 'newuser@example.com',
+        password: 'SecureP@ss123',
+        name: 'New User',
+      })
+      .expect(201)
+
+    expect(response.headers['set-cookie']).toBeUndefined()
+  })
+
+  it('sends a verification email with a link matching the stored token hash', async () => {
+    clearTestOutbox()
+
     await request(app)
       .post('/api/v1/auth/register')
       .send({
@@ -41,7 +60,20 @@ describe('POST /api/v1/auth/register', () => {
         name: 'New User',
       })
       .expect(201)
-      .expect('set-cookie', /refreshToken=/)
+
+    const outbox = getTestOutbox()
+    const verifyEmail = outbox.find((m) => m.to === 'newuser@example.com')
+    expect(verifyEmail?.subject).toBe('Verify your email')
+
+    // Extract the token from the emailed link and confirm it hashes to what we persisted.
+    const match = verifyEmail?.html.match(/verify-email\?token=([a-z0-9_]+)/i)
+    const token = match?.[1]
+    expect(token).toBeTruthy()
+
+    const user = await prisma.user.findUnique({ where: { email: 'newuser@example.com' } })
+    expect(user?.emailVerified).toBe(false)
+    expect(user?.verificationTokenHash).toBe(sha256(token as string))
+    expect(user?.verificationExpiresAt).toBeTruthy()
   })
 
   it('creates personal organization for new user', async () => {
@@ -210,6 +242,7 @@ describe('POST /api/v1/auth/login', () => {
     expect(response.body).toHaveProperty('accessToken')
     expect(response.body).toHaveProperty('user')
     expect(response.body.user.email).toBe('user@example.com')
+    expect(response.body.user.emailVerified).toBe(true)
   })
 
   it('sets refresh token as httpOnly cookie', async () => {
@@ -443,6 +476,7 @@ describe('GET /api/v1/auth/me', () => {
     expect(meResponse.body).toMatchObject({
       email: 'user@example.com',
       name: expect.any(String) as string,
+      emailVerified: true,
     })
     expect(meResponse.body.memberships).toBeInstanceOf(Array)
     expect(meResponse.body.memberships.length).toBeGreaterThan(0)
@@ -893,5 +927,215 @@ describe('PATCH /api/v1/auth/password', () => {
 
     expect(userAfter?.password).toBe(userBefore?.password)
     expect(userAfter?.tokenVersion).toBe(userBefore?.tokenVersion)
+  })
+})
+
+describe('Registration — duplicate email notification', () => {
+  beforeEach(async () => {
+    await clearDatabase()
+    clearTestOutbox()
+  })
+
+  afterEach(async () => {
+    await clearDatabase()
+  })
+
+  it('sends an account-exists email on duplicate registration (enumeration-safe)', async () => {
+    await createTestUser({ email: 'existing@example.com', name: 'Existing User' })
+    clearTestOutbox()
+
+    await request(app)
+      .post('/api/v1/auth/register')
+      .send({
+        email: 'existing@example.com',
+        password: 'P@ssword123',
+        name: 'Impersonator',
+      })
+      .expect(400)
+
+    const outbox = getTestOutbox()
+    const notice = outbox.find((m) => m.to === 'existing@example.com')
+    expect(notice?.subject).toBe('You already have a Plinth account')
+  })
+})
+
+describe('POST /api/v1/auth/login — email verification gate', () => {
+  beforeEach(async () => {
+    await clearDatabase()
+  })
+
+  afterEach(async () => {
+    await clearDatabase()
+  })
+
+  it('returns 403 EMAIL_NOT_VERIFIED when the account is not verified', async () => {
+    await createTestUser({
+      email: 'unverified@example.com',
+      password: 'correctPassword',
+      emailVerified: false,
+    })
+
+    const response = await request(app)
+      .post('/api/v1/auth/login')
+      .send({ email: 'unverified@example.com', password: 'correctPassword' })
+      .expect(403)
+
+    expect(response.body.error.code).toBe('EMAIL_NOT_VERIFIED')
+    expect(response.headers['set-cookie']).toBeUndefined()
+  })
+
+  it('does not reveal verification status for a wrong password (returns 401, not 403)', async () => {
+    await createTestUser({
+      email: 'unverified@example.com',
+      password: 'correctPassword',
+      emailVerified: false,
+    })
+
+    const response = await request(app)
+      .post('/api/v1/auth/login')
+      .send({ email: 'unverified@example.com', password: 'wrongPassword' })
+      .expect(401)
+
+    expect(response.body.error.code).toBe('INVALID_CREDENTIALS')
+  })
+})
+
+describe('POST /api/v1/auth/verify-email', () => {
+  beforeEach(async () => {
+    await clearDatabase()
+  })
+
+  afterEach(async () => {
+    await clearDatabase()
+  })
+
+  const seedUnverifiedWithToken = async (overrides?: { expiresAt?: Date; email?: string }) => {
+    const token = generateVerificationToken()
+    const { user } = await createTestUser({
+      email: overrides?.email ?? 'verify@example.com',
+      password: 'correctPassword',
+      emailVerified: false,
+      verificationTokenHash: sha256(token),
+      verificationExpiresAt: overrides?.expiresAt ?? new Date(Date.now() + 60 * 60 * 1000),
+    })
+    return { user, token }
+  }
+
+  it('verifies the email with a valid token and enforces single use', async () => {
+    const { token } = await seedUnverifiedWithToken()
+
+    await request(app).post('/api/v1/auth/verify-email').send({ token }).expect(200)
+
+    const user = await prisma.user.findUnique({ where: { email: 'verify@example.com' } })
+    expect(user?.emailVerified).toBe(true)
+    expect(user?.verificationTokenHash).toBeNull()
+    expect(user?.verificationExpiresAt).toBeNull()
+
+    // Replaying the now-consumed token is rejected.
+    const replay = await request(app).post('/api/v1/auth/verify-email').send({ token }).expect(400)
+    expect(replay.body.error.code).toBe('INVALID_VERIFICATION_TOKEN')
+  })
+
+  it('allows login after the email is verified', async () => {
+    const { token } = await seedUnverifiedWithToken()
+
+    await request(app).post('/api/v1/auth/verify-email').send({ token }).expect(200)
+
+    await request(app)
+      .post('/api/v1/auth/login')
+      .send({ email: 'verify@example.com', password: 'correctPassword' })
+      .expect(200)
+  })
+
+  it('returns 400 INVALID_VERIFICATION_TOKEN for an unknown token', async () => {
+    const response = await request(app)
+      .post('/api/v1/auth/verify-email')
+      .send({ token: 'ver_does_not_exist' })
+      .expect(400)
+
+    expect(response.body.error.code).toBe('INVALID_VERIFICATION_TOKEN')
+  })
+
+  it('returns 400 VERIFICATION_TOKEN_EXPIRED and leaves the account unverified', async () => {
+    const { token } = await seedUnverifiedWithToken({ expiresAt: new Date(Date.now() - 1000) })
+
+    const response = await request(app)
+      .post('/api/v1/auth/verify-email')
+      .send({ token })
+      .expect(400)
+
+    expect(response.body.error.code).toBe('VERIFICATION_TOKEN_EXPIRED')
+
+    const user = await prisma.user.findUnique({ where: { email: 'verify@example.com' } })
+    expect(user?.emailVerified).toBe(false)
+  })
+
+  it('returns 400 VALIDATION_ERROR when the token is missing', async () => {
+    const response = await request(app).post('/api/v1/auth/verify-email').send({}).expect(400)
+
+    expect(response.body.error.code).toBe('VALIDATION_ERROR')
+  })
+})
+
+describe('POST /api/v1/auth/resend-verification', () => {
+  beforeEach(async () => {
+    await clearDatabase()
+    clearTestOutbox()
+  })
+
+  afterEach(async () => {
+    await clearDatabase()
+  })
+
+  it('resends a verification email and rotates the stored token for an unverified account', async () => {
+    const { user } = await createTestUser({
+      email: 'unverified@example.com',
+      emailVerified: false,
+      verificationTokenHash: sha256('ver_old_token'),
+      verificationExpiresAt: new Date(Date.now() + 60 * 60 * 1000),
+    })
+    clearTestOutbox()
+
+    await request(app)
+      .post('/api/v1/auth/resend-verification')
+      .send({ email: 'unverified@example.com' })
+      .expect(200)
+
+    const outbox = getTestOutbox()
+    expect(outbox.find((m) => m.to === 'unverified@example.com')?.subject).toBe('Verify your email')
+
+    const updated = await prisma.user.findUnique({ where: { id: user.id } })
+    expect(updated?.verificationTokenHash).not.toBe(sha256('ver_old_token'))
+    expect(updated?.verificationTokenHash).toBeTruthy()
+  })
+
+  it('returns a generic 200 for an unknown email and sends nothing', async () => {
+    await request(app)
+      .post('/api/v1/auth/resend-verification')
+      .send({ email: 'nobody@example.com' })
+      .expect(200)
+
+    expect(getTestOutbox()).toHaveLength(0)
+  })
+
+  it('returns a generic 200 for an already-verified account and sends nothing', async () => {
+    await createTestUser({ email: 'verified@example.com', emailVerified: true })
+    clearTestOutbox()
+
+    await request(app)
+      .post('/api/v1/auth/resend-verification')
+      .send({ email: 'verified@example.com' })
+      .expect(200)
+
+    expect(getTestOutbox()).toHaveLength(0)
+  })
+
+  it('returns 400 VALIDATION_ERROR for an invalid email format', async () => {
+    const response = await request(app)
+      .post('/api/v1/auth/resend-verification')
+      .send({ email: 'not-an-email' })
+      .expect(400)
+
+    expect(response.body.error.code).toBe('VALIDATION_ERROR')
   })
 })

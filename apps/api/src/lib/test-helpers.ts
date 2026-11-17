@@ -14,15 +14,27 @@ export async function clearDatabase(): Promise<void> {
 }
 
 /**
- * Create a test user with a personal organization
+ * Create a test user with a personal organization.
+ *
+ * Defaults to `emailVerified: true` so existing login-based tests work unchanged (mirrors
+ * accounts that pre-date email verification). Pass `emailVerified: false` to exercise the
+ * unverified-login and verification flows.
  */
-export async function createTestUser(data?: { email?: string; password?: string; name?: string }) {
+export async function createTestUser(data?: {
+  email?: string
+  password?: string
+  name?: string
+  emailVerified?: boolean
+  verificationTokenHash?: string | null
+  verificationExpiresAt?: Date | null
+}) {
   const { hashPassword } = await import('./password.js')
   const { generateUniqueSlug } = await import('./slug.js')
 
   const email = data?.email ?? 'test@example.com'
   const password = data?.password ?? 'P@ssword123'
   const name = data?.name ?? 'Test User'
+  const emailVerified = data?.emailVerified ?? true
 
   const passwordHash = await hashPassword(password)
   const orgSlug = await generateUniqueSlug(name)
@@ -32,6 +44,9 @@ export async function createTestUser(data?: { email?: string; password?: string;
       email,
       password: passwordHash,
       name,
+      emailVerified,
+      verificationTokenHash: data?.verificationTokenHash ?? null,
+      verificationExpiresAt: data?.verificationExpiresAt ?? null,
       memberships: {
         create: {
           role: 'OWNER',

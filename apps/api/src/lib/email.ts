@@ -131,8 +131,23 @@ export const deliverEmail = async (
  * outbox (see {@link getTestOutbox}) rather than dispatched over SMTP.
  */
 export const sendEmail = async ({ to, subject, react }: SendEmailParams): Promise<void> => {
-  const html = await render(react)
-  const text = toPlainText(html)
+  // Render inside a try so a template failure logs at the same chokepoint as a delivery
+  // failure (deliverEmail logs the send path). Without this, a broken template throws
+  // silently and callers that swallow email errors see no trace of the outage.
+  let html: string
+  let text: string
+  try {
+    html = await render(react)
+    text = toPlainText(html)
+  } catch (error) {
+    logEmailEvent({
+      event: 'EMAIL_SEND_FAILED',
+      to,
+      subject,
+      error: error instanceof Error ? error.message : String(error),
+    })
+    throw error
+  }
 
   if (isTestEnv) {
     testOutbox.push({ to, subject, html, text })

@@ -33,7 +33,7 @@ export interface CsrfProtectionOptions {
  * 3. Skip validation for:
  *    - Test environment (NODE_ENV=test) - CSRF has dedicated test suite
  *    - API key authentication (uses Bearer tokens, not cookies)
- *    - Public endpoints (login, register, refresh, invitation acceptance)
+ *    - Public endpoints (login, register, refresh, email verification, invitation acceptance)
  *
  * Security properties:
  * - Token is cryptographically random (32 bytes)
@@ -86,6 +86,8 @@ export const createCsrfProtection = (options: CsrfProtectionOptions = {}) => {
         '/api/v1/auth/login',
         '/api/v1/auth/register',
         '/api/v1/auth/refresh',
+        '/api/v1/auth/verify-email',
+        '/api/v1/auth/resend-verification',
         '/api/v1/invitations/accept',
       ]
 

@@ -16,3 +16,13 @@ export function generateInvitationToken(): string {
   const compactUuid = uuid.replace(/-/g, '')
   return `inv_${compactUuid}`
 }
+
+/**
+ * Generate an email verification token with format: ver_<UUIDv7>
+ * Only the SHA-256 hash is persisted; the plaintext travels in the emailed link.
+ */
+export function generateVerificationToken(): string {
+  const uuid = crypto.randomUUIDv7()
+  const compactUuid = uuid.replace(/-/g, '')
+  return `ver_${compactUuid}`
+}

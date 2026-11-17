@@ -62,6 +62,40 @@ describe('sendEmail (test environment)', () => {
   })
 })
 
+describe('sendEmail (render failure)', () => {
+  afterEach(() => {
+    vi.restoreAllMocks()
+    clearTestOutbox()
+  })
+
+  it('logs EMAIL_SEND_FAILED and rethrows when template rendering throws', async () => {
+    const warnSpy = vi.spyOn(logger, 'warn')
+    const ThrowingEmail = () => {
+      throw new Error('template render boom')
+    }
+
+    await expect(
+      sendEmail({
+        to: 'ada@example.com',
+        subject: 'Verify your email',
+        react: createElement(ThrowingEmail),
+      }),
+    ).rejects.toThrow('template render boom')
+
+    expect(warnSpy).toHaveBeenCalledWith(
+      'Email send failed',
+      expect.objectContaining({
+        event: 'EMAIL_SEND_FAILED',
+        to: 'ada@example.com',
+        subject: 'Verify your email',
+        error: 'template render boom',
+      }),
+    )
+    // A render failure must not leave a half-built message in the outbox.
+    expect(getTestOutbox()).toHaveLength(0)
+  })
+})
+
 describe('buildTransportOptions', () => {
   it('uses implicit TLS on port 465 (no STARTTLS forced)', () => {
     const options = buildTransportOptions({
