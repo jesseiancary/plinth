@@ -2,10 +2,17 @@ import request from 'supertest'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
 import { app } from '../app.js'
-import { generateVerificationToken, sha256 } from '../lib/crypto.js'
+import { sha256 } from '../lib/crypto.js'
 import { prisma } from '../lib/db.js'
 import { clearTestOutbox, getTestOutbox } from '../lib/email.js'
-import { clearDatabase, createTestUser } from '../lib/test-helpers.js'
+import {
+  clearDatabase,
+  createTestPendingRegistration,
+  createTestUser,
+} from '../lib/test-helpers.js'
+
+const extractVerificationToken = (html: string | undefined): string | undefined =>
+  html?.match(/verify-email\?token=([a-z0-9_]+)/i)?.[1]
 
 describe('POST /api/v1/auth/register', () => {
   beforeEach(async () => {
@@ -16,7 +23,7 @@ describe('POST /api/v1/auth/register', () => {
     await clearDatabase()
   })
 
-  it('creates an unverified user without issuing a session (verification required)', async () => {
+  it('records a pending registration without creating a user or a session', async () => {
     const response = await request(app)
       .post('/api/v1/auth/register')
       .send({
@@ -26,14 +33,20 @@ describe('POST /api/v1/auth/register', () => {
       })
       .expect(201)
 
-    // Login is gated on verification, so registration must not auto-issue a session.
+    // No account exists yet; the account is materialized on verification. The generic
+    // acknowledgement carries no user object and no session.
     expect(response.body).not.toHaveProperty('accessToken')
+    expect(response.body).not.toHaveProperty('user')
     expect(response.body).toHaveProperty('message')
-    expect(response.body.user).toMatchObject({
-      email: 'newuser@example.com',
-      name: 'New User',
-      emailVerified: false,
+
+    const user = await prisma.user.findUnique({ where: { email: 'newuser@example.com' } })
+    expect(user).toBeNull()
+
+    const pending = await prisma.pendingRegistration.findFirst({
+      where: { email: 'newuser@example.com' },
     })
+    expect(pending).not.toBeNull()
+    expect(pending?.name).toBe('New User')
   })
 
   it('does not set a refresh token cookie on registration', async () => {
@@ -49,7 +62,7 @@ describe('POST /api/v1/auth/register', () => {
     expect(response.headers['set-cookie']).toBeUndefined()
   })
 
-  it('sends a verification email with a link matching the stored token hash', async () => {
+  it('sends a verification email with a link matching the stored pending token hash', async () => {
     clearTestOutbox()
 
     await request(app)
@@ -65,45 +78,90 @@ describe('POST /api/v1/auth/register', () => {
     const verifyEmail = outbox.find((m) => m.to === 'newuser@example.com')
     expect(verifyEmail?.subject).toBe('Verify your email')
 
-    // Extract the token from the emailed link and confirm it hashes to what we persisted.
-    const match = verifyEmail?.html.match(/verify-email\?token=([a-z0-9_]+)/i)
-    const token = match?.[1]
+    // Extract the token from the emailed link and confirm it hashes to the pending row.
+    const token = extractVerificationToken(verifyEmail?.html)
     expect(token).toBeTruthy()
 
-    const user = await prisma.user.findUnique({ where: { email: 'newuser@example.com' } })
-    expect(user?.emailVerified).toBe(false)
-    expect(user?.verificationTokenHash).toBe(sha256(token as string))
-    expect(user?.verificationExpiresAt).toBeTruthy()
+    const pending = await prisma.pendingRegistration.findFirst({
+      where: { email: 'newuser@example.com' },
+    })
+    expect(pending?.verificationTokenHash).toBe(sha256(token as string))
+    expect(pending?.expiresAt).toBeTruthy()
   })
 
-  it('creates personal organization for new user', async () => {
+  it('re-registering the same email adds a coexisting pending row without invalidating the first link', async () => {
+    clearTestOutbox()
+
     await request(app)
       .post('/api/v1/auth/register')
-      .send({
-        email: 'newuser@example.com',
-        password: 'SecureP@ss123',
-        name: 'New User',
-      })
+      .send({ email: 'newuser@example.com', password: 'FirstP@ss123', name: 'First Attempt' })
       .expect(201)
 
-    const user = await prisma.user.findUnique({
-      where: { email: 'newuser@example.com' },
-      include: {
-        memberships: {
-          include: {
-            organization: true,
-          },
-        },
-      },
-    })
+    const firstToken = extractVerificationToken(
+      getTestOutbox().find((m) => m.to === 'newuser@example.com')?.html,
+    )
+    clearTestOutbox()
 
-    expect(user).toBeDefined()
-    expect(user?.memberships).toHaveLength(1)
-    expect(user?.memberships[0]?.role).toBe('OWNER')
-    expect(user?.memberships[0]?.organization.name).toContain('New User')
+    await request(app)
+      .post('/api/v1/auth/register')
+      .send({ email: 'newuser@example.com', password: 'SecondP@ss123', name: 'Second Attempt' })
+      .expect(201)
+
+    // Both submissions coexist — neither can destroy the other's in-flight verification link.
+    const pendings = await prisma.pendingRegistration.findMany({
+      where: { email: 'newuser@example.com' },
+    })
+    expect(pendings).toHaveLength(2)
+
+    // The first (own) link still works and materializes the first submitted password.
+    await request(app).post('/api/v1/auth/verify-email').send({ token: firstToken }).expect(200)
+
+    await request(app)
+      .post('/api/v1/auth/login')
+      .send({ email: 'newuser@example.com', password: 'FirstP@ss123' })
+      .expect(200)
+
+    // Once the account exists, the second (now redundant) link collapses to already-verified
+    // and is consumed — it does not overwrite the materialized password.
+    const secondToken = extractVerificationToken(
+      getTestOutbox().find((m) => m.to === 'newuser@example.com')?.html,
+    )
+    await request(app).post('/api/v1/auth/verify-email').send({ token: secondToken }).expect(200)
+
+    await request(app)
+      .post('/api/v1/auth/login')
+      .send({ email: 'newuser@example.com', password: 'SecondP@ss123' })
+      .expect(401)
   })
 
-  it('returns 400 with generic error if email already exists (prevents enumeration)', async () => {
+  it('re-registering gives a fresh working link (recovers from a lost verification email)', async () => {
+    // The original dead-end: user registers, never receives the email, re-registers. The new
+    // link must work and materialize their account.
+    clearTestOutbox()
+
+    await request(app)
+      .post('/api/v1/auth/register')
+      .send({ email: 'newuser@example.com', password: 'FreshP@ss123', name: 'Fresh User' })
+      .expect(201)
+    clearTestOutbox()
+
+    await request(app)
+      .post('/api/v1/auth/register')
+      .send({ email: 'newuser@example.com', password: 'FreshP@ss123', name: 'Fresh User' })
+      .expect(201)
+
+    const token = extractVerificationToken(
+      getTestOutbox().find((m) => m.to === 'newuser@example.com')?.html,
+    )
+    await request(app).post('/api/v1/auth/verify-email').send({ token }).expect(200)
+
+    await request(app)
+      .post('/api/v1/auth/login')
+      .send({ email: 'newuser@example.com', password: 'FreshP@ss123' })
+      .expect(200)
+  })
+
+  it('returns 400 with generic error if a verified account already exists (prevents enumeration)', async () => {
     await createTestUser({ email: 'existing@example.com' })
 
     const response = await request(app)
@@ -117,6 +175,20 @@ describe('POST /api/v1/auth/register', () => {
 
     expect(response.body.error.code).toBe('REGISTRATION_FAILED')
     expect(response.body.error.message).toBe('Unable to complete registration')
+  })
+
+  it('does not create a pending registration for an already-verified account', async () => {
+    await createTestUser({ email: 'existing@example.com' })
+
+    await request(app)
+      .post('/api/v1/auth/register')
+      .send({ email: 'existing@example.com', password: 'P@ssword123', name: 'Another User' })
+      .expect(400)
+
+    const pending = await prisma.pendingRegistration.findFirst({
+      where: { email: 'existing@example.com' },
+    })
+    expect(pending).toBeNull()
   })
 
   it('normalizes timing on duplicate email to prevent timing attacks', async () => {
@@ -1009,35 +1081,40 @@ describe('POST /api/v1/auth/verify-email', () => {
     await clearDatabase()
   })
 
-  const seedUnverifiedWithToken = async (overrides?: { expiresAt?: Date; email?: string }) => {
-    const token = generateVerificationToken()
-    const { user } = await createTestUser({
-      email: overrides?.email ?? 'verify@example.com',
+  it('materializes the user, personal org, and OWNER membership, and enforces single use', async () => {
+    const { token } = await createTestPendingRegistration({
+      email: 'verify@example.com',
       password: 'correctPassword',
-      emailVerified: false,
-      verificationTokenHash: sha256(token),
-      verificationExpiresAt: overrides?.expiresAt ?? new Date(Date.now() + 60 * 60 * 1000),
+      name: 'Verify User',
     })
-    return { user, token }
-  }
-
-  it('verifies the email with a valid token and enforces single use', async () => {
-    const { token } = await seedUnverifiedWithToken()
 
     await request(app).post('/api/v1/auth/verify-email').send({ token }).expect(200)
 
-    const user = await prisma.user.findUnique({ where: { email: 'verify@example.com' } })
+    const user = await prisma.user.findUnique({
+      where: { email: 'verify@example.com' },
+      include: { memberships: { include: { organization: true } } },
+    })
     expect(user?.emailVerified).toBe(true)
-    expect(user?.verificationTokenHash).toBeNull()
-    expect(user?.verificationExpiresAt).toBeNull()
+    expect(user?.memberships).toHaveLength(1)
+    expect(user?.memberships[0]?.role).toBe('OWNER')
+    expect(user?.memberships[0]?.organization.name).toContain('Verify User')
+
+    // The pending row is consumed (single-use).
+    const pending = await prisma.pendingRegistration.findFirst({
+      where: { email: 'verify@example.com' },
+    })
+    expect(pending).toBeNull()
 
     // Replaying the now-consumed token is rejected.
     const replay = await request(app).post('/api/v1/auth/verify-email').send({ token }).expect(400)
     expect(replay.body.error.code).toBe('INVALID_VERIFICATION_TOKEN')
   })
 
-  it('allows login after the email is verified', async () => {
-    const { token } = await seedUnverifiedWithToken()
+  it('allows login with the submitted password after verification', async () => {
+    const { token } = await createTestPendingRegistration({
+      email: 'verify@example.com',
+      password: 'correctPassword',
+    })
 
     await request(app).post('/api/v1/auth/verify-email').send({ token }).expect(200)
 
@@ -1056,8 +1133,11 @@ describe('POST /api/v1/auth/verify-email', () => {
     expect(response.body.error.code).toBe('INVALID_VERIFICATION_TOKEN')
   })
 
-  it('returns 400 VERIFICATION_TOKEN_EXPIRED and leaves the account unverified', async () => {
-    const { token } = await seedUnverifiedWithToken({ expiresAt: new Date(Date.now() - 1000) })
+  it('returns 400 VERIFICATION_TOKEN_EXPIRED, creates no user, and drops the pending row', async () => {
+    const { token } = await createTestPendingRegistration({
+      email: 'verify@example.com',
+      expiresAt: new Date(Date.now() - 1000),
+    })
 
     const response = await request(app)
       .post('/api/v1/auth/verify-email')
@@ -1067,7 +1147,31 @@ describe('POST /api/v1/auth/verify-email', () => {
     expect(response.body.error.code).toBe('VERIFICATION_TOKEN_EXPIRED')
 
     const user = await prisma.user.findUnique({ where: { email: 'verify@example.com' } })
-    expect(user?.emailVerified).toBe(false)
+    expect(user).toBeNull()
+
+    const pending = await prisma.pendingRegistration.findFirst({
+      where: { email: 'verify@example.com' },
+    })
+    expect(pending).toBeNull()
+  })
+
+  it('collapses to an "already verified" response when the account already exists for the email', async () => {
+    // Simulate a double-submit: the account was already materialized, but a stale pending row
+    // for the same email is verified again. It must not collide — treat as already-verified, and
+    // the message must NOT imply this link's just-submitted credentials were applied.
+    const { token } = await createTestPendingRegistration({ email: 'verify@example.com' })
+    await createTestUser({ email: 'verify@example.com', emailVerified: true })
+
+    const response = await request(app)
+      .post('/api/v1/auth/verify-email')
+      .send({ token })
+      .expect(200)
+    expect(response.body.message).toBe('This email is already verified. You can log in.')
+
+    const pending = await prisma.pendingRegistration.findFirst({
+      where: { email: 'verify@example.com' },
+    })
+    expect(pending).toBeNull()
   })
 
   it('returns 400 VALIDATION_ERROR when the token is missing', async () => {
@@ -1077,7 +1181,19 @@ describe('POST /api/v1/auth/verify-email', () => {
   })
 })
 
-describe('POST /api/v1/auth/resend-verification', () => {
+describe('POST /api/v1/auth/resend-verification (removed)', () => {
+  // Resend was removed: an email-only resend cannot identify the real inbox owner's pending row
+  // under the coexist model, so it could hand a requester an attacker's link. Recovery is
+  // re-registration (self-authenticating), covered by the register tests above.
+  it('no longer exists (404)', async () => {
+    await request(app)
+      .post('/api/v1/auth/resend-verification')
+      .send({ email: 'someone@example.com' })
+      .expect(404)
+  })
+})
+
+describe('Registration — email squatting / account takeover regression', () => {
   beforeEach(async () => {
     await clearDatabase()
     clearTestOutbox()
@@ -1087,55 +1203,97 @@ describe('POST /api/v1/auth/resend-verification', () => {
     await clearDatabase()
   })
 
-  it('resends a verification email and rotates the stored token for an unverified account', async () => {
-    const { user } = await createTestUser({
-      email: 'unverified@example.com',
-      emailVerified: false,
-      verificationTokenHash: sha256('ver_old_token'),
-      verificationExpiresAt: new Date(Date.now() + 60 * 60 * 1000),
+  // The inbox owner, clicking the link for the password THEY submitted, must always get their
+  // own credentials materialized — regardless of who else registered the address or in what
+  // order. A third party's registration can neither invalidate the owner's link nor substitute
+  // their own password into it. Both attacker-vs-victim orderings are covered.
+
+  it('attacker registers first: the victim’s own link still materializes the victim’s password', async () => {
+    const email = 'victim@example.com'
+
+    // 1. Attacker registers the victim's email first, with a password they control.
+    await request(app)
+      .post('/api/v1/auth/register')
+      .send({ email, password: 'Attacker@123', name: 'Attacker' })
+      .expect(201)
+    const attackerToken = extractVerificationToken(
+      getTestOutbox().find((m) => m.to === email)?.html,
+    )
+    clearTestOutbox()
+
+    // 2. The victim registers the same address with their own password (a coexisting row).
+    await request(app)
+      .post('/api/v1/auth/register')
+      .send({ email, password: 'Victim@12345', name: 'Victim' })
+      .expect(201)
+    const victimToken = extractVerificationToken(getTestOutbox().find((m) => m.to === email)?.html)
+
+    // 3. The victim verifies with their OWN link → account created with the victim's password.
+    await request(app).post('/api/v1/auth/verify-email').send({ token: victimToken }).expect(200)
+
+    // The attacker's password must NOT work; the victim's must.
+    await request(app)
+      .post('/api/v1/auth/login')
+      .send({ email, password: 'Attacker@123' })
+      .expect(401)
+    await request(app)
+      .post('/api/v1/auth/login')
+      .send({ email, password: 'Victim@12345' })
+      .expect(200)
+
+    // 4. The attacker's leftover link cannot take over the now-verified account — it collapses
+    //    to already-verified without changing the password.
+    await request(app).post('/api/v1/auth/verify-email').send({ token: attackerToken }).expect(200)
+    await request(app)
+      .post('/api/v1/auth/login')
+      .send({ email, password: 'Attacker@123' })
+      .expect(401)
+  })
+
+  it('victim registers first: a later attacker registration cannot hijack the victim’s in-flight link', async () => {
+    const email = 'victim@example.com'
+
+    // 1. The victim legitimately registers and is waiting for their verification email.
+    await request(app)
+      .post('/api/v1/auth/register')
+      .send({ email, password: 'Victim@12345', name: 'Victim' })
+      .expect(201)
+    const victimToken = extractVerificationToken(getTestOutbox().find((m) => m.to === email)?.html)
+    clearTestOutbox()
+
+    // 2. The attacker re-registers the same address with their own password and name. This must
+    //    NOT delete the victim's row or replace the credentials their link points at.
+    await request(app)
+      .post('/api/v1/auth/register')
+      .send({ email, password: 'Attacker@123', name: 'Victim' })
+      .expect(201)
+
+    // 3. The victim clicks the link they were waiting for → their OWN password is materialized.
+    await request(app).post('/api/v1/auth/verify-email').send({ token: victimToken }).expect(200)
+
+    await request(app)
+      .post('/api/v1/auth/login')
+      .send({ email, password: 'Attacker@123' })
+      .expect(401)
+    await request(app)
+      .post('/api/v1/auth/login')
+      .send({ email, password: 'Victim@12345' })
+      .expect(200)
+  })
+
+  it('a pending-only email is never loginable until its token is verified', async () => {
+    // Absent any click, a pending row never becomes a User — there is nothing to log into.
+    await createTestPendingRegistration({
+      email: 'squat@example.com',
+      password: 'Attacker@123',
+      name: 'Attacker',
     })
-    clearTestOutbox()
+
+    expect(await prisma.user.findUnique({ where: { email: 'squat@example.com' } })).toBeNull()
 
     await request(app)
-      .post('/api/v1/auth/resend-verification')
-      .send({ email: 'unverified@example.com' })
-      .expect(200)
-
-    const outbox = getTestOutbox()
-    expect(outbox.find((m) => m.to === 'unverified@example.com')?.subject).toBe('Verify your email')
-
-    const updated = await prisma.user.findUnique({ where: { id: user.id } })
-    expect(updated?.verificationTokenHash).not.toBe(sha256('ver_old_token'))
-    expect(updated?.verificationTokenHash).toBeTruthy()
-  })
-
-  it('returns a generic 200 for an unknown email and sends nothing', async () => {
-    await request(app)
-      .post('/api/v1/auth/resend-verification')
-      .send({ email: 'nobody@example.com' })
-      .expect(200)
-
-    expect(getTestOutbox()).toHaveLength(0)
-  })
-
-  it('returns a generic 200 for an already-verified account and sends nothing', async () => {
-    await createTestUser({ email: 'verified@example.com', emailVerified: true })
-    clearTestOutbox()
-
-    await request(app)
-      .post('/api/v1/auth/resend-verification')
-      .send({ email: 'verified@example.com' })
-      .expect(200)
-
-    expect(getTestOutbox()).toHaveLength(0)
-  })
-
-  it('returns 400 VALIDATION_ERROR for an invalid email format', async () => {
-    const response = await request(app)
-      .post('/api/v1/auth/resend-verification')
-      .send({ email: 'not-an-email' })
-      .expect(400)
-
-    expect(response.body.error.code).toBe('VALIDATION_ERROR')
+      .post('/api/v1/auth/login')
+      .send({ email: 'squat@example.com', password: 'Attacker@123' })
+      .expect(401)
   })
 })

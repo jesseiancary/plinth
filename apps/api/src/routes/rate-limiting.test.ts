@@ -74,9 +74,11 @@ describe('Rate Limiting Configuration', () => {
         })
         .expect(201)
 
-      // Registration no longer auto-issues a session (login is gated on email verification).
+      // Registration records a pending registration and emails a verification link; it does
+      // not create an account or issue a session (login is gated on email verification).
       expect(res.body).not.toHaveProperty('accessToken')
-      expect(res.body.user.email).toBe('newuser@example.com')
+      expect(res.body).not.toHaveProperty('user')
+      expect(res.body).toHaveProperty('message')
     })
   })
 

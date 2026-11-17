@@ -27,9 +27,7 @@ model User {
   name         String   @db.VarChar(255)
   tokenVersion Int      @default(0) // Increment to invalidate all refresh tokens
 
-  emailVerified         Boolean   @default(false) // New registrations start unverified; login is gated on this
-  verificationTokenHash String?   @unique @db.VarChar(64) // SHA-256 of the emailed verification token (64 hex chars); single-use, like Invitation.tokenHash
-  verificationExpiresAt DateTime? @db.Timestamptz // When the current verification token expires
+  emailVerified Boolean @default(false) // Set true at account materialization; login is gated on this
 
   createdAt DateTime @default(now()) @db.Timestamptz
   updatedAt DateTime @updatedAt @db.Timestamptz
@@ -39,6 +37,25 @@ model User {
 
   @@index([email])
   @@map("users")
+}
+
+// A registration awaiting email verification. The real User (+ personal Organization +
+// OWNER Membership) is materialized only when the emailed link is clicked, so email
+// ownership — not registration order — decides who controls an account. Multiple pending
+// rows per email can coexist; each carries its own password hash and single-use token, so a
+// click can only ever activate the credentials that link was issued for.
+model PendingRegistration {
+  id                    String   @id @default(cuid())
+  email                 String   @db.VarChar(255) // NOT unique — multiple pendings per email allowed
+  name                  String   @db.VarChar(255)
+  passwordHash          String   @db.VarChar(255) // bcrypt hash of the submitted password
+  verificationTokenHash String   @unique @db.VarChar(64) // SHA-256 of the emailed token; single-use
+  expiresAt             DateTime @db.Timestamptz
+  createdAt             DateTime @default(now()) @db.Timestamptz
+
+  @@index([email])
+  @@index([expiresAt])
+  @@map("pending_registrations")
 }
 
 model Organization {

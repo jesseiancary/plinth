@@ -10,6 +10,7 @@ export async function clearDatabase(): Promise<void> {
   await prisma.membership.deleteMany()
   await prisma.organization.deleteMany()
   await prisma.user.deleteMany()
+  await prisma.pendingRegistration.deleteMany()
   await prisma.webhookEvent.deleteMany()
 }
 
@@ -17,16 +18,14 @@ export async function clearDatabase(): Promise<void> {
  * Create a test user with a personal organization.
  *
  * Defaults to `emailVerified: true` so existing login-based tests work unchanged (mirrors
- * accounts that pre-date email verification). Pass `emailVerified: false` to exercise the
- * unverified-login and verification flows.
+ * accounts created via the materialization path). Pass `emailVerified: false` to exercise the
+ * unverified-login gate.
  */
 export async function createTestUser(data?: {
   email?: string
   password?: string
   name?: string
   emailVerified?: boolean
-  verificationTokenHash?: string | null
-  verificationExpiresAt?: Date | null
 }) {
   const { hashPassword } = await import('./password.js')
   const { generateUniqueSlug } = await import('./slug.js')
@@ -45,8 +44,6 @@ export async function createTestUser(data?: {
       password: passwordHash,
       name,
       emailVerified,
-      verificationTokenHash: data?.verificationTokenHash ?? null,
-      verificationExpiresAt: data?.verificationExpiresAt ?? null,
       memberships: {
         create: {
           role: 'OWNER',
@@ -69,6 +66,42 @@ export async function createTestUser(data?: {
   })
 
   return { user, password }
+}
+
+/**
+ * Create a pending registration (a signup awaiting email verification) and return the
+ * plaintext verification token. Mirrors what `POST /auth/register` records before the account
+ * is materialized.
+ */
+export async function createTestPendingRegistration(data?: {
+  email?: string
+  password?: string
+  name?: string
+  expiresAt?: Date
+}) {
+  const { hashPassword } = await import('./password.js')
+  const { generateVerificationToken, sha256 } = await import('./crypto.js')
+  const { TIME } = await import('./constants.js')
+
+  const email = data?.email ?? 'pending@example.com'
+  const password = data?.password ?? 'P@ssword123'
+  const name = data?.name ?? 'Pending User'
+  const expiresAt = data?.expiresAt ?? new Date(Date.now() + TIME.ONE_DAY_MS)
+
+  const passwordHash = await hashPassword(password)
+  const token = generateVerificationToken()
+
+  const pendingRegistration = await prisma.pendingRegistration.create({
+    data: {
+      email,
+      name,
+      passwordHash,
+      verificationTokenHash: sha256(token),
+      expiresAt,
+    },
+  })
+
+  return { pendingRegistration, token, password }
 }
 
 /**
