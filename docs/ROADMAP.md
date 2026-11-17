@@ -403,10 +403,10 @@ than `SKILL.md`; the content requirement is satisfied and skills load correctly.
   - [x] Keep generic error response (maintains enumeration prevention)
   - [x] User is notified via email if unauthorized registration attempt
 - [ ] Add email notification for invitation flow (when invited to org)
-- [ ] Add password reset flow:
-  - [ ] `POST /api/v1/auth/forgot-password` — send reset link
-  - [ ] `POST /api/v1/auth/reset-password/:token` — set new password
-  - [ ] Invalidate all sessions on password reset
+- [x] Add password reset flow:
+  - [x] `POST /api/v1/auth/forgot-password` — send reset link (enumeration-safe generic 200)
+  - [x] `POST /api/v1/auth/reset-password` — set new password (single-use token in body)
+  - [x] Invalidate all sessions on password reset (increment `tokenVersion`)
 - [x] Update OpenAPI spec with new email-related endpoints
 - [x] Add integration tests for email verification flow
 - [ ] Update security audit (H-04 enhancement complete)

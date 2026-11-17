@@ -148,6 +148,44 @@ export const rateLimitConfig = {
     },
   }),
 
+  authForgotPassword: rateLimit({
+    windowMs: RATE_LIMIT.AUTH_FORGOT_PASSWORD_WINDOW_MS,
+    max: RATE_LIMIT.AUTH_FORGOT_PASSWORD_MAX,
+    standardHeaders: 'draft-7',
+    legacyHeaders: false,
+    skip: () => isTestEnv,
+    handler: (_req, res) => {
+      res.status(429).json({
+        error: {
+          code: 'RATE_LIMIT_EXCEEDED',
+          message: 'Too many password reset requests. Please try again in 1 hour.',
+          details: {
+            retryAfter: Math.ceil(RATE_LIMIT.AUTH_FORGOT_PASSWORD_WINDOW_MS / 1000),
+          },
+        },
+      })
+    },
+  }),
+
+  authResetPassword: rateLimit({
+    windowMs: RATE_LIMIT.AUTH_RESET_PASSWORD_WINDOW_MS,
+    max: RATE_LIMIT.AUTH_RESET_PASSWORD_MAX,
+    standardHeaders: 'draft-7',
+    legacyHeaders: false,
+    skip: () => isTestEnv,
+    handler: (_req, res) => {
+      res.status(429).json({
+        error: {
+          code: 'RATE_LIMIT_EXCEEDED',
+          message: 'Too many password reset attempts. Please try again in 15 minutes.',
+          details: {
+            retryAfter: Math.ceil(RATE_LIMIT.AUTH_RESET_PASSWORD_WINDOW_MS / 1000),
+          },
+        },
+      })
+    },
+  }),
+
   invitationCreate: rateLimit({
     windowMs: RATE_LIMIT.INVITATION_CREATE_WINDOW_MS,
     max: RATE_LIMIT.INVITATION_CREATE_MAX,

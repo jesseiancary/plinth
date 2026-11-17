@@ -105,6 +105,38 @@ export async function createTestPendingRegistration(data?: {
 }
 
 /**
+ * Create a verified test user with an in-flight password reset and return the plaintext reset
+ * token. Mirrors the state `POST /auth/forgot-password` persists before the link is clicked.
+ */
+export async function createTestUserWithResetToken(data?: {
+  email?: string
+  password?: string
+  name?: string
+  expiresAt?: Date
+}) {
+  const { generateResetToken, sha256 } = await import('./crypto.js')
+
+  const email = data?.email ?? 'reset@example.com'
+  const password = data?.password ?? 'P@ssword123'
+  const name = data?.name ?? 'Reset User'
+
+  const { user } = await createTestUser({ email, password, name })
+
+  const token = generateResetToken()
+  const expiresAt = data?.expiresAt ?? new Date(Date.now() + TIME.ONE_HOUR_MS)
+
+  await prisma.user.update({
+    where: { id: user.id },
+    data: {
+      passwordResetTokenHash: sha256(token),
+      passwordResetExpiresAt: expiresAt,
+    },
+  })
+
+  return { user, token, password }
+}
+
+/**
  * Create a test organization
  */
 export async function createTestOrg(data?: { name?: string; slug?: string }) {

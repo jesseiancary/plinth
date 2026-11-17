@@ -21,6 +21,8 @@ export type SecurityEventType =
   | 'EMAIL_CHANGED'
   | 'EMAIL_VERIFIED'
   | 'LOGIN_BLOCKED_UNVERIFIED'
+  | 'PASSWORD_RESET_REQUESTED'
+  | 'PASSWORD_RESET_COMPLETED'
 
 /**
  * Log a failed authentication attempt

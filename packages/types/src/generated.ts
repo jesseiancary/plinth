@@ -117,6 +117,58 @@ export interface paths {
     patch?: never
     trace?: never
   }
+  '/api/v1/auth/forgot-password': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /**
+     * Request a password reset
+     * @description Begin a self-service password reset. Public endpoint (no session) and CSRF-exempt.
+     *
+     *     Enumeration-safe: the response is an identical generic `200` whether or not the email
+     *     maps to an account, and response timing is normalized so the two cases are
+     *     indistinguishable. When the email does belong to an account, a single-use reset token
+     *     (1-hour expiry) is persisted and a reset link is emailed. Rate-limited to 3 requests per
+     *     hour per IP.
+     */
+    post: operations['forgotPassword']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/v1/auth/reset-password': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /**
+     * Reset password with a token
+     * @description Complete a password reset using the single-use token from the emailed link. Public
+     *     endpoint (no session) and CSRF-exempt — the token is the credential.
+     *
+     *     On success the new password is set, the reset token is consumed (single-use), and all
+     *     existing sessions are invalidated (the user's token version is incremented, so previously
+     *     issued refresh tokens are rejected). A missing/already-consumed token and an expired token
+     *     both return `400`. Rate-limited per IP.
+     */
+    post: operations['resetPassword']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
   '/api/v1/auth/refresh': {
     parameters: {
       query?: never
@@ -918,6 +970,96 @@ export interface operations {
         }
       }
       /** @description Invalid or expired verification token */
+      400: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['Error']
+        }
+      }
+      429: components['responses']['RateLimitExceeded']
+    }
+  }
+  forgotPassword: {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    requestBody: {
+      content: {
+        'application/json': {
+          /**
+           * Format: email
+           * @description Email address of the account to reset
+           */
+          email: string
+        }
+      }
+    }
+    responses: {
+      /**
+       * @description Generic acknowledgement. Returned identically for known and unknown emails so the
+       *     response never reveals whether an account exists.
+       */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': {
+            message: string
+          }
+        }
+      }
+      /** @description Validation error (malformed email) */
+      400: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['Error']
+        }
+      }
+      429: components['responses']['RateLimitExceeded']
+    }
+  }
+  resetPassword: {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    requestBody: {
+      content: {
+        'application/json': {
+          /** @description Single-use reset token from the emailed link */
+          token: string
+          /**
+           * Format: password
+           * @description New password. Must be 8-128 characters and include an uppercase letter, a
+           *     lowercase letter, a number, and a special character.
+           */
+          newPassword: string
+        }
+      }
+    }
+    responses: {
+      /** @description Password reset successfully */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': {
+            message: string
+          }
+        }
+      }
+      /** @description Invalid or expired reset token, or a weak new password */
       400: {
         headers: {
           [name: string]: unknown

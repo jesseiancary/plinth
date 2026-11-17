@@ -542,6 +542,165 @@ paths:
         '429':
           $ref: '#/components/responses/RateLimitExceeded'
 
+  /api/v1/auth/forgot-password:
+    post:
+      summary: Request a password reset
+      description: |
+        Begin a self-service password reset. Public endpoint (no session) and CSRF-exempt.
+
+        Enumeration-safe: the response is an identical generic `200` whether or not the email
+        maps to an account, and response timing is normalized so the two cases are
+        indistinguishable. When the email does belong to an account, a single-use reset token
+        (1-hour expiry) is persisted and a reset link is emailed. Rate-limited to 3 requests per
+        hour per IP.
+      operationId: forgotPassword
+      tags:
+        - Auth
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+              properties:
+                email:
+                  type: string
+                  format: email
+                  description: Email address of the account to reset
+            examples:
+              request:
+                summary: Request a reset link
+                value:
+                  email: user@example.com
+      responses:
+        '200':
+          description: |
+            Generic acknowledgement. Returned identically for known and unknown emails so the
+            response never reveals whether an account exists.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - message
+                properties:
+                  message:
+                    type: string
+              examples:
+                generic:
+                  summary: Always the same body
+                  value:
+                    message: If an account exists for that email, a password reset link has been sent.
+        '400':
+          description: Validation error (malformed email)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                validation:
+                  summary: Invalid email
+                  value:
+                    error:
+                      code: VALIDATION_ERROR
+                      message: Validation failed
+                      details: {}
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+
+  /api/v1/auth/reset-password:
+    post:
+      summary: Reset password with a token
+      description: |
+        Complete a password reset using the single-use token from the emailed link. Public
+        endpoint (no session) and CSRF-exempt — the token is the credential.
+
+        On success the new password is set, the reset token is consumed (single-use), and all
+        existing sessions are invalidated (the user's token version is incremented, so previously
+        issued refresh tokens are rejected). A missing/already-consumed token and an expired token
+        both return `400`. Rate-limited per IP.
+      operationId: resetPassword
+      tags:
+        - Auth
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - token
+                - newPassword
+              properties:
+                token:
+                  type: string
+                  description: Single-use reset token from the emailed link
+                newPassword:
+                  type: string
+                  format: password
+                  minLength: 8
+                  maxLength: 128
+                  description: |
+                    New password. Must be 8-128 characters and include an uppercase letter, a
+                    lowercase letter, a number, and a special character.
+            examples:
+              reset:
+                summary: Set a new password
+                value:
+                  token: rst_example_token_from_reset_link
+                  newPassword: NewSecureP@ssw0rd
+      responses:
+        '200':
+          description: Password reset successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - message
+                properties:
+                  message:
+                    type: string
+              examples:
+                reset:
+                  summary: Reset succeeded
+                  value:
+                    message: Your password has been reset. You can now log in.
+        '400':
+          description: Invalid or expired reset token, or a weak new password
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                invalidToken:
+                  summary: Token unknown or already consumed (single-use)
+                  value:
+                    error:
+                      code: INVALID_RESET_TOKEN
+                      message: Invalid or expired reset token
+                      details: {}
+                expiredToken:
+                  summary: Token past its expiry
+                  value:
+                    error:
+                      code: RESET_TOKEN_EXPIRED
+                      message: This password reset link has expired. Please request a new one.
+                      details: {}
+                validation:
+                  summary: New password fails complexity rules
+                  value:
+                    error:
+                      code: VALIDATION_ERROR
+                      message: Validation failed
+                      details: {}
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+
   /api/v1/auth/refresh:
     post:
       summary: Refresh access token
