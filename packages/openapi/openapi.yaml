@@ -495,7 +495,7 @@ paths:
               verify:
                 summary: Verify with emailed token
                 value:
-                  token: ver_0192f1e2a3b44c5d6e7f8a9b0c1d2e3f
+                  token: ver_example_token_from_verification_link
       responses:
         '200':
           description: Email verified successfully
