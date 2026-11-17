@@ -129,6 +129,44 @@ export const rateLimitConfig = {
     },
   }),
 
+  authVerifyEmail: rateLimit({
+    windowMs: RATE_LIMIT.AUTH_VERIFY_EMAIL_WINDOW_MS,
+    max: RATE_LIMIT.AUTH_VERIFY_EMAIL_MAX,
+    standardHeaders: 'draft-7',
+    legacyHeaders: false,
+    skip: () => isTestEnv,
+    handler: (_req, res) => {
+      res.status(429).json({
+        error: {
+          code: 'RATE_LIMIT_EXCEEDED',
+          message: 'Too many verification attempts. Please try again in 15 minutes.',
+          details: {
+            retryAfter: Math.ceil(RATE_LIMIT.AUTH_VERIFY_EMAIL_WINDOW_MS / 1000),
+          },
+        },
+      })
+    },
+  }),
+
+  authResendVerification: rateLimit({
+    windowMs: RATE_LIMIT.AUTH_RESEND_VERIFICATION_WINDOW_MS,
+    max: RATE_LIMIT.AUTH_RESEND_VERIFICATION_MAX,
+    standardHeaders: 'draft-7',
+    legacyHeaders: false,
+    skip: () => isTestEnv,
+    handler: (_req, res) => {
+      res.status(429).json({
+        error: {
+          code: 'RATE_LIMIT_EXCEEDED',
+          message: 'Too many verification email requests. Please try again in 1 hour.',
+          details: {
+            retryAfter: Math.ceil(RATE_LIMIT.AUTH_RESEND_VERIFICATION_WINDOW_MS / 1000),
+          },
+        },
+      })
+    },
+  }),
+
   invitationCreate: rateLimit({
     windowMs: RATE_LIMIT.INVITATION_CREATE_WINDOW_MS,
     max: RATE_LIMIT.INVITATION_CREATE_MAX,

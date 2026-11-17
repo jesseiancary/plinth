@@ -780,8 +780,10 @@ testApp.use(createCsrfProtection({ skipCsrf: false, isProduction: false }))
 
 > Update this section as phases are completed.
 
-**Active:** Phase 6 — Claude Code AI Integration Showcase ✅ Complete (`.claude/` system + `AI_DEVELOPMENT.md` shipped)
-**Next:** Phase 7 — Testing & Quality
+**Active:** Phase 8 — Deployment & Polish 🚧 In progress (email infrastructure merged #77; email
+verification flow in review — see `docs/PHASE_8_PLAN.md`)
+**Next:** Remaining Phase 8 — invitation emails, password reset flow, frontend auth pages, CD/deploy
+config, ADRs + README polish. Phase 7 — Testing & Quality is still open.
 **Completed:**
 
 - Phase 0 — Repo & Tooling Setup ✅
@@ -791,6 +793,8 @@ testApp.use(createCsrfProtection({ skipCsrf: false, isProduction: false }))
 - Phase 4 — OpenAPI Spec & Scalar Docs ✅ (2026-05-28)
 - Phase 5 — React Frontend ✅ (foundation 2026-05-29; dashboard UI + accept-invite flow 2026-11-07)
 - Phase 6 — Claude Code AI Integration Showcase ✅ (2026-11-08)
+- Phase 8 (partial) — Email infrastructure foundation ✅ (#77, 2026-11-15) + email verification flow
+  (register gating, verify/resend endpoints, enumeration-safe duplicate handling)
 
 See `docs/ROADMAP.md` for full checklist.
 

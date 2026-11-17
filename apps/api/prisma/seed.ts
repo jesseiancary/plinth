@@ -24,6 +24,7 @@ async function main() {
       email: 'admin@example.com',
       password: hashedPassword,
       name: 'Admin User',
+      emailVerified: true,
     },
   })
 
@@ -36,6 +37,7 @@ async function main() {
       email: 'member@example.com',
       password: hashedPassword,
       name: 'Member User',
+      emailVerified: true,
     },
   })
 
@@ -48,6 +50,7 @@ async function main() {
       email: 'guest@example.com',
       password: hashedPassword,
       name: 'Guest User',
+      emailVerified: true,
     },
   })
 

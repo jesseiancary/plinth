@@ -74,7 +74,8 @@ describe('Rate Limiting Configuration', () => {
         })
         .expect(201)
 
-      expect(res.body).toHaveProperty('accessToken')
+      // Registration no longer auto-issues a session (login is gated on email verification).
+      expect(res.body).not.toHaveProperty('accessToken')
       expect(res.body.user.email).toBe('newuser@example.com')
     })
   })

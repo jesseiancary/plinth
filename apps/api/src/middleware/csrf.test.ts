@@ -71,6 +71,7 @@ describe('CSRF Protection', () => {
         email: 'test@example.com',
         password: passwordHash,
         name: 'Test User',
+        emailVerified: true,
         memberships: {
           create: {
             role: 'OWNER',
@@ -181,7 +182,7 @@ describe('CSRF Protection', () => {
       })
 
       expect(res.status).toBe(201)
-      expect(res.body.accessToken).toBeDefined()
+      expect(res.body.message).toBeDefined()
     })
 
     it('should allow login with trailing slash (no CSRF token required)', async () => {
@@ -202,7 +203,28 @@ describe('CSRF Protection', () => {
       })
 
       expect(res.status).toBe(201)
-      expect(res.body.accessToken).toBeDefined()
+      expect(res.body.message).toBeDefined()
+    })
+
+    it('should allow verify-email without CSRF token (public endpoint)', async () => {
+      // No CSRF token sent. The request must reach the handler (a bad token yields a
+      // domain 400, not a CSRF 403), proving the endpoint is exempt.
+      const res = await request(app)
+        .post('/api/v1/auth/verify-email')
+        .send({ token: 'ver_nonexistent_token' })
+
+      expect(res.status).toBe(400)
+      expect(res.body.error.code).toBe('INVALID_VERIFICATION_TOKEN')
+    })
+
+    it('should allow resend-verification without CSRF token (public endpoint)', async () => {
+      // Enumeration-safe generic 200 regardless of input — and crucially not a CSRF 403.
+      const res = await request(app)
+        .post('/api/v1/auth/resend-verification')
+        .send({ email: 'nobody@example.com' })
+
+      expect(res.status).toBe(200)
+      expect(res.body.message).toBeDefined()
     })
 
     it('should handle refresh endpoint with trailing slash', async () => {
