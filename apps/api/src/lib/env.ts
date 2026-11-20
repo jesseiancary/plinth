@@ -72,8 +72,15 @@ export const env = envSchema.parse(process.env)
 export type Env = z.infer<typeof envSchema>
 
 /**
+ * True when running under the test runner. Single source of truth for the many places that gate
+ * behavior on the test environment (in-memory email outbox, synchronous email/sweep dispatch,
+ * logger transports, rate-limit relaxation).
+ */
+export const isTestEnv = env.NODE_ENV === 'test'
+
+/**
  * Determines whether CSRF protection should be skipped
  * Returns true in test environment to simplify integration tests
  * Exported as function to allow mocking in CSRF-specific tests
  */
-export const shouldSkipCsrf = () => env.NODE_ENV === 'test'
+export const shouldSkipCsrf = () => isTestEnv

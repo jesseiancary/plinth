@@ -394,13 +394,15 @@ export interface paths {
     }
     /**
      * List invitations
-     * @description List all invitations for the organization (requires ADMIN role)
+     * @description List all invitations for the organization (requires OWNER or ADMIN role)
      */
     get: operations['listInvitations']
     put?: never
     /**
      * Create invitation
-     * @description Create an invitation to join the organization (requires ADMIN role)
+     * @description Create an invitation to join the organization (requires OWNER or ADMIN role).
+     *
+     *     On success an invitation email containing the accept link (`WEB_URL/invite/{token}`) is sent to the invitee — this is now the primary delivery channel. The plaintext `token` is still returned in the response for back-compat and manual sharing; it is shown only once and only its SHA-256 hash is persisted.
      */
     post: operations['createInvitation']
     delete?: never
@@ -421,7 +423,7 @@ export interface paths {
     post?: never
     /**
      * Revoke invitation
-     * @description Revoke a pending invitation (requires ADMIN role)
+     * @description Revoke a pending invitation (requires OWNER or ADMIN role)
      */
     delete: operations['revokeInvitation']
     options?: never
@@ -1770,7 +1772,7 @@ export interface operations {
           'application/json': components['schemas']['Error']
         }
       }
-      /** @description Insufficient permissions (requires ADMIN role) or API key scope */
+      /** @description Insufficient permissions (requires OWNER or ADMIN role) or API key scope */
       403: {
         headers: {
           [name: string]: unknown
@@ -1850,7 +1852,7 @@ export interface operations {
           'application/json': components['schemas']['Error']
         }
       }
-      /** @description Insufficient permissions (requires ADMIN) */
+      /** @description Insufficient permissions (requires OWNER or ADMIN) */
       403: {
         headers: {
           [name: string]: unknown
@@ -1910,7 +1912,7 @@ export interface operations {
           'application/json': components['schemas']['Error']
         }
       }
-      /** @description Insufficient permissions (requires ADMIN role) or API key scope */
+      /** @description Insufficient permissions (requires OWNER or ADMIN role) or API key scope */
       403: {
         headers: {
           [name: string]: unknown

@@ -24,6 +24,14 @@ recurring correctness bugs worth watching for, review feedback the user has conf
   env artifact, not a regression from whatever diff is under review. Use `make test-docker-api`
   (isolated compose file, correct `NODE_ENV=test`) for a trustworthy run, or disregard
   CSRF_TOKEN_MISSING failures seen via the dev container.
+- 2026-11-17: `apps/api/src/lib/invitation-emails.ts` interpolates the fully user-controlled
+  `organization.name` directly into an email `Subject` header with no app-level sanitization.
+  Looks like header-injection (CRLF in org name -> extra headers / Bcc), but confirmed non-
+  exploitable by reading `nodemailer@10.5.0`'s `mime-node/index.js`: `buildHeaders()` always
+  routes header values through `encodeHeaderValue` + `mimeFuncs.foldLines`, which strips/encodes
+  raw CR/LF before the header hits the wire. Don't flag bare "unsanitized string in email
+  Subject" as injection in this codebase unless the transport bypasses nodemailer's MimeNode
+  (e.g. a raw SMTP write) — it doesn't here.
 
 ## Recurring patterns / open questions
 
@@ -88,3 +96,19 @@ verification` was later removed entirely (don't expect it). **Confirmed miss in 
   own comment claiming to be "consistent with Invitation.tokenHash." Nullable columns allow
   multiple `NULL`s under a unique constraint in Postgres, so there's no cost to adding it. Flag as
   Low/Medium (defense-in-depth + consistency) whenever a new hashed-token column skips `@unique`.
+- 2026-11-17: `dispatchAuthEmail` (private to `routes/auth.ts`) was extracted verbatim to
+  `apps/api/src/lib/dispatch-email.ts` (`dispatchEmail`) in the invitations-email PR, and
+  `auth-emails.ts`'s private `buildUrl` was likewise extracted to `lib/email-links.ts`. Both
+  extractions preserve prior behavior byte-for-byte (confirmed by diff) and `org-invitations.ts`
+  now reuses the same `dispatchEmail`/`buildUrl` for `sendInvitationEmail`. Treat these as the
+  canonical shared helpers going forward — a new route adding its own copy of either is drift to
+  flag, not a fresh implementation to review from scratch.
+- 2026-11-17: `org-invitations.ts`'s invitation-create handler inserts two non-transactional
+  steps — a `prisma.user.findUnique` (inviter display name) and the email dispatch — _between_
+  `prisma.invitation.create()` and the `res.json()` response. If the inviter lookup throws, the
+  client gets a 500 with no token, but the `PENDING` invitation already persisted, which then
+  blocks retries for 72h via the existing `INVITATION_ALREADY_EXISTS` check. Watch for this
+  general shape — extra reads/side-effects inserted after a resource `.create()` but before its
+  response, with no transaction/rollback — whenever a PR adds post-create enrichment (e.g. for
+  notification emails) to an existing create endpoint. Low/Moderate: fix is reordering the
+  enrichment read before the create, or wrapping both in a transaction.

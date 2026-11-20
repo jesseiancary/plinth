@@ -5,7 +5,7 @@ import nodemailer from 'nodemailer'
 import type SMTPTransport from 'nodemailer/lib/smtp-transport/index.js'
 
 import { logEmailEvent } from './business-logger.js'
-import { env } from './env.js'
+import { env, isTestEnv } from './env.js'
 
 export type EmailMessage = {
   from: string
@@ -27,8 +27,6 @@ export type SentEmail = {
   html: string
   text: string
 }
-
-const isTestEnv = env.NODE_ENV === 'test'
 
 const DEFAULT_SMTP_PORT = 587
 const IMPLICIT_TLS_PORT = 465

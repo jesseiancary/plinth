@@ -4,7 +4,9 @@ import { Router } from 'express'
 import { asyncHandler } from '../lib/async-handler.js'
 import { generateInvitationToken, sha256 } from '../lib/crypto.js'
 import { prisma } from '../lib/db.js'
+import { dispatchEmail } from '../lib/dispatch-email.js'
 import { AppError } from '../lib/errors.js'
+import { sendInvitationEmail } from '../lib/invitation-emails.js'
 import { rateLimitConfig } from '../lib/security.js'
 import {
   createInvitationSchema,
@@ -30,7 +32,9 @@ router.post(
   asyncHandler(async (req: Request, res: Response) => {
     const body = createInvitationSchema.parse(req.body)
 
-    if (!req.user || !req.tenantId) {
+    // req.organization is populated alongside req.tenantId by requireRole; assert it here so the
+    // invitation email can name the org without re-querying the row the middleware already resolved.
+    if (!req.user || !req.tenantId || !req.organization) {
       throw new AppError('Authentication required', 401, 'UNAUTHENTICATED')
     }
 
@@ -76,6 +80,9 @@ router.post(
     const expiresAt = new Date()
     expiresAt.setHours(expiresAt.getHours() + 72)
 
+    // Pull the inviter's display name back from the same insert (invitedBy relation) so the email
+    // copy needs no extra query. User.name is non-null, so there's a real name to show — no
+    // fallback to the inviter's email (which would disclose it to the invitee).
     const invitation = await prisma.invitation.create({
       data: {
         email: body.email,
@@ -86,7 +93,26 @@ router.post(
         organizationId: req.tenantId,
         invitedById: req.user.id,
       },
+      include: {
+        invitedBy: {
+          select: { name: true },
+        },
+      },
     })
+
+    // Email the invitee the accept link. Capture the org name outside the closure (req is mutable,
+    // so TS widens req.organization back to optional inside it). The plaintext token travels only
+    // in the email — and, for now, the create response below.
+    const organizationName = req.organization.name
+    await dispatchEmail(() =>
+      sendInvitationEmail({
+        to: invitation.email,
+        inviterName: invitation.invitedBy.name,
+        organizationName,
+        role: invitation.role,
+        token,
+      }),
+    )
 
     res.status(201).json({
       invitation: {

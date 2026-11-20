@@ -3,14 +3,14 @@ import path from 'node:path'
 import * as winston from 'winston'
 import DailyRotateFile from 'winston-daily-rotate-file'
 
-import { env } from './env.js'
+import { env, isTestEnv } from './env.js'
 
 const getLogLevel = (): string => {
   if (env.LOG_LEVEL) {
     return env.LOG_LEVEL
   }
 
-  if (env.NODE_ENV === 'test') {
+  if (isTestEnv) {
     return 'silent' // Disable logging in tests
   }
   if (env.NODE_ENV === 'production') {
@@ -39,7 +39,7 @@ const logDir = path.join(process.cwd(), 'logs')
 
 const transports: winston.transport[] = []
 
-if (env.NODE_ENV === 'test') {
+if (isTestEnv) {
   // Add silent transport to prevent "no transports" warning
   transports.push(
     new winston.transports.Console({

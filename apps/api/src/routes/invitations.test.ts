@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { app } from '../app.js'
 import { sha256 } from '../lib/crypto.js'
 import { prisma } from '../lib/db.js'
+import { clearTestOutbox, getTestOutbox } from '../lib/email.js'
 import {
   clearDatabase,
   createTestInvitation,
@@ -16,10 +17,12 @@ import {
 describe('POST /api/v1/orgs/:slug/invitations', () => {
   beforeEach(async () => {
     await clearDatabase()
+    clearTestOutbox()
   })
 
   afterEach(async () => {
     await clearDatabase()
+    clearTestOutbox()
   })
 
   it('creates invitation as ADMIN and returns token', async () => {
@@ -44,6 +47,56 @@ describe('POST /api/v1/orgs/:slug/invitations', () => {
     })
     expect(response.body.token).toBeDefined()
     expect(response.body.token).toMatch(/^inv_/)
+  })
+
+  it('emails the invitee an accept link naming the org and inviter', async () => {
+    const { user: admin } = await createTestUser({
+      email: 'admin@example.com',
+      name: 'Ada Admin',
+    })
+    const org = await createTestOrg({ name: 'Acme Inc', slug: 'test-org' })
+    await createTestMembership(admin.id, org.id, 'ADMIN')
+
+    const token = await generateTestAccessToken(admin.id, admin.email)
+
+    const response = await request(app)
+      .post('/api/v1/orgs/test-org/invitations')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        email: 'newuser@example.com',
+        role: 'MEMBER',
+      })
+      .expect(201)
+
+    const sent = getTestOutbox().find((m) => m.to === 'newuser@example.com')
+    expect(sent).toBeDefined()
+    expect(sent?.subject).toContain('Acme Inc')
+    // The emailed link carries the same plaintext token the response returns, under /invite/:token.
+    expect(sent?.html).toContain(`/invite/${response.body.token}`)
+    expect(sent?.html).toContain('Acme Inc')
+    expect(sent?.html).toContain('Ada Admin')
+  })
+
+  it('does not send an email when the invitee is already a member', async () => {
+    const { user: admin } = await createTestUser({ email: 'admin@example.com' })
+    const { user: existing } = await createTestUser({ email: 'existing@example.com' })
+
+    const org = await createTestOrg({ slug: 'test-org' })
+    await createTestMembership(admin.id, org.id, 'ADMIN')
+    await createTestMembership(existing.id, org.id, 'MEMBER')
+
+    const token = await generateTestAccessToken(admin.id, admin.email)
+
+    await request(app)
+      .post('/api/v1/orgs/test-org/invitations')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        email: 'existing@example.com',
+        role: 'MEMBER',
+      })
+      .expect(409)
+
+    expect(getTestOutbox()).toHaveLength(0)
   })
 
   it('returns 409 if user is already a member', async () => {
