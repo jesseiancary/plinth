@@ -21,7 +21,8 @@ import { logUserLogin, logUserLogout, logUserRegistration } from '../lib/busines
 import { TIME } from '../lib/constants.js'
 import { generateResetToken, generateVerificationToken, sha256 } from '../lib/crypto.js'
 import { prisma } from '../lib/db.js'
-import { env } from '../lib/env.js'
+import { dispatchEmail } from '../lib/dispatch-email.js'
+import { env, isTestEnv } from '../lib/env.js'
 import { AppError } from '../lib/errors.js'
 import { signAccessToken, signRefreshToken, verifyRefreshToken } from '../lib/jwt.js'
 import { hashPassword, normalizeAuthTiming, verifyPassword } from '../lib/password.js'
@@ -61,40 +62,6 @@ const FORGOT_PASSWORD_MESSAGE =
  * just-submitted password is now active.
  */
 const ALREADY_VERIFIED_MESSAGE = 'This email is already verified. You can log in.'
-
-const isTestEnv = env.NODE_ENV === 'test'
-
-/**
- * Dispatch a transactional auth email without letting it affect the HTTP response.
- *
- * Failures are swallowed (the email layer logs `EMAIL_SEND_FAILED` for both template-render
- * and SMTP-delivery failures) so a transient outage can't fail the request — a user who never
- * receives the link can simply register again to get a fresh one.
- *
- * In production the send is **fire-and-forget**: awaiting a slow SMTP round-trip would both
- * delay the caller and, on the enumeration-safe duplicate-registration branch, create a timing
- * oracle — `normalizeAuthTiming` only raises latency to a floor, it cannot cap it, so an awaited
- * send would make the "account exists" branch measurably slower than the no-op branches. In the
- * test environment we await instead, so the in-memory outbox is populated deterministically for
- * assertions.
- */
-const dispatchAuthEmail = async (send: () => Promise<void>): Promise<void> => {
-  const safeSend = async (): Promise<void> => {
-    try {
-      await send()
-    } catch {
-      // Intentionally ignored — failure already logged by the email layer.
-    }
-  }
-
-  if (isTestEnv) {
-    await safeSend()
-    return
-  }
-
-  // Fire-and-forget: safeSend never rejects, so no unhandled rejection.
-  void safeSend()
-}
 
 /**
  * Reclaim expired pending registrations without blocking the response. The sweep is pure
@@ -156,7 +123,7 @@ router.post(
       // Enumeration-safe: the response is generic, but we notify the real account holder
       // out-of-band so they're aware of the attempt without the request confirming the
       // address exists.
-      await dispatchAuthEmail(() =>
+      await dispatchEmail(() =>
         sendAccountExistsEmail({ to: existingUser.email, name: existingUser.name }),
       )
       await normalizeAuthTiming(startTime)
@@ -187,7 +154,7 @@ router.post(
     })
     await dispatchPendingSweep()
 
-    await dispatchAuthEmail(() =>
+    await dispatchEmail(() =>
       sendVerificationEmail({ to: body.email, name: body.name, token: verificationToken }),
     )
 
@@ -381,7 +348,7 @@ router.post(
  * 200 whether or not the email maps to an account, and `normalizeAuthTiming` floors the latency
  * so the two branches aren't distinguishable by timing. When the email *does* belong to a real
  * account we persist a single-use reset-token hash (+ 1h expiry) and email the link; the email
- * send is fire-and-forget in production (see `dispatchAuthEmail`) so a slow SMTP round-trip can't
+ * send is fire-and-forget in production (see `dispatchEmail`) so a slow SMTP round-trip can't
  * become a timing oracle for the "account exists" branch.
  */
 router.post(
@@ -408,7 +375,7 @@ router.post(
         },
       })
 
-      await dispatchAuthEmail(() =>
+      await dispatchEmail(() =>
         sendPasswordResetEmail({ to: user.email, name: user.name, token: resetToken }),
       )
 

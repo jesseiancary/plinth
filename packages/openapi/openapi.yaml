@@ -1841,7 +1841,15 @@ paths:
   /api/v1/orgs/{slug}/invitations:
     post:
       summary: Create invitation
-      description: Create an invitation to join the organization (requires ADMIN role)
+      description: >-
+        Create an invitation to join the organization (requires OWNER or ADMIN role).
+
+
+        On success an invitation email containing the accept link
+        (`WEB_URL/invite/{token}`) is sent to the invitee — this is now the
+        primary delivery channel. The plaintext `token` is still returned in the
+        response for back-compat and manual sharing; it is shown only once and
+        only its SHA-256 hash is persisted.
       operationId: createInvitation
       tags:
         - Invitations
@@ -1901,7 +1909,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
         '403':
-          description: Insufficient permissions (requires ADMIN)
+          description: Insufficient permissions (requires OWNER or ADMIN)
           content:
             application/json:
               schema:
@@ -1938,7 +1946,7 @@ paths:
 
     get:
       summary: List invitations
-      description: List all invitations for the organization (requires ADMIN role)
+      description: List all invitations for the organization (requires OWNER or ADMIN role)
       operationId: listInvitations
       tags:
         - Invitations
@@ -1995,7 +2003,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
         '403':
-          description: Insufficient permissions (requires ADMIN role) or API key scope
+          description: Insufficient permissions (requires OWNER or ADMIN role) or API key scope
           content:
             application/json:
               schema:
@@ -2027,7 +2035,7 @@ paths:
   /api/v1/orgs/{slug}/invitations/{invitationId}:
     delete:
       summary: Revoke invitation
-      description: Revoke a pending invitation (requires ADMIN role)
+      description: Revoke a pending invitation (requires OWNER or ADMIN role)
       operationId: revokeInvitation
       tags:
         - Invitations
@@ -2057,7 +2065,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
         '403':
-          description: Insufficient permissions (requires ADMIN role) or API key scope
+          description: Insufficient permissions (requires OWNER or ADMIN role) or API key scope
           content:
             application/json:
               schema:

@@ -5,27 +5,13 @@ import { ResetPasswordEmail } from '../emails/ResetPasswordEmail.js'
 import { VerifyEmail } from '../emails/VerifyEmail.js'
 
 import { sendEmail } from './email.js'
-import { env } from './env.js'
+import { buildUrl } from './email-links.js'
 
 /**
- * Transactional email senders for the authentication flows. Centralizes the link-building
- * (WEB_URL + path + token) so routes stay focused on their own logic and every link is
+ * Transactional email senders for the authentication flows. Link-building (WEB_URL + path +
+ * token) lives in {@link buildUrl} so routes stay focused on their own logic and every link is
  * constructed consistently.
  */
-
-const buildUrl = (path: string, params?: Record<string, string>): string => {
-  // Append `path` to WEB_URL's full path rather than using `new URL(path, base)`: a
-  // root-absolute second argument would discard any path prefix on WEB_URL (e.g. a
-  // '/app' subpath mount), producing broken links. `path` always begins with '/'.
-  const base = env.WEB_URL.replace(/\/+$/, '')
-  const url = new URL(`${base}${path}`)
-  if (params) {
-    for (const [key, value] of Object.entries(params)) {
-      url.searchParams.set(key, value)
-    }
-  }
-  return url.toString()
-}
 
 /**
  * Send the email-verification message containing a single-use link. The plaintext token

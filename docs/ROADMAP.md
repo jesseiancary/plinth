@@ -402,7 +402,7 @@ than `SKILL.md`; the content requirement is satisfied and skills load correctly.
   - [x] Send "account exists" email when duplicate registration attempted
   - [x] Keep generic error response (maintains enumeration prevention)
   - [x] User is notified via email if unauthorized registration attempt
-- [ ] Add email notification for invitation flow (when invited to org)
+- [x] Add email notification for invitation flow (when invited to org)
 - [x] Add password reset flow:
   - [x] `POST /api/v1/auth/forgot-password` — send reset link (enumeration-safe generic 200)
   - [x] `POST /api/v1/auth/reset-password` — set new password (single-use token in body)
