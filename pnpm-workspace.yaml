@@ -19,6 +19,13 @@ overrides:
   #   not float follow-redirects up, so pin it here. Within axios's
   #   follow-redirects@^1.16.0 range.
   follow-redirects: '^1.16.2'
+  # effect: @prisma/client > prisma > @prisma/config > effect (and prisma >
+  #   @prisma/config > effect) resolves vulnerable 3.20.0 (ReDoS in
+  #   Schema.TemplateLiteral compiled regex, patched 3.22.1 —
+  #   GHSA-7589-6fvf-x4pw). @prisma/config pins effect exactly at 3.20.0, so a
+  #   Prisma bump alone won't move it; float it up within effect's 3.x major
+  #   (API-compatible) to clear the high-severity prod advisory.
+  effect: '^3.22.1'
 allowBuilds:
   '@prisma/client': true
   '@prisma/engines': true
