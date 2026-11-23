@@ -72,7 +72,7 @@ COPY packages/validation ./packages/validation/
 
 # Build TypeScript. Build @plinth/validation first so its compiled dist/*.js exists:
 # production runs plain `node`, which resolves the package's "default" export to
-# dist/index.js (raw TS source is not node-loadable — see docs/DEPLOYMENT_FOLLOWUPS.md).
+# dist/index.js (raw TS source is not node-loadable).
 RUN pnpm --filter @plinth/validation build && pnpm --filter api build
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -104,7 +104,7 @@ COPY --from=build /app/apps/api/dist ./apps/api/dist
 # Copy the COMPILED validation package (Zod schemas) from the build stage. The
 # package.json copied above resolves @plinth/validation's "default" export to
 # dist/index.js, which plain `node` loads at runtime (raw TS source would throw
-# ERR_MODULE_NOT_FOUND — see docs/DEPLOYMENT_FOLLOWUPS.md, Blocker 1).
+# ERR_MODULE_NOT_FOUND).
 COPY --from=build /app/packages/validation/dist ./packages/validation/dist
 
 # Copy the OpenAPI spec — app.ts reads it at startup to serve /docs (Scalar). Without

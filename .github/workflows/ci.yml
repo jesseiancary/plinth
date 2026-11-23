@@ -244,8 +244,8 @@ jobs:
         run: pnpm --filter api db:generate
 
       # @plinth/validation must be compiled before the web build: the production
-      # `vite build` resolves its "default" export to dist/index.js (dev/test use the
-      # TS-source "development" condition). See docs/DEPLOYMENT_FOLLOWUPS.md, Blocker 1.
+      # `vite build` resolves its "default" export to dist/index.js, while dev/test
+      # use the TS-source "development" condition.
       - name: Build validation package
         run: pnpm --filter @plinth/validation build
 
@@ -292,10 +292,10 @@ jobs:
           cache-to: type=gha,mode=max
 
       # Actually RUN the image. A plain `docker build` only type-checks/compiles; it
-      # never executes `node dist/server.js`, so a workspace package that isn't
-      # node-loadable in production (see docs/DEPLOYMENT_FOLLOWUPS.md, Blocker 1) would
-      # pass the build and only crash-loop once deployed. Host networking lets the
-      # container reach the Postgres service and lets the runner curl /health.
+      # never executes the compiled server, so a workspace package that isn't
+      # node-loadable in production would pass the build and only crash-loop once
+      # deployed. Host networking lets the container reach the Postgres service and
+      # lets the runner curl /health.
       - name: Smoke-test that the production image boots and serves /health
         run: |
           docker run -d --name api-smoke --network host \
