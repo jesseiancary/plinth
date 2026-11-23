@@ -66,24 +66,24 @@ surface as CORS or cookie failures, not build failures.
    Postgres plugin reference) `DATABASE_URL` automatically — reference the database with
    `${{ Postgres.DATABASE_URL }}` rather than pasting a connection string.
 
-   | Variable             | Value / source                                                       |
-   | -------------------- | -------------------------------------------------------------------- |
-   | `NODE_ENV`           | `production`                                                         |
-   | `DATABASE_URL`       | `${{ Postgres.DATABASE_URL }}` (plugin reference)                    |
-   | `JWT_SECRET`         | `openssl rand -base64 32` (≥ 32 chars)                               |
-   | `JWT_REFRESH_SECRET` | `openssl rand -base64 32` (≥ 32 chars, different from `JWT_SECRET`)  |
-   | `API_URL`            | the Railway API origin from step 4                                   |
-   | `WEB_URL`            | the Vercel origin from Step 2 (must **not** be `localhost`)          |
-   | `SMTP_HOST`          | your provider's SMTP host (**required** in production)               |
-   | `SMTP_PORT`          | provider SMTP port (e.g. `587`)                                      |
-   | `SMTP_USER`          | provider username (set **with** `SMTP_PASS` or neither)              |
-   | `SMTP_PASS`          | provider password/API key                                            |
-   | `SMTP_FROM`          | a **verified** sender, e.g. `Plinth <noreply@yourdomain.com>`        |
-   | `JWT_ACCESS_EXPIRY`  | optional, default `15m`                                              |
-   | `JWT_REFRESH_EXPIRY` | optional, default `7d`                                               |
-   | `BCRYPT_WORK_FACTOR` | optional, default `10`                                               |
-   | `LOG_LEVEL`          | optional, default `info`                                             |
-   | `HEALTH_CHECK_TOKEN` | optional; `openssl rand -base64 32` to enable `GET /health/detailed` |
+   | Variable             | Value / source                                                                 |
+   | -------------------- | ------------------------------------------------------------------------------ |
+   | `NODE_ENV`           | `production`                                                                   |
+   | `DATABASE_URL`       | `${{ Postgres.DATABASE_URL }}` (plugin reference)                              |
+   | `JWT_SECRET`         | `openssl rand -base64 32` (≥ 32 chars)                                         |
+   | `JWT_REFRESH_SECRET` | `openssl rand -base64 32` (≥ 32 chars, different from `JWT_SECRET`)            |
+   | `API_URL`            | the Railway API origin from step 4                                             |
+   | `WEB_URL`            | the Vercel origin from Step 2 (must **not** be `localhost`, no trailing slash) |
+   | `SMTP_HOST`          | your provider's SMTP host (**required** in production)                         |
+   | `SMTP_PORT`          | provider SMTP port (e.g. `587`)                                                |
+   | `SMTP_USER`          | provider username (set **with** `SMTP_PASS` or neither)                        |
+   | `SMTP_PASS`          | provider password/API key                                                      |
+   | `SMTP_FROM`          | a **verified** sender, e.g. `Plinth <noreply@yourdomain.com>`                  |
+   | `JWT_ACCESS_EXPIRY`  | optional, default `15m`                                                        |
+   | `JWT_REFRESH_EXPIRY` | optional, default `7d`                                                         |
+   | `BCRYPT_WORK_FACTOR` | optional, default `10`                                                         |
+   | `LOG_LEVEL`          | optional, default `info`                                                       |
+   | `HEALTH_CHECK_TOKEN` | optional; `openssl rand -base64 32` to enable `GET /health/detailed`           |
 
    > `WEB_URL` is a chicken-and-egg with Step 2 — provision Vercel first (or set a placeholder and
    > update it once the Vercel domain exists). Changing it later triggers a redeploy.

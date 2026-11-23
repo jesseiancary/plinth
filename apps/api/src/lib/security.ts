@@ -303,5 +303,8 @@ export const corsConfig = {
   // Production allows exactly the deployed frontend origin. WEB_URL is validated at
   // startup (lib/env.ts) to be a non-localhost URL in production, so this is the same
   // value used to build links inside transactional emails — one source of truth.
-  production: [env.WEB_URL],
+  // Strip any trailing slash: browser Origin headers never carry one, and the match in
+  // app.ts is an exact-string comparison, so `https://app.example.com/` would otherwise
+  // silently reject every real request. Mirrors the normalization in lib/email-links.ts.
+  production: [env.WEB_URL.replace(/\/+$/, '')],
 }

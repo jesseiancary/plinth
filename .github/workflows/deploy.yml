@@ -14,6 +14,11 @@ concurrency:
   group: deploy-main
   cancel-in-progress: false
 
+# Least privilege: every step only checks out the repo and talks to Railway/Vercel
+# via their own tokens — the GITHUB_TOKEN needs nothing beyond read access.
+permissions:
+  contents: read
+
 jobs:
   migrate:
     name: Migrate Database
