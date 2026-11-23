@@ -302,8 +302,8 @@ jobs:
             -e NODE_ENV=production \
             -e PORT=3000 \
             -e DATABASE_URL=postgresql://postgres:0123456798abcfef0123456789abcdef@localhost:5432/plinth_test \
-            -e JWT_SECRET=smoke-test-jwt-secret-must-be-at-least-32-chars \
-            -e JWT_REFRESH_SECRET=smoke-test-refresh-secret-must-be-32-chars \
+            -e JWT_SECRET=test-secret-key-for-ci-must-be-at-least-32-chars-long \
+            -e JWT_REFRESH_SECRET=test-refresh-secret-key-for-ci-must-be-32-chars \
             -e API_URL=http://localhost:3000 \
             -e WEB_URL=https://smoke.example.com \
             -e SMTP_HOST=smtp.example.com \
