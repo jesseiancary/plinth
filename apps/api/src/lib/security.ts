@@ -300,6 +300,8 @@ export const rateLimitConfig = {
 
 export const corsConfig = {
   development: ['https://localhost'],
-  // TODO: Update with actual production URL(s) when deploying
-  production: ['https://app.yourdomain.com'],
+  // Production allows exactly the deployed frontend origin. WEB_URL is validated at
+  // startup (lib/env.ts) to be a non-localhost URL in production, so this is the same
+  // value used to build links inside transactional emails — one source of truth.
+  production: [env.WEB_URL],
 }
