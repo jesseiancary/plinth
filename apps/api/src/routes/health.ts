@@ -13,14 +13,23 @@ import { requireHealthToken } from '../middleware/health-auth.js'
 const currentDir = dirname(fileURLToPath(import.meta.url))
 
 const readVersion = (): string => {
-  try {
-    const pkg = JSON.parse(readFileSync(join(currentDir, '../../package.json'), 'utf-8')) as {
-      version?: string
+  // apps/api/package.json sits two levels up from src/routes/ in dev, but three up from
+  // the compiled dist/src/routes/ (the api build nests output under dist/). Try both.
+  const candidates = [
+    join(currentDir, '../../package.json'), // dev: apps/api/src/routes
+    join(currentDir, '../../../package.json'), // prod: apps/api/dist/src/routes
+  ]
+  for (const candidate of candidates) {
+    try {
+      const pkg = JSON.parse(readFileSync(candidate, 'utf-8')) as { version?: string }
+      if (pkg.version) {
+        return pkg.version
+      }
+    } catch {
+      // try the next candidate
     }
-    return pkg.version ?? 'unknown'
-  } catch {
-    return 'unknown'
   }
+  return 'unknown'
 }
 
 // Resolve once at startup — the version is static for the process lifetime.

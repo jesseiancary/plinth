@@ -65,8 +65,10 @@ COPY apps/web ./apps/web/
 COPY packages/types ./packages/types/
 COPY packages/validation ./packages/validation/
 
-# Build production bundle (output: apps/web/dist)
-RUN pnpm --filter web build
+# Build production bundle (output: apps/web/dist). Build @plinth/validation first:
+# the production `vite build` resolves the package's "default" export to dist/index.js
+# (dev/test use the TS-source "development" condition).
+RUN pnpm --filter @plinth/validation build && pnpm --filter web build
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 # Stage: production

@@ -1,6 +1,11 @@
 generator client {
   provider = "prisma-client"
   output   = "./generated/client"
+  // Emit .js import specifiers in the generated client. The prisma-client generator
+  // otherwise defaults to .ts extensions, which tsc preserves verbatim into the compiled
+  // output — so `node` can't resolve them in the production image (ERR_MODULE_NOT_FOUND).
+  // .js is the NodeNext convention: tsc compiles it cleanly and tsx remaps it in dev.
+  importFileExtension = "js"
 }
 
 datasource db {

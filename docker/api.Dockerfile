@@ -70,8 +70,10 @@ COPY tsconfig.base.json tsconfig.node.json tsconfig.bundler.json ./
 COPY apps/api ./apps/api/
 COPY packages/validation ./packages/validation/
 
-# Build TypeScript
-RUN pnpm --filter api build
+# Build TypeScript. Build @plinth/validation first so its compiled dist/*.js exists:
+# production runs plain `node`, which resolves the package's "default" export to
+# dist/index.js (raw TS source is not node-loadable).
+RUN pnpm --filter @plinth/validation build && pnpm --filter api build
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 # Stage: production
@@ -99,8 +101,15 @@ RUN pnpm --filter api db:generate
 # Copy built JavaScript from build stage
 COPY --from=build /app/apps/api/dist ./apps/api/dist
 
-# Copy validation package source (Zod schemas)
-COPY packages/validation ./packages/validation/
+# Copy the COMPILED validation package (Zod schemas) from the build stage. The
+# package.json copied above resolves @plinth/validation's "default" export to
+# dist/index.js, which plain `node` loads at runtime (raw TS source would throw
+# ERR_MODULE_NOT_FOUND).
+COPY --from=build /app/packages/validation/dist ./packages/validation/dist
+
+# Copy the OpenAPI spec — app.ts reads it at startup to serve /docs (Scalar). Without
+# it the API still boots (the loader degrades to disabling /docs) but the docs UI 404s.
+COPY packages/openapi/openapi.yaml ./packages/openapi/openapi.yaml
 
 # Create non-root user for security
 RUN addgroup -g 1001 -S nodejs && \
@@ -122,5 +131,8 @@ ENV NODE_ENV=production
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
   CMD curl -f http://localhost:3000/health || exit 1
 
-# Start production server
-CMD ["node", "apps/api/dist/server.js"]
+# Start production server. The entry is dist/src/server.js (not dist/server.js):
+# the api tsconfig uses rootDir "." and includes prisma/, so tsc mirrors the source
+# tree under dist/ (src/server.ts -> dist/src/server.js). Keep in sync with
+# railway.json's startCommand and apps/api/package.json's "start".
+CMD ["node", "apps/api/dist/src/server.js"]

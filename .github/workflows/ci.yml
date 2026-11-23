@@ -243,6 +243,12 @@ jobs:
       - name: Generate Prisma Client
         run: pnpm --filter api db:generate
 
+      # @plinth/validation must be compiled before the web build: the production
+      # `vite build` resolves its "default" export to dist/index.js, while dev/test
+      # use the TS-source "development" condition.
+      - name: Build validation package
+        run: pnpm --filter @plinth/validation build
+
       - name: Build API
         run: pnpm --filter api build
 
@@ -252,6 +258,20 @@ jobs:
   docker-build:
     name: Docker Build (Smoke Test)
     runs-on: ubuntu-latest
+
+    # Postgres so the booted container's GET /health (which runs SELECT 1) returns 200.
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: 0123456798abcfef0123456789abcdef
+          POSTGRES_DB: plinth_test
+        options: >-
+          --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
+        ports:
+          - 5432:5432
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -266,9 +286,44 @@ jobs:
           file: docker/api.Dockerfile
           target: production
           push: false
+          load: true
           tags: plinth-api:ci
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      # Actually RUN the image. A plain `docker build` only type-checks/compiles; it
+      # never executes the compiled server, so a workspace package that isn't
+      # node-loadable in production would pass the build and only crash-loop once
+      # deployed. Host networking lets the container reach the Postgres service and
+      # lets the runner curl /health.
+      - name: Smoke-test that the production image boots and serves /health
+        run: |
+          docker run -d --name api-smoke --network host \
+            -e NODE_ENV=production \
+            -e PORT=3000 \
+            -e DATABASE_URL=postgresql://postgres:0123456798abcfef0123456789abcdef@localhost:5432/plinth_test \
+            -e JWT_SECRET=test-secret-key-for-ci-must-be-at-least-32-chars-long \
+            -e JWT_REFRESH_SECRET=test-refresh-secret-key-for-ci-must-be-32-chars \
+            -e API_URL=http://localhost:3000 \
+            -e WEB_URL=https://smoke.example.com \
+            -e SMTP_HOST=smtp.example.com \
+            -e SMTP_FROM='Plinth <noreply@smoke.example.com>' \
+            plinth-api:ci
+
+          for _ in $(seq 1 30); do
+            code=$(curl -fs -o /dev/null -w '%{http_code}' http://localhost:3000/health || true)
+            if [ "$code" = "200" ]; then
+              echo "✅ Production image booted and /health returned 200"
+              docker rm -f api-smoke >/dev/null
+              exit 0
+            fi
+            sleep 2
+          done
+
+          echo "❌ Production image did not serve /health 200 within timeout"
+          docker logs api-smoke
+          docker rm -f api-smoke >/dev/null
+          exit 1
 
   security-scan:
     name: Security Scan (Trivy)
