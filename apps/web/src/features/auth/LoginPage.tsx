@@ -7,11 +7,11 @@ import type { z } from 'zod'
 import type { components } from '@plinth/types'
 import { loginSchema } from '@plinth/validation'
 
-import { api, RateLimitError } from '../../lib/api-client'
-import { getApiErrorMessage } from '../../lib/api-error'
+import { api } from '../../lib/api-client'
+import { pendingInviteStorage } from '../../lib/pending-invite'
 import { Button } from '../../shared/components/Button'
 import { Input } from '../../shared/components/Input'
-import { RateLimitMessage } from '../../shared/components/RateLimitMessage'
+import { MutationError } from '../../shared/components/MutationError'
 
 import { useAuth } from './context/AuthContext'
 
@@ -28,11 +28,26 @@ export function LoginPage() {
   })
   const [errors, setErrors] = useState<Partial<Record<keyof LoginFormData, string | undefined>>>({})
 
+  // Set by ResetPasswordPage after a successful reset — prompt the user to sign
+  // in with their new password (the reset invalidated every existing session).
+  const justResetPassword = Boolean(
+    (location.state as { passwordReset?: boolean } | null)?.passwordReset,
+  )
+
   const loginMutation = useMutation<{ accessToken: string; user: User }, Error, LoginFormData>({
     mutationFn: (data) => api.post('/api/v1/auth/login', data),
     onSuccess: async (data) => {
       login(data.accessToken, data.user)
-      // Redirect to the page they tried to visit or home
+      // Resume a pending invitation first: a visitor who started accepting while
+      // signed out (e.g. via "Create an account") is sent back to the invite to
+      // finish. This survives the cross-session register → verify → login flow
+      // that router state can't. Otherwise, honor the return path or go home.
+      const pendingInvite = pendingInviteStorage.get()
+      if (pendingInvite) {
+        pendingInviteStorage.remove()
+        await navigate(`/invite/${encodeURIComponent(pendingInvite)}`, { replace: true })
+        return
+      }
       const from = (location.state as { from?: { pathname: string } } | null)?.from?.pathname || '/'
       await navigate(from, { replace: true })
     },
@@ -68,6 +83,17 @@ export function LoginPage() {
         </div>
 
         <div className="bg-white rounded-lg shadow-md p-8">
+          {justResetPassword && (
+            <div
+              className="mb-6 p-4 bg-success-light border border-success rounded-lg"
+              role="status"
+            >
+              <p className="text-sm text-success-dark">
+                Your password has been reset. Sign in with your new password.
+              </p>
+            </div>
+          )}
+
           {/* Demo credentials note */}
           <div className="mb-6 p-4 bg-brand-50 border border-brand-200 rounded-lg">
             <p className="text-sm font-medium text-brand-900 mb-1">Demo Account</p>
@@ -120,18 +146,10 @@ export function LoginPage() {
             />
 
             {loginMutation.isError && (
-              <>
-                {loginMutation.error instanceof RateLimitError ? (
-                  <RateLimitMessage
-                    error={loginMutation.error}
-                    onRetry={() => loginMutation.mutate(formData)}
-                  />
-                ) : (
-                  <div className="text-sm text-danger">
-                    {getApiErrorMessage(loginMutation.error)}
-                  </div>
-                )}
-              </>
+              <MutationError
+                error={loginMutation.error}
+                onRetry={() => loginMutation.mutate(formData)}
+              />
             )}
 
             <Button type="submit" className="w-full" disabled={loginMutation.isPending}>
@@ -139,7 +157,13 @@ export function LoginPage() {
             </Button>
           </form>
 
-          <div className="mt-6 text-center text-sm">
+          <div className="mt-4 text-center text-sm">
+            <Link to="/forgot-password" className="text-brand-600 hover:text-brand-500 font-medium">
+              Forgot password?
+            </Link>
+          </div>
+
+          <div className="mt-4 text-center text-sm">
             <span className="text-gray-600">Don't have an account? </span>
             <Link to="/register" className="text-brand-600 hover:text-brand-500 font-medium">
               Create account

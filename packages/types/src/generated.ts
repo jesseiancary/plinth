@@ -960,7 +960,11 @@ export interface operations {
       }
     }
     responses: {
-      /** @description Email verified successfully */
+      /**
+       * @description Email verified. Returns `status: verified` when this request materialized the account,
+       *     or `status: already_verified` when the account already existed (double-submit / race),
+       *     in which case this link was a no-op.
+       */
       200: {
         headers: {
           [name: string]: unknown
@@ -968,6 +972,11 @@ export interface operations {
         content: {
           'application/json': {
             message: string
+            /**
+             * @description Machine-readable outcome, for branching without parsing `message`.
+             * @enum {string}
+             */
+            status: 'verified' | 'already_verified'
           }
         }
       }

@@ -1,9 +1,12 @@
 import { createBrowserRouter } from 'react-router-dom'
 
 import { ProtectedRoute } from '@/features/auth/components/ProtectedRoute'
+import { ForgotPasswordPage } from '@/features/auth/ForgotPasswordPage'
 import { LoginPage } from '@/features/auth/LoginPage'
 import { SecurityPage } from '@/features/auth/pages/SecurityPage'
 import { RegisterPage } from '@/features/auth/RegisterPage'
+import { ResetPasswordPage } from '@/features/auth/ResetPasswordPage'
+import { VerifyEmailPage } from '@/features/auth/VerifyEmailPage'
 import { DashboardPage } from '@/features/organizations/DashboardPage'
 import { AcceptInvitePage } from '@/features/organizations/pages/AcceptInvitePage'
 import { ApiKeysPage } from '@/features/organizations/pages/ApiKeysPage'
@@ -39,6 +42,22 @@ export const router = createBrowserRouter([
   {
     path: '/invite/:token',
     element: <AcceptInvitePage />,
+  },
+  {
+    path: '/verify-email',
+    element: <VerifyEmailPage />,
+  },
+  {
+    path: '/verify-email/:token',
+    element: <VerifyEmailPage />,
+  },
+  {
+    path: '/forgot-password',
+    element: <ForgotPasswordPage />,
+  },
+  {
+    path: '/reset-password',
+    element: <ResetPasswordPage />,
   },
 
   // Protected routes

@@ -64,6 +64,14 @@ const FORGOT_PASSWORD_MESSAGE =
 const ALREADY_VERIFIED_MESSAGE = 'This email is already verified. You can log in.'
 
 /**
+ * Machine-readable outcome of a verify-email request, so clients can branch on
+ * the result without matching on the human-readable `message` copy. `verified`
+ * = the account was materialized by this request; `already_verified` = the
+ * account already existed (double-submit / race), so this link was a no-op.
+ */
+type VerifyEmailStatus = 'verified' | 'already_verified'
+
+/**
  * Reclaim expired pending registrations without blocking the response. The sweep is pure
  * opportunistic housekeeping (the materialization path already ignores expired tokens), so it
  * has no business adding DB-write latency to the register hot path. Fire-and-forget in
@@ -310,7 +318,10 @@ router.post(
       logSecurityEvent('EMAIL_VERIFIED', req, { email: pending.email })
       // Distinct from the happy path: the account already exists, so *this* link's credentials
       // were not applied. Don't imply "you can now log in [with what you just submitted]".
-      res.json({ message: ALREADY_VERIFIED_MESSAGE })
+      res.json({
+        message: ALREADY_VERIFIED_MESSAGE,
+        status: 'already_verified' satisfies VerifyEmailStatus,
+      })
       return
     }
 
@@ -324,7 +335,10 @@ router.post(
     // this link's credentials were not applied, so respond with the already-verified message
     // (idempotent, single-use) rather than the happy-path success copy.
     if (!materialized) {
-      res.json({ message: ALREADY_VERIFIED_MESSAGE })
+      res.json({
+        message: ALREADY_VERIFIED_MESSAGE,
+        status: 'already_verified' satisfies VerifyEmailStatus,
+      })
       return
     }
 
@@ -336,7 +350,10 @@ router.post(
       personalOrg: true,
     })
 
-    res.json({ message: 'Email verified successfully. You can now log in.' })
+    res.json({
+      message: 'Email verified successfully. You can now log in.',
+      status: 'verified' satisfies VerifyEmailStatus,
+    })
   }),
 )
 

@@ -503,21 +503,37 @@ paths:
                   token: ver_example_token_from_verification_link
       responses:
         '200':
-          description: Email verified successfully
+          description: |
+            Email verified. Returns `status: verified` when this request materialized the account,
+            or `status: already_verified` when the account already existed (double-submit / race),
+            in which case this link was a no-op.
           content:
             application/json:
               schema:
                 type: object
                 required:
                   - message
+                  - status
                 properties:
                   message:
                     type: string
+                  status:
+                    type: string
+                    enum:
+                      - verified
+                      - already_verified
+                    description: Machine-readable outcome, for branching without parsing `message`.
               examples:
                 verified:
-                  summary: Verification succeeded
+                  summary: Verification succeeded (account materialized)
                   value:
                     message: Email verified successfully. You can now log in.
+                    status: verified
+                alreadyVerified:
+                  summary: Account already existed (double-submit / race)
+                  value:
+                    message: This email is already verified. You can log in.
+                    status: already_verified
         '400':
           description: Invalid or expired verification token
           content:

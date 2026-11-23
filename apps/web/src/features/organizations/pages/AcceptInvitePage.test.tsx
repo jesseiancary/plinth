@@ -9,6 +9,7 @@ import { AcceptInvitePage } from './AcceptInvitePage'
 
 import { AuthContext } from '@/features/auth/context/AuthContext'
 import { OrgProvider } from '@/features/organizations/context/OrgContext'
+import { pendingInviteStorage } from '@/lib/pending-invite'
 import { server } from '@/test/mocks/server'
 
 const API_URL = import.meta.env.VITE_API_URL
@@ -62,6 +63,7 @@ const renderPage = (isAuthenticated: boolean) => {
 describe('AcceptInvitePage', () => {
   afterEach(() => {
     server.resetHandlers()
+    pendingInviteStorage.remove()
   })
 
   it('renders the invitation preview from a valid token', async () => {
@@ -86,14 +88,20 @@ describe('AcceptInvitePage', () => {
     expect(screen.getByText(`path:/login from:/invite/${TOKEN}`)).toBeInTheDocument()
   })
 
-  it('sends the user to register with the return path when creating an account', async () => {
+  it('stashes the invite and sends the user to register when creating an account', async () => {
     const user = userEvent.setup()
     renderPage(false)
 
-    await user.click(await screen.findByRole('button', { name: 'Create an account' }))
+    // A valid invite viewed while signed out is stashed so it can be resumed after
+    // the cross-session register → verify → login flow (router state can't survive it).
+    await screen.findByText('Acme')
+    expect(pendingInviteStorage.get()).toBe(TOKEN)
+
+    await user.click(screen.getByRole('button', { name: 'Create an account' }))
 
     expect(await screen.findByText('Register page')).toBeInTheDocument()
-    expect(screen.getByText(`path:/register from:/invite/${TOKEN}`)).toBeInTheDocument()
+    // No `from` router state — the durable stash replaces it for the register path.
+    expect(screen.getByText('path:/register')).toBeInTheDocument()
   })
 
   it('accepts the invitation and navigates into the app', async () => {
@@ -110,6 +118,7 @@ describe('AcceptInvitePage', () => {
         )
       }),
     )
+    pendingInviteStorage.set(TOKEN)
     const user = userEvent.setup()
     renderPage(true)
 
@@ -119,6 +128,8 @@ describe('AcceptInvitePage', () => {
       expect(acceptBody).toEqual({ token: TOKEN })
     })
     expect(await screen.findByText('Dashboard home')).toBeInTheDocument()
+    // The stash has served its purpose once the invite is accepted.
+    expect(pendingInviteStorage.get()).toBeNull()
   })
 
   it('shows a terminal message and no accept button for an expired invitation', async () => {
