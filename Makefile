@@ -17,6 +17,13 @@
 # Default target - show help
 .DEFAULT_GOAL := help
 
+# Run Prisma commands that write into the bind-mounted source tree (generated client,
+# new migration files) as the host user. The dev container runs as root, so without
+# this those files land root-owned on the host and later break host-side
+# `prisma generate` / cleanup with EACCES. Used by db-migrate / db-reset / setup (db-seed
+# only writes to the database, so it doesn't need it).
+HOST_USER := $(shell id -u):$(shell id -g)
+
 help: ## Show this help message
 	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 	@echo "  Plinth Development Commands (Docker-First)"
@@ -154,7 +161,7 @@ db-migrate: ## Run Prisma migrations
 	@docker compose up -d db
 	@echo "⏳ Waiting for database to be ready..."
 	@until docker compose exec -T db pg_isready -U plinth_dev > /dev/null 2>&1; do sleep 1; done
-	@docker compose exec api pnpm --filter api db:migrate
+	@docker compose exec --user $(HOST_USER) -e HOME=/tmp api pnpm --filter api db:migrate
 	@echo "✅ Migrations complete"
 
 db-seed: ## Seed database with test data
@@ -166,7 +173,7 @@ db-reset: ## Reset database (⚠️  all data will be lost)
 	@echo "⚠️  Resetting database (all data will be lost)..."
 	@echo "Press Ctrl+C to cancel, or wait 3 seconds to continue..."
 	@sleep 3
-	@docker compose exec api pnpm --filter api db:reset
+	@docker compose exec --user $(HOST_USER) -e HOME=/tmp api pnpm --filter api db:reset
 	@echo "✅ Database reset"
 
 db-studio: ## Open Prisma Studio GUI
@@ -372,7 +379,7 @@ setup: ## Full first-time setup
 	@until docker compose exec -T db pg_isready -U plinth_dev > /dev/null 2>&1; do sleep 1; done
 	@echo ""
 	@echo "🔄 Running migrations..."
-	@docker compose run --rm -e NODE_ENV=development api sh -c 'cd /app/apps/api && pnpm db:migrate'
+	@docker compose run --rm --user $(HOST_USER) -e NODE_ENV=development -e HOME=/tmp api sh -c 'cd /app/apps/api && pnpm db:migrate'
 	@echo ""
 	@echo "🌱 Seeding database..."
 	@docker compose run --rm api sh -c 'set -a; source /app/apps/api/.env; set +a; cd /app/apps/api && pnpm db:seed'
