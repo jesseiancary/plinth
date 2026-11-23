@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -11,6 +11,7 @@ import morgan from 'morgan'
 
 import { TIME } from './lib/constants.js'
 import { env } from './lib/env.js'
+import { logger } from './lib/logger.js'
 import { corsConfig, getHelmetConfig, rateLimitConfig } from './lib/security.js'
 import { authenticateJWT } from './middleware/auth.js'
 import { csrfProtection } from './middleware/csrf.js'
@@ -74,20 +75,35 @@ if (env.NODE_ENV !== 'test') {
   app.use(morgan('dev'))
 }
 
-// API Documentation
-const openapiSpec = readFileSync(
-  join(currentDir, '../../../packages/openapi/openapi.yaml'),
-  'utf-8',
-)
+// API Documentation. The spec is a static asset at <repo>/packages/openapi/openapi.yaml.
+// Resolve it relative to this module, trying both the dev (src/) and compiled (dist/src/)
+// depths: the api build nests output under dist/ because tsc also compiles the generated
+// Prisma TypeScript client, so the compiled module sits one level deeper than the source.
+// If the spec can't be found (e.g. not copied into a slimmed image), skip /docs rather
+// than crash boot — a missing docs asset shouldn't take the whole API down.
+const openapiSpec = ((): string | null => {
+  const candidates = [
+    join(currentDir, '../../../packages/openapi/openapi.yaml'), // dev: apps/api/src
+    join(currentDir, '../../../../packages/openapi/openapi.yaml'), // prod: apps/api/dist/src
+  ]
+  const specPath = candidates.find((candidate) => existsSync(candidate))
+  if (!specPath) {
+    logger.warn('OpenAPI spec not found; /docs endpoint disabled', { candidates })
+    return null
+  }
+  return readFileSync(specPath, 'utf-8')
+})()
 
-app.use(
-  '/docs',
-  apiReference({
-    spec: {
-      content: openapiSpec,
-    },
-  }),
-)
+if (openapiSpec) {
+  app.use(
+    '/docs',
+    apiReference({
+      spec: {
+        content: openapiSpec,
+      },
+    }),
+  )
+}
 
 // Global JWT authentication middleware (does not enforce auth, just parses token)
 app.use(authenticateJWT)
