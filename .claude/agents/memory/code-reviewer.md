@@ -139,3 +139,35 @@ verification` was later removed entirely (don't expect it). **Confirmed miss in 
   copied the unmarked `LoginPage` pattern instead of the more accessible one. Flag new public-facing
   pages that add error/success divs without `role="alert"`/`role="status"`, pointing at the modals or
   `AcceptInvitePage`/`SettingsPage` as the canonical example to follow.
+- 2026-11-23 (PR6, `ci/deploy-workflow`): CONFIRMED via direct repro (`node -e "import('@plinth/validation')"`
+  run from `apps/api/`) — `packages/validation/package.json`'s `exports` map points straight at raw
+  `./src/index.ts`, and that file does `export * from './auth.js'` (NodeNext-style `.js` specifier
+  for a file that only exists as `.ts`). `tsx` (dev) and `vitest` (tests) both resolve this fine
+  because their esbuild-based loaders remap `.js` -> sibling `.ts`. Plain `node` does not — not even
+  with native TS type-stripping (Node 26) — so `node apps/api/dist/server.js` throws
+  `ERR_MODULE_NOT_FOUND` on the first static import that reaches `@plinth/validation` (e.g.
+  `routes/auth.ts`). This means `docker/api.Dockerfile`'s `production` stage / `railway.json`'s
+  `startCommand` crash-loop on boot. Pre-existing in the Dockerfile (untouched by PR6's diff) and
+  never caught because `ci.yml` never builds/runs the Docker image or the compiled `dist/server.js`.
+  Flag as Critical on every future deploy/Docker-related PR until `packages/validation` either gets
+  a real build step producing compiled `.js` output that production points `exports` at, or the
+  Dockerfile's production stage adds a shim/build step for it. Don't re-derive this from scratch —
+  just re-run the one-line repro above to confirm it's still broken.
+- 2026-11-23 (PR6): Cross-site cookie architecture gap, confirmed by reading
+  `apps/api/src/middleware/csrf.ts` (csrf-token cookie: `httpOnly: false`, `sameSite: 'strict'`, no
+  `domain` option -> host-only) + `apps/api/src/routes/auth.ts` (refreshToken cookie: same
+  `sameSite: 'strict'`, host-only) + `apps/web/src/lib/api-client.ts` (`document.cookie` read of
+  `csrf-token`). The PR6 deploy topology puts the web app on Vercel's domain and the API on
+  Railway's domain — different registrable domains (cross-site, not just cross-origin). Host-only
+  `sameSite: 'strict'` cookies are (a) never sent by the browser on cross-site fetch/XHR regardless
+  of `withCredentials`/CORS `credentials: true`, and (b) not even readable via `document.cookie` by
+  JS running on the _other_ domain, since cookie storage is host-scoped. Net effect in production:
+  silent token refresh never works (user booted every 15 min) and every CSRF-protected mutation
+  (member/invitation/api-key management — i.e. most of the app's write surface) gets rejected with
+  `CSRF_TOKEN_MISSING`, because the frontend can never populate the header. `docs/DEPLOYMENT.md`
+  doesn't mention this or a shared-parent-domain requirement. Flag as Critical whenever a PR wires up
+  a real cross-domain deploy (Vercel/Railway/etc. split) without either (a) putting web+API on
+  subdomains of one registrable domain and setting an explicit `domain: '.example.com'` cookie option
+  with `sameSite: 'lax'` or `'none'`+`secure`, or (b) redesigning the CSRF scheme for cross-site use
+  (e.g. token endpoint read via `credentials: 'include'` instead of `document.cookie`, which still
+  needs `sameSite: 'none'`).

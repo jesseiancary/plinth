@@ -1,0 +1,94 @@
+name: Deploy
+
+# Continuous deployment: runs on every push to main (i.e. after a PR is
+# squash-merged and CI has already passed on the PR). The migrate job runs first
+# and gates both app deploys, so the schema is never ahead of or behind the code
+# that depends on it — see docs/DEPLOYMENT.md for the migrate→release caveat.
+on:
+  push:
+    branches: [main]
+
+# Never run two deploys of main concurrently, and never cancel an in-flight one
+# (cancelling mid-migration or mid-deploy could leave the stack half-updated).
+concurrency:
+  group: deploy-main
+  cancel-in-progress: false
+
+# Least privilege: every step only checks out the repo and talks to Railway/Vercel
+# via their own tokens — the GITHUB_TOKEN needs nothing beyond read access.
+permissions:
+  contents: read
+
+jobs:
+  migrate:
+    name: Migrate Database
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 11
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '26'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma Client
+        run: pnpm --filter api db:generate
+
+      - name: Apply migrations to production database
+        run: pnpm --filter api db:migrate:deploy
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+
+  deploy-api:
+    name: Deploy API (Railway)
+    needs: migrate
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Railway CLI
+        run: npm install -g @railway/cli
+
+      # Builds the repo using docker/api.Dockerfile (configured in railway.json)
+      # and deploys it to the API service. RAILWAY_TOKEN is a project token scoped
+      # to the production environment. --service must match the Railway service name.
+      - name: Deploy to Railway
+        run: railway up --service "${{ vars.RAILWAY_SERVICE }}" --ci
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+
+  deploy-web:
+    name: Deploy Web (Vercel)
+    needs: migrate
+    runs-on: ubuntu-latest
+    env:
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Vercel CLI
+        run: npm install -g vercel@latest
+
+      # Pulls project settings (root directory = apps/web, build env incl.
+      # VITE_API_URL) from Vercel, builds the SPA, and promotes it to production.
+      - name: Pull Vercel project settings
+        run: vercel pull --yes --environment=production --token="${{ secrets.VERCEL_TOKEN }}"
+
+      - name: Build project artifacts
+        run: vercel build --prod --token="${{ secrets.VERCEL_TOKEN }}"
+
+      - name: Deploy to Vercel
+        run: vercel deploy --prebuilt --prod --token="${{ secrets.VERCEL_TOKEN }}"
