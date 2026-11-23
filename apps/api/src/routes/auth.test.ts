@@ -1092,7 +1092,11 @@ describe('POST /api/v1/auth/verify-email', () => {
       name: 'Verify User',
     })
 
-    await request(app).post('/api/v1/auth/verify-email').send({ token }).expect(200)
+    const verifyResponse = await request(app)
+      .post('/api/v1/auth/verify-email')
+      .send({ token })
+      .expect(200)
+    expect(verifyResponse.body.status).toBe('verified')
 
     const user = await prisma.user.findUnique({
       where: { email: 'verify@example.com' },
@@ -1171,6 +1175,7 @@ describe('POST /api/v1/auth/verify-email', () => {
       .send({ token })
       .expect(200)
     expect(response.body.message).toBe('This email is already verified. You can log in.')
+    expect(response.body.status).toBe('already_verified')
 
     const pending = await prisma.pendingRegistration.findFirst({
       where: { email: 'verify@example.com' },

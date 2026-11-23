@@ -183,4 +183,23 @@ export const handlers = [
     `${API_URL}/api/v1/orgs/:slug/api-keys/:keyId`,
     () => new HttpResponse(null, { status: 204 }),
   ),
+
+  // Verification & password reset (enumeration-safe generic messages).
+  // Tests override these with server.use(...) to exercise error branches.
+  http.post(`${API_URL}/api/v1/auth/verify-email`, () =>
+    HttpResponse.json({
+      message: 'Email verified successfully. You can now log in.',
+      status: 'verified',
+    }),
+  ),
+
+  http.post(`${API_URL}/api/v1/auth/forgot-password`, () =>
+    HttpResponse.json({
+      message: 'If an account exists for that email, a reset link has been sent.',
+    }),
+  ),
+
+  http.post(`${API_URL}/api/v1/auth/reset-password`, () =>
+    HttpResponse.json({ message: 'Your password has been reset. You can now log in.' }),
+  ),
 ]

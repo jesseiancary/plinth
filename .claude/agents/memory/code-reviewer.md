@@ -112,3 +112,30 @@ verification` was later removed entirely (don't expect it). **Confirmed miss in 
   response, with no transaction/rollback — whenever a PR adds post-create enrichment (e.g. for
   notification emails) to an existing create endpoint. Low/Moderate: fix is reordering the
   enrichment read before the create, or wrapping both in a transaction.
+- 2026-11-20 (PR5, `feat/verification-reset-pages`): `apps/web/src/features/organizations/pages/AcceptInvitePage.tsx`
+  has had a private `Shell({title, subtitle, children})` component (centered public-auth card,
+  comment: "mirrors the public auth pages") since the invite-accept flow landed. PR5 added
+  `apps/web/src/features/auth/components/AuthShell.tsx` with byte-for-byte identical markup instead
+  of extracting/reusing `AcceptInvitePage`'s `Shell` — now two copies exist that will silently drift
+  if either is redesigned. Flag future PRs that touch either file without consolidating onto one
+  shared component (`AuthShell` is the better home since it's already imported by 3 pages).
+- 2026-11-20 (PR5): frontend `RateLimitError` branches (the `error instanceof RateLimitError ? <RateLimitMessage/> : ...`
+  pattern used in `LoginPage`, `AcceptInvitePage`, and now `VerifyEmailPage`/`ForgotPasswordPage`/
+  `ResetPasswordPage`) have never had a single test covering the 429 path anywhere in `apps/web` —
+  confirmed `LoginPage` has no test file at all and `AcceptInvitePage.test.tsx` doesn't exercise it
+  either. This is a systemic, pre-existing coverage gap rather than something introduced by any one
+  PR; keep noting it (Advisory, not a regression) until a PR actually closes it, but don't block on
+  it alone.
+- 2026-11-20 (PR5): `VerifyEmailPage.tsx` distinguishes its two 200-OK outcomes (fresh verify vs.
+  already-verified double-submit) by substring-matching the human-readable `message` string from
+  `apps/api/src/routes/auth.ts` (`ALREADY_VERIFIED_MESSAGE`) rather than a machine-readable field —
+  fragile coupling (copy changes silently mis-title the card; impact is cosmetic only since the real
+  message text still renders correctly). Worth suggesting a structured discriminator if that backend
+  response shape is ever revisited, but not a blocking issue on its own.
+- 2026-11-20 (PR5): codebase has an established a11y convention — `role="alert"` on error banners
+  and `role="status"` on success banners — used in `AcceptInvitePage`, `SettingsPage`, `MembersPage`,
+  and the invite/transfer-ownership modals. `LoginPage`'s original inline error `<div>` never adopted
+  it, and PR5's new `VerifyEmailPage`/`ForgotPasswordPage`/`ResetPasswordPage`/updated `RegisterPage`
+  copied the unmarked `LoginPage` pattern instead of the more accessible one. Flag new public-facing
+  pages that add error/success divs without `role="alert"`/`role="status"`, pointing at the modals or
+  `AcceptInvitePage`/`SettingsPage` as the canonical example to follow.

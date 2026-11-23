@@ -1,51 +1,28 @@
-import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom'
+import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { render, screen } from '@testing-library/react'
 import { userEvent } from '@testing-library/user-event'
 import { http, HttpResponse } from 'msw'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it } from 'vitest'
 
-import { AuthContext } from './context/AuthContext'
 import { RegisterPage } from './RegisterPage'
 
 import { server } from '@/test/mocks/server'
 
 const API_URL = import.meta.env.VITE_API_URL
 
-const login = vi.fn()
-
-const authValue = {
-  user: null,
-  accessToken: null,
-  isInitializing: false,
-  login,
-  logout: vi.fn(),
-  isAuthenticated: false,
-}
-
-function LocationProbe() {
-  const location = useLocation()
-  return <div>path:{location.pathname}</div>
-}
-
-type InitialEntry = { pathname: string; state?: unknown }
-
-const renderPage = (entry: InitialEntry) => {
+const renderPage = () => {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   })
   render(
     <QueryClientProvider client={queryClient}>
-      <AuthContext.Provider value={authValue}>
-        <MemoryRouter initialEntries={[entry]}>
-          <Routes>
-            <Route path="/register" element={<RegisterPage />} />
-            <Route path="/invite/abc" element={<div>Invite page</div>} />
-            <Route path="/" element={<div>Dashboard home</div>} />
-          </Routes>
-          <LocationProbe />
-        </MemoryRouter>
-      </AuthContext.Provider>
+      <MemoryRouter initialEntries={['/register']}>
+        <Routes>
+          <Route path="/register" element={<RegisterPage />} />
+          <Route path="/login" element={<div>Login page</div>} />
+        </Routes>
+      </MemoryRouter>
     </QueryClientProvider>,
   )
 }
@@ -60,42 +37,69 @@ const fillAndSubmit = async (user: ReturnType<typeof userEvent.setup>) => {
 describe('RegisterPage', () => {
   afterEach(() => {
     server.resetHandlers()
-    login.mockClear()
   })
 
-  const registerSucceeds = () =>
+  it('shows a check-your-email confirmation after registering (no auto-login)', async () => {
     server.use(
       http.post(`${API_URL}/api/v1/auth/register`, () =>
-        HttpResponse.json({
-          accessToken: 'test-token',
-          user: {
-            id: 'user-1',
-            email: 'new@example.com',
-            name: 'New User',
-            createdAt: '2024-01-01T00:00:00Z',
+        HttpResponse.json(
+          {
+            message: 'Account created. Check your email to verify your address before logging in.',
           },
-        }),
+          { status: 201 },
+        ),
       ),
     )
-
-  it('returns to the page the user came from after registering', async () => {
-    registerSucceeds()
     const user = userEvent.setup()
-    renderPage({ pathname: '/register', state: { from: { pathname: '/invite/abc' } } })
+    renderPage()
 
     await fillAndSubmit(user)
 
-    expect(await screen.findByText('Invite page')).toBeInTheDocument()
-    expect(login).toHaveBeenCalledWith('test-token', expect.objectContaining({ id: 'user-1' }))
+    expect(await screen.findByText('Check your email')).toBeInTheDocument()
+    // The submitted email is echoed back in the confirmation copy.
+    expect(screen.getByText('new@example.com')).toBeInTheDocument()
   })
 
-  it('redirects to the dashboard when there is no return path', async () => {
-    registerSucceeds()
+  it('shows an error message when registration fails', async () => {
+    server.use(
+      http.post(`${API_URL}/api/v1/auth/register`, () =>
+        HttpResponse.json(
+          {
+            error: {
+              code: 'REGISTRATION_FAILED',
+              message: 'Registration failed. Please try again.',
+            },
+          },
+          { status: 400 },
+        ),
+      ),
+    )
     const user = userEvent.setup()
-    renderPage({ pathname: '/register' })
+    renderPage()
 
     await fillAndSubmit(user)
 
-    expect(await screen.findByText('Dashboard home')).toBeInTheDocument()
+    expect(await screen.findByText('Registration failed. Please try again.')).toBeInTheDocument()
+    expect(screen.queryByText('Check your email')).not.toBeInTheDocument()
+  })
+
+  it('shows the rate-limit message when the API returns 429', async () => {
+    server.use(
+      http.post(
+        `${API_URL}/api/v1/auth/register`,
+        () =>
+          new HttpResponse(
+            JSON.stringify({ error: { code: 'RATE_LIMITED', message: 'Too many requests' } }),
+            { status: 429, headers: { 'Retry-After': '60', 'Content-Type': 'application/json' } },
+          ),
+      ),
+    )
+    const user = userEvent.setup()
+    renderPage()
+
+    await fillAndSubmit(user)
+
+    expect(await screen.findByText('Rate Limit Exceeded')).toBeInTheDocument()
+    expect(screen.queryByText('Check your email')).not.toBeInTheDocument()
   })
 })

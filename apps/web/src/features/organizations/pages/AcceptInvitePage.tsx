@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import { useEffect } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
@@ -10,8 +10,10 @@ import type { Role } from '../hooks/useCurrentMembership'
 import { useAuth } from '@/features/auth/context/AuthContext'
 import { api, RateLimitError } from '@/lib/api-client'
 import { getApiErrorCode, getApiErrorMessage } from '@/lib/api-error'
+import { pendingInviteStorage } from '@/lib/pending-invite'
 import { queryKeys } from '@/lib/query-keys'
 import { sanitizeDisplayText } from '@/lib/sanitize'
+import { AuthShell } from '@/shared/components/AuthShell'
 import { Badge } from '@/shared/components/Badge'
 import { Button } from '@/shared/components/Button'
 import { LoadingSpinner } from '@/shared/components/LoadingSpinner'
@@ -42,29 +44,6 @@ const TERMINAL_ACCEPT_CODES = new Set([
 
 const roleLabel = (role: Role) => role.charAt(0) + role.slice(1).toLowerCase()
 
-/** Centered card shell shared by every state — mirrors the public auth pages. */
-function Shell({
-  title,
-  subtitle,
-  children,
-}: {
-  title: string
-  subtitle?: string
-  children: ReactNode
-}) {
-  return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4 py-12">
-      <div className="max-w-md w-full">
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">{title}</h1>
-          {subtitle && <p className="text-gray-600">{subtitle}</p>}
-        </div>
-        <div className="bg-white rounded-lg shadow-md p-8">{children}</div>
-      </div>
-    </div>
-  )
-}
-
 /**
  * Terminal state for an invitation that can't be acted on (invalid, expired,
  * revoked, already accepted). Uses a neutral header rather than the invite
@@ -72,7 +51,7 @@ function Shell({
  */
 function UnusableInvite({ message, onSignIn }: { message: string; onSignIn: () => void }) {
   return (
-    <Shell title="Invitation">
+    <AuthShell title="Invitation">
       <div className="text-center">
         <p className="text-base font-medium text-gray-900">This invitation can't be used</p>
         <p className="mt-2 text-sm text-gray-600">{message}</p>
@@ -80,7 +59,7 @@ function UnusableInvite({ message, onSignIn }: { message: string; onSignIn: () =
           Go to sign in
         </Button>
       </div>
-    </Shell>
+    </AuthShell>
   )
 }
 
@@ -107,9 +86,21 @@ export function AcceptInvitePage() {
     retry: false,
   })
 
+  // A valid invite viewed while signed out is stashed so the invitation survives
+  // the register → verify → login round-trip (which crosses sessions, losing
+  // router state). `LoginPage` consumes it to resume here after login. Only a
+  // successfully-validated invite is stashed, so dead tokens never get saved.
+  useEffect(() => {
+    if (token && !isAuthenticated && invitation) {
+      pendingInviteStorage.set(token)
+    }
+  }, [token, isAuthenticated, invitation])
+
   const acceptMutation = useMutation<AcceptResponse, Error, void>({
     mutationFn: (): Promise<AcceptResponse> => api.post('/api/v1/invitations/accept', { token }),
     onSuccess: async (result) => {
+      // Accepted — the stash (if any) has served its purpose.
+      pendingInviteStorage.remove()
       await queryClient.invalidateQueries({ queryKey: queryKeys.auth.me() })
       setActiveOrgSlug(result.organization.slug)
       void navigate('/')
@@ -123,20 +114,20 @@ export function AcceptInvitePage() {
 
   if (isLoading) {
     return (
-      <Shell title="Join an organization" subtitle="You've been invited to Plinth">
+      <AuthShell title="Join an organization" subtitle="You've been invited to Plinth">
         <div className="py-6">
           <LoadingSpinner size="lg" />
         </div>
-      </Shell>
+      </AuthShell>
     )
   }
 
   if (validateError) {
     if (validateError instanceof RateLimitError) {
       return (
-        <Shell title="Invitation">
+        <AuthShell title="Invitation">
           <RateLimitMessage error={validateError} onRetry={() => void refetch()} />
-        </Shell>
+        </AuthShell>
       )
     }
     return (
@@ -161,7 +152,7 @@ export function AcceptInvitePage() {
   const acceptTerminal = acceptCode !== null && TERMINAL_ACCEPT_CODES.has(acceptCode)
 
   return (
-    <Shell title="Join an organization" subtitle="You've been invited to Plinth">
+    <AuthShell title="Join an organization" subtitle="You've been invited to Plinth">
       <dl className="space-y-4">
         <div>
           <dt className="text-sm font-medium text-gray-500">Organization</dt>
@@ -200,7 +191,7 @@ export function AcceptInvitePage() {
             <Button
               variant="secondary"
               className="w-full"
-              onClick={() => void navigate('/register', { state: { from: location } })}
+              onClick={() => void navigate('/register')}
             >
               Create an account
             </Button>
@@ -238,6 +229,6 @@ export function AcceptInvitePage() {
           </div>
         )}
       </div>
-    </Shell>
+    </AuthShell>
   )
 }

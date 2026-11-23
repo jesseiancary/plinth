@@ -392,12 +392,18 @@ than `SKILL.md`; the content requirement is satisfied and skills load correctly.
 - [x] Add email templates (React Email or Handlebars)
 - [x] Implement email service wrapper (`apps/api/src/lib/email.ts`)
 - [x] Add email verification to registration flow:
-  - [x] Create `emailVerified` boolean + `verificationToken` fields in User model
+  - [x] Create `emailVerified` boolean on User; store the single-use verification token hash on a
+        `PendingRegistration` row (pending-registration refactor — the token is no longer a field on
+        User; the account is materialized on verification)
   - [x] Generate verification token on registration (SHA-256 hashed)
   - [x] Send verification email with token link
-  - [x] Implement `POST /api/v1/auth/verify-email` endpoint (token in body)
-  - [x] Block login for unverified users (return 403 with helpful message)
-  - [x] Add "Resend verification email" endpoint
+  - [x] Implement `POST /api/v1/auth/verify-email` endpoint (token in body) — materializes the
+        account (User + personal org + OWNER membership)
+  - [x] Block login until verified — unverified sign-ups have no `User` yet, so login returns 401
+        `INVALID_CREDENTIALS` (not 403) under the pending-registration model
+  - [x] ~~Add "Resend verification email" endpoint~~ — removed in the pending-registration refactor
+        (an email-only resend can't identify the real inbox owner's pending row); recovery is
+        re-registration, which mints a fresh link
 - [x] Update account enumeration prevention:
   - [x] Send "account exists" email when duplicate registration attempted
   - [x] Keep generic error response (maintains enumeration prevention)

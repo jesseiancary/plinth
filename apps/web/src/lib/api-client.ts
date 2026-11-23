@@ -60,6 +60,19 @@ export const setTokenRefreshCallback = (callback: (token: string) => void) => {
   onTokenRefreshedCallback = callback
 }
 
+// Public auth endpoints that must NOT trigger token-refresh-on-401 — they have
+// no session to refresh (the token/credentials in the body are the credential).
+// Authenticated auth endpoints (/auth/me, /auth/password, /auth/logout) are
+// deliberately excluded so they *do* refresh on 401.
+const PUBLIC_AUTH_PATHS = [
+  '/auth/login',
+  '/auth/register',
+  '/auth/refresh',
+  '/auth/verify-email',
+  '/auth/forgot-password',
+  '/auth/reset-password',
+]
+
 export const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL,
   withCredentials: true, // Send httpOnly cookies for refresh token
@@ -118,11 +131,8 @@ api.interceptors.response.use(
     }
 
     // If 401 and not already retrying
-    // IMPORTANT: Don't try to refresh token for login/register endpoints
-    const isAuthEndpoint =
-      originalRequest?.url?.includes('/auth/login') ||
-      originalRequest?.url?.includes('/auth/register') ||
-      originalRequest?.url?.includes('/auth/refresh')
+    // IMPORTANT: Don't try to refresh the token for public auth endpoints
+    const isAuthEndpoint = PUBLIC_AUTH_PATHS.some((path) => originalRequest?.url?.includes(path))
 
     if (
       error.response?.status === 401 &&
