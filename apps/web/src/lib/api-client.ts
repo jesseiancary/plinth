@@ -73,8 +73,14 @@ const PUBLIC_AUTH_PATHS = [
   '/auth/reset-password',
 ]
 
+// Empty VITE_API_URL means "same origin": the browser calls relative /api/* paths and
+// the host (Caddy in dev, Vercel rewrites in prod) proxies them to the API. Keeping the
+// frontend and API on one origin is what makes the SameSite=strict refresh cookie and the
+// double-submit CSRF cookie (read via document.cookie) work — see docs/DEPLOYMENT.md.
+const apiBaseUrl = import.meta.env.VITE_API_URL || ''
+
 export const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL,
+  baseURL: apiBaseUrl,
   withCredentials: true, // Send httpOnly cookies for refresh token
 })
 
@@ -159,7 +165,7 @@ api.interceptors.response.use(
       try {
         // Refresh the token
         const response = await axios.post<{ accessToken: string }>(
-          `${import.meta.env.VITE_API_URL}/api/v1/auth/refresh`,
+          `${apiBaseUrl}/api/v1/auth/refresh`,
           {},
           { withCredentials: true },
         )

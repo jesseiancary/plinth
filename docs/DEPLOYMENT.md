@@ -27,17 +27,24 @@ production database, then deploys the API and the web app.
           ▼                       ▼
   deploy-api (Railway)     deploy-web (Vercel)
   docker/api.Dockerfile    vite build (SPA)
-          │                       │
-          ▼                       ▼
-   https://api.<domain>    https://app.<domain>
           ▲                       │
-          └───────── CORS / cookies ┘
+          │  /api/* proxied       ▼
+          └──────────────  https://<app>.vercel.app  ◀── browser (single origin)
+   (vercel.json rewrite)     SPA  +  /api/* → Railway
 ```
 
-The API's production CORS allow-list is exactly `WEB_URL` (see `apps/api/src/lib/security.ts`), and
-refresh-token cookies are cross-site between the two origins — so **`WEB_URL` on the API must equal the
-Vercel origin**, and **`VITE_API_URL` on the web build must equal the Railway API origin**. Mismatches
-surface as CORS or cookie failures, not build failures.
+**Same-origin by design.** The browser only ever talks to the **Vercel origin**: Vercel serves the SPA
+and proxies `/api/*` to the Railway API via a rewrite in [`apps/web/vercel.json`](../apps/web/vercel.json).
+Because every request is same-origin from the browser's point of view, the refresh-token cookie
+(`SameSite=strict`) and the double-submit CSRF cookie (read via `document.cookie`) work as first-party
+cookies, and CORS is never exercised by browser traffic. Two settings make this hold:
+
+- the `/api/:path*` rewrite **destination** in `apps/web/vercel.json` must point at the Railway API origin, and
+- `VITE_API_URL` on the web build must be **empty** so the SPA calls relative `/api/*` paths.
+
+`WEB_URL` on the API stays the Vercel origin — it's used for links in transactional emails, and remains
+the production CORS allow-list entry (`apps/api/src/lib/security.ts`) as defense-in-depth for any
+non-browser client. Mismatches surface as cookie/proxy failures at runtime, not as build failures.
 
 ---
 
@@ -94,17 +101,25 @@ surface as CORS or cookie failures, not build failures.
 
 1. Create a new Vercel **project** from this GitHub repo.
 2. Set **Root Directory** to `apps/web`. Vercel reads [`apps/web/vercel.json`](../apps/web/vercel.json)
-   for the framework (Vite), the monorepo-aware install/build commands, and the SPA rewrite
-   (`/(.*) → /index.html`), so no build settings need to be entered by hand.
-3. Add the build-time environment variable (Settings → Environment Variables, **Production**):
+   for the framework (Vite), the monorepo-aware install/build commands, the `/api/*` proxy rewrite, and
+   the SPA fallback (`/(.*) → /index.html`), so no build settings need to be entered by hand.
+3. **Point the API proxy at Railway.** In `apps/web/vercel.json`, edit the `/api/:path*` rewrite
+   `destination` (committed as the placeholder `https://your-railway-api.up.railway.app`) to the Railway
+   API origin from Step 1.4. This is what makes `https://<app>.vercel.app/api/*` reach the API on one
+   origin. (Vercel does not interpolate env vars into `vercel.json`, so this value is committed, not an
+   env var.)
+4. Set the build-time environment variable (Settings → Environment Variables, **Production**):
 
-   | Variable       | Value                                                    |
-   | -------------- | -------------------------------------------------------- |
-   | `VITE_API_URL` | the Railway API origin from Step 1.4 (no trailing slash) |
+   | Variable       | Value                                                               |
+   | -------------- | ------------------------------------------------------------------- |
+   | `VITE_API_URL` | **empty string** — the SPA then calls relative `/api/*` (see below) |
 
-   `VITE_API_URL` is inlined at build time, so a change requires a rebuild/redeploy.
+   Leave `VITE_API_URL` empty so the browser talks only to the Vercel origin and Vercel proxies `/api/*`
+   to Railway (keeps cookies first-party — see "Same-origin by design" above). It is inlined at build
+   time, so a change requires a rebuild/redeploy. (Do **not** set it to the Railway origin — that would
+   reintroduce the cross-site cookie problem.)
 
-4. Your Vercel domain (e.g. `https://plinth.vercel.app` or a custom domain) is the **`WEB_URL`** you set
+5. Your Vercel domain (e.g. `https://plinth.vercel.app` or a custom domain) is the **`WEB_URL`** you set
    on Railway in Step 1. Go back and confirm the two match.
 
 ---
@@ -141,10 +156,14 @@ service by name. Add these under **Settings → Secrets and variables → Action
 1. Merge a PR to `main` (or re-run the `Deploy` workflow manually once it exists on `main`).
 2. Watch the three jobs in the Actions tab: `migrate` → then `deploy-api` and `deploy-web` in parallel.
 3. Verify:
-   - `GET https://<api-origin>/health` returns `200`.
+   - `GET https://<api-origin>/health` (the Railway origin) returns `200`.
+   - `GET https://<app-origin>/api/v1/...` (the Vercel origin) reaches the API — confirms the
+     `vercel.json` `/api/*` proxy destination is correct.
    - The Vercel site loads, and signup → verify-email → login works end to end (check your email
      provider's activity log, or Mailpit locally — see [DOCKER.md](./DOCKER.md)).
-   - Browser devtools show no CORS errors on API calls (confirms `WEB_URL` ↔ `VITE_API_URL` match).
+   - In browser devtools, API calls go to the **Vercel origin** (relative `/api/*`, no cross-origin
+     requests) and a state-changing action (e.g. create org / invite) succeeds — confirming the
+     first-party refresh + CSRF cookies work and silent token refresh keeps the session alive.
 
 ---
 
