@@ -125,7 +125,7 @@ export function OrgSwitcher() {
     <div className="relative">
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center space-x-2 px-3 py-2 rounded-md hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-brand-500"
+        className="flex items-center space-x-2 cursor-pointer rounded-md focus:ring-2 focus:ring-brand-500"
         aria-expanded={isOpen}
         aria-haspopup="true"
         aria-label="Organization switcher"

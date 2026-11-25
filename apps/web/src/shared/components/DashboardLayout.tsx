@@ -16,17 +16,20 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Top Navigation */}
+      {/* Top Navigation — mirrors the sidebar + main columns below so the brand,
+          org switcher, and user menu line up with the content beneath them. */}
       <nav className="bg-white border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-16">
-            <div className="flex items-center space-x-8">
-              <Link to="/" className="text-xl font-bold text-brand-600">
-                Plinth
-              </Link>
+        <div className="flex h-16">
+          {/* Brand column — matches the w-64 sidebar; px-4 matches the sidebar nav's p-4 */}
+          <div className="w-64 flex items-center px-4">
+            <Link to="/" className="text-xl font-bold text-brand-600">
+              Plinth
+            </Link>
+          </div>
+          {/* Content column — matches main.flex-1 and reuses the page content wrapper */}
+          <div className="flex-1">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-full flex items-center justify-between">
               <OrgSwitcher />
-            </div>
-            <div className="flex items-center">
               <UserMenu />
             </div>
           </div>
@@ -132,6 +135,12 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
             </nav>
           </aside>
         )}
+
+        {/* On account-level routes (e.g. /security) there is no org-scoped
+            sidebar. Reserve the same w-64 gutter so the main content occupies
+            the identical band as the header's content column — keeping it
+            left-aligned with the org switcher and right-aligned with the user menu. */}
+        {!orgSlug && <div className="w-64 shrink-0" aria-hidden="true" />}
 
         {/* Main Content */}
         <main className="flex-1">{children}</main>
