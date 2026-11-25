@@ -387,8 +387,8 @@ than `SKILL.md`; the content requirement is satisfied and skills load correctly.
 
 ### Email Infrastructure & Verification
 
-- [ ] Configure SMTP service (SendGrid, Postmark, or AWS SES) — _provider-agnostic nodemailer
-      transport + Mailpit for local dev shipped; prod provider provisioning deferred to deployment_
+- [x] Configure email service — _dual transport (`EMAIL_TRANSPORT`): SMTP/Mailpit for local dev,
+      AWS SES HTTPS API in production (Railway's Hobby plan blocks outbound SMTP)._
 - [x] Add email templates (React Email or Handlebars)
 - [x] Implement email service wrapper (`apps/api/src/lib/email.ts`)
 - [x] Add email verification to registration flow:

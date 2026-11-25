@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { VerifyEmail } from '../emails/VerifyEmail.js'
 
 import {
+  buildSesSendInput,
   buildTransportOptions,
   clearTestOutbox,
   deliverEmail,
@@ -146,6 +147,34 @@ describe('buildTransportOptions', () => {
 
     expect(options.auth).toBeUndefined()
     expect(options.requireTLS).toBe(false)
+  })
+})
+
+describe('buildSesSendInput', () => {
+  const message = {
+    from: 'Plinth <noreply@plinth.example.com>',
+    to: 'ada@example.com',
+    subject: 'Verify your email',
+    html: '<html><body>Hi Ada</body></html>',
+    text: 'Hi Ada',
+  }
+
+  it('maps an EmailMessage to SES v2 SendEmail input', () => {
+    const input = buildSesSendInput(message)
+
+    expect(input.FromEmailAddress).toBe(message.from)
+    expect(input.Destination?.ToAddresses).toEqual([message.to])
+    expect(input.Content?.Simple?.Subject).toEqual({ Data: message.subject, Charset: 'UTF-8' })
+    expect(input.Content?.Simple?.Body?.Html).toEqual({ Data: message.html, Charset: 'UTF-8' })
+    expect(input.Content?.Simple?.Body?.Text).toEqual({ Data: message.text, Charset: 'UTF-8' })
+  })
+
+  it('sends to a single recipient (no accidental CC/BCC)', () => {
+    const input = buildSesSendInput(message)
+
+    expect(input.Destination?.ToAddresses).toHaveLength(1)
+    expect(input.Destination?.CcAddresses).toBeUndefined()
+    expect(input.Destination?.BccAddresses).toBeUndefined()
   })
 })
 

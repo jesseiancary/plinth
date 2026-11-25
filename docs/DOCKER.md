@@ -289,8 +289,9 @@ reset, invitations) land in later Phase 8 PRs:
 
 - **Web UI:** http://localhost:8025 (the only Mailpit port exposed to the host)
 
-In production, point `SMTP_HOST`/`SMTP_PORT`/`SMTP_USER`/`SMTP_PASS`/`SMTP_FROM` at a
-real provider (SendGrid, Postmark, AWS SES, …); Mailpit is not deployed.
+In production the app uses the **SES HTTPS API** (`EMAIL_TRANSPORT=ses` + `AWS_REGION` + IAM
+credentials + a verified `EMAIL_FROM`) rather than SMTP, because Railway's Hobby plan blocks
+outbound SMTP; Mailpit is not deployed.
 
 ### Named Volumes
 

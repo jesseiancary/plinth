@@ -52,8 +52,10 @@ non-browser client. Mismatches surface as cookie/proxy failures at runtime, not 
 
 - A Railway account and a Vercel account.
 - Admin access to the GitHub repository (to add Actions secrets/variables).
-- A transactional email provider with a verified sender (SendGrid, Postmark, AWS SES, Resend, …) —
-  production refuses to boot with the dev/Mailpit placeholder `SMTP_FROM` or a missing `SMTP_HOST`
+- A transactional email setup. The app selects a transport via `EMAIL_TRANSPORT`: `smtp` (any SMTP
+  provider; used by local Mailpit) or `ses` (the **AWS SES HTTPS API**). The live stack uses `ses`
+  because Railway's Hobby plan blocks outbound SMTP. Production refuses to boot with the
+  dev placeholder `EMAIL_FROM`, and `EMAIL_TRANSPORT=ses` requires `AWS_REGION` + IAM credentials
   (enforced in `apps/api/src/lib/env.ts`).
 
 ---
@@ -73,24 +75,24 @@ non-browser client. Mismatches surface as cookie/proxy failures at runtime, not 
    Postgres plugin reference) `DATABASE_URL` automatically — reference the database with
    `${{ Postgres.DATABASE_URL }}` rather than pasting a connection string.
 
-   | Variable             | Value / source                                                                 |
-   | -------------------- | ------------------------------------------------------------------------------ |
-   | `NODE_ENV`           | `production`                                                                   |
-   | `DATABASE_URL`       | `${{ Postgres.DATABASE_URL }}` (plugin reference)                              |
-   | `JWT_SECRET`         | `openssl rand -base64 32` (≥ 32 chars)                                         |
-   | `JWT_REFRESH_SECRET` | `openssl rand -base64 32` (≥ 32 chars, different from `JWT_SECRET`)            |
-   | `API_URL`            | the Railway API origin from step 4                                             |
-   | `WEB_URL`            | the Vercel origin from Step 2 (must **not** be `localhost`, no trailing slash) |
-   | `SMTP_HOST`          | your provider's SMTP host (**required** in production)                         |
-   | `SMTP_PORT`          | provider SMTP port (e.g. `587`)                                                |
-   | `SMTP_USER`          | provider username (set **with** `SMTP_PASS` or neither)                        |
-   | `SMTP_PASS`          | provider password/API key                                                      |
-   | `SMTP_FROM`          | a **verified** sender, e.g. `Plinth <noreply@yourdomain.com>`                  |
-   | `JWT_ACCESS_EXPIRY`  | optional, default `15m`                                                        |
-   | `JWT_REFRESH_EXPIRY` | optional, default `7d`                                                         |
-   | `BCRYPT_WORK_FACTOR` | optional, default `10`                                                         |
-   | `LOG_LEVEL`          | optional, default `info`                                                       |
-   | `HEALTH_CHECK_TOKEN` | optional; `openssl rand -base64 32` to enable `GET /health/detailed`           |
+   | Variable                | Value / source                                                                 |
+   | ----------------------- | ------------------------------------------------------------------------------ |
+   | `NODE_ENV`              | `production`                                                                   |
+   | `DATABASE_URL`          | `${{ Postgres.DATABASE_URL }}` (plugin reference)                              |
+   | `JWT_SECRET`            | `openssl rand -base64 32` (≥ 32 chars)                                         |
+   | `JWT_REFRESH_SECRET`    | `openssl rand -base64 32` (≥ 32 chars, different from `JWT_SECRET`)            |
+   | `API_URL`               | the Railway API origin from step 4                                             |
+   | `WEB_URL`               | the Vercel origin from Step 2 (must **not** be `localhost`, no trailing slash) |
+   | `EMAIL_TRANSPORT`       | `ses` for the SES HTTPS API (Railway Hobby blocks SMTP); `smtp` otherwise      |
+   | `AWS_REGION`            | SES region, e.g. `us-west-1` (required when `EMAIL_TRANSPORT=ses`)             |
+   | `AWS_ACCESS_KEY_ID`     | IAM access key with `ses:SendEmail` (required when `EMAIL_TRANSPORT=ses`)      |
+   | `AWS_SECRET_ACCESS_KEY` | matching IAM secret (required when `EMAIL_TRANSPORT=ses`)                      |
+   | `EMAIL_FROM`            | a **verified** SES sender, e.g. `Plinth <noreply@yourdomain.com>`              |
+   | `JWT_ACCESS_EXPIRY`     | optional, default `15m`                                                        |
+   | `JWT_REFRESH_EXPIRY`    | optional, default `7d`                                                         |
+   | `BCRYPT_WORK_FACTOR`    | optional, default `10`                                                         |
+   | `LOG_LEVEL`             | optional, default `info`                                                       |
+   | `HEALTH_CHECK_TOKEN`    | optional; `openssl rand -base64 32` to enable `GET /health/detailed`           |
 
    > `WEB_URL` is a chicken-and-egg with Step 2 — provision Vercel first (or set a placeholder and
    > update it once the Vercel domain exists). Changing it later triggers a redeploy.
