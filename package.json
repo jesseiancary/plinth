@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "description": "Production-grade multi-tenant SaaS starter",
+  "packageManager": "pnpm@11.0.0",
   "scripts": {
     "dev": "./scripts/dev.sh",
     "stop": "docker compose down",
