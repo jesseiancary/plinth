@@ -306,8 +306,9 @@ jobs:
             -e JWT_REFRESH_SECRET=test-refresh-secret-key-for-ci-must-be-32-chars \
             -e API_URL=http://localhost:3000 \
             -e WEB_URL=https://smoke.example.com \
+            -e EMAIL_TRANSPORT=smtp \
             -e SMTP_HOST=smtp.example.com \
-            -e SMTP_FROM='Plinth <noreply@smoke.example.com>' \
+            -e EMAIL_FROM='Plinth <noreply@smoke.example.com>' \
             plinth-api:ci
 
           for _ in $(seq 1 30); do

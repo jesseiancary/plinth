@@ -1,4 +1,5 @@
 import type { ReactElement } from 'react'
+import type { SendEmailCommandInput } from '@aws-sdk/client-sesv2'
 import { render, toPlainText } from '@react-email/render'
 import type { Transporter } from 'nodemailer'
 import nodemailer from 'nodemailer'
@@ -76,21 +77,87 @@ export const buildTransportOptions = (params: {
   }
 }
 
-let transporter: Transporter | null = null
+/**
+ * Minimal transport contract the send path depends on: something that accepts a
+ * fully-rendered {@link EmailMessage}. Both a nodemailer SMTP `Transporter` and the
+ * SES HTTPS adapter below satisfy it, which keeps {@link deliverEmail} transport-agnostic.
+ */
+export type EmailTransport = {
+  sendMail: (message: EmailMessage) => Promise<unknown>
+}
+
+/** SMTP transport (local Mailpit in dev; any SMTP provider otherwise). */
+const createSmtpTransport = (): Transporter =>
+  nodemailer.createTransport(
+    buildTransportOptions({
+      host: env.SMTP_HOST,
+      port: env.SMTP_PORT ? Number(env.SMTP_PORT) : DEFAULT_SMTP_PORT,
+      user: env.SMTP_USER,
+      pass: env.SMTP_PASS,
+    }),
+  )
 
 /**
- * Lazily create (and memoize) the nodemailer transport from SMTP_* env vars.
+ * Map a rendered message to SES v2 `SendEmail` input. Pure and exported so the
+ * EmailMessage → SES-request mapping can be unit-tested without an AWS client.
  */
-const getTransporter = (): Transporter => {
-  if (!transporter) {
-    transporter = nodemailer.createTransport(
-      buildTransportOptions({
-        host: env.SMTP_HOST,
-        port: env.SMTP_PORT ? Number(env.SMTP_PORT) : DEFAULT_SMTP_PORT,
-        user: env.SMTP_USER,
-        pass: env.SMTP_PASS,
+export const buildSesSendInput = (message: EmailMessage): SendEmailCommandInput => ({
+  FromEmailAddress: message.from,
+  Destination: { ToAddresses: [message.to] },
+  Content: {
+    Simple: {
+      Subject: { Data: message.subject, Charset: 'UTF-8' },
+      Body: {
+        Html: { Data: message.html, Charset: 'UTF-8' },
+        Text: { Data: message.text, Charset: 'UTF-8' },
+      },
+    },
+  },
+})
+
+/**
+ * SES HTTPS-API transport. Used in production because Railway's Hobby plan blocks
+ * outbound SMTP; HTTPS (443) is unaffected. Region/credentials are validated at the
+ * env layer when EMAIL_TRANSPORT=ses (see env.ts's superRefine).
+ */
+const createSesTransport = (): EmailTransport => {
+  // Lazily import the AWS SDK so the SMTP/test paths (the default transport) never load
+  // the multi-megabyte client. This runs only on the `ses` branch; the dynamic import is
+  // module-cached, so it resolves once and is reused across sends.
+  const sdk = import('@aws-sdk/client-sesv2')
+  // Region + credentials are guaranteed present here by env validation (EMAIL_TRANSPORT=ses);
+  // keys are included only when set so `exactOptionalPropertyTypes` isn't handed `undefined`.
+  const client = sdk.then(
+    (aws) =>
+      new aws.SESv2Client({
+        ...(env.AWS_REGION ? { region: env.AWS_REGION } : {}),
+        ...(env.AWS_ACCESS_KEY_ID && env.AWS_SECRET_ACCESS_KEY
+          ? {
+              credentials: {
+                accessKeyId: env.AWS_ACCESS_KEY_ID,
+                secretAccessKey: env.AWS_SECRET_ACCESS_KEY,
+              },
+            }
+          : {}),
       }),
-    )
+  )
+  return {
+    sendMail: async (message) => {
+      const aws = await sdk
+      return (await client).send(new aws.SendEmailCommand(buildSesSendInput(message)))
+    },
+  }
+}
+
+let transporter: EmailTransport | null = null
+
+/**
+ * Lazily create (and memoize) the transport selected by EMAIL_TRANSPORT: the SES
+ * HTTPS API in production, SMTP (Mailpit) in dev.
+ */
+const getTransporter = (): EmailTransport => {
+  if (!transporter) {
+    transporter = env.EMAIL_TRANSPORT === 'ses' ? createSesTransport() : createSmtpTransport()
   }
   return transporter
 }
@@ -103,7 +170,7 @@ const getTransporter = (): Transporter => {
  * without depending on the module's env gate (see {@link sendEmail}).
  */
 export const deliverEmail = async (
-  transport: Pick<Transporter, 'sendMail'>,
+  transport: EmailTransport,
   message: EmailMessage,
 ): Promise<void> => {
   try {
@@ -152,5 +219,5 @@ export const sendEmail = async ({ to, subject, react }: SendEmailParams): Promis
     return
   }
 
-  await deliverEmail(getTransporter(), { from: env.SMTP_FROM, to, subject, html, text })
+  await deliverEmail(getTransporter(), { from: env.EMAIL_FROM, to, subject, html, text })
 }

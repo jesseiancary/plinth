@@ -346,11 +346,13 @@ setup: ## Full first-time setup
 	echo "JWT_ACCESS_EXPIRY=15m" >> apps/api/.env; \
 	echo "JWT_REFRESH_EXPIRY=7d" >> apps/api/.env; \
 	echo "" >> apps/api/.env; \
-	echo "# SMTP" >> apps/api/.env; \
-	echo "SMTP_HOST=smtp.example.com" >> apps/api/.env; \
-	echo "SMTP_PORT=587" >> apps/api/.env; \
-	echo "SMTP_USER=your-smtp-user" >> apps/api/.env; \
-	echo "SMTP_PASS=your-smtp-password" >> apps/api/.env; \
+	echo "# Email (local dev uses the Mailpit container; prod uses the SES HTTPS API)" >> apps/api/.env; \
+	echo "EMAIL_TRANSPORT=smtp" >> apps/api/.env; \
+	echo "SMTP_HOST=mailpit" >> apps/api/.env; \
+	echo "SMTP_PORT=1025" >> apps/api/.env; \
+	echo "SMTP_USER=" >> apps/api/.env; \
+	echo "SMTP_PASS=" >> apps/api/.env; \
+	echo "EMAIL_FROM=Plinth <noreply@plinth.local>" >> apps/api/.env; \
 	echo "" >> apps/api/.env; \
 	echo "# URLs" >> apps/api/.env; \
 	echo "API_URL=https://localhost" >> apps/api/.env; \
