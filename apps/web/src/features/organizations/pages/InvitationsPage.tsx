@@ -111,7 +111,7 @@ export function InvitationsPage() {
           <EmptyState
             icon={
               <svg
-                className="w-12 h-12 text-gray-400"
+                className="mx-auto w-12 h-12 text-gray-400"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -144,7 +144,7 @@ export function InvitationsPage() {
           <EmptyState
             icon={
               <svg
-                className="w-12 h-12 text-gray-400"
+                className="mx-auto w-12 h-12 text-gray-400"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
