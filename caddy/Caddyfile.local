@@ -64,22 +64,19 @@ localhost {
 
 	# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 	# Web Frontend (reverse proxy to Vite dev server)
-	# Includes WebSocket support for Vite HMR (Hot Module Replacement)
+	# Caddy transparently proxies the Vite HMR WebSocket (/).  Do NOT set
+	# Upgrade/Connection via header_up: those are hop-by-hop headers Caddy
+	# strips and re-adds itself on detected upgrades, and overriding them with
+	# placeholders (which read the already-stripped values) breaks the upgrade,
+	# causing Caddy to serve index.html for the HMR socket and silently kill HMR.
 	# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 	handle {
 		reverse_proxy web:5173 {
-			# Pass original host header
 			header_up Host {host}
-			# Pass real client IP
 			header_up X-Real-IP {remote_host}
 			header_up X-Forwarded-For {remote_host}
 			header_up X-Forwarded-Proto {scheme}
 			header_up X-Forwarded-Host {host}
-
-			# WebSocket support for Vite HMR
-			# Caddy automatically handles Upgrade headers, but we ensure they're preserved
-			header_up Upgrade {>Upgrade}
-			header_up Connection {>Connection}
 		}
 	}
 }
