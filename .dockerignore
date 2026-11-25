@@ -1,0 +1,32 @@
+# Docker build context excludes.
+# NOTE: unlike .gitignore, .dockerignore matches from the context root, so
+# directory patterns need a leading **/ to match at any depth.
+
+# Dependencies — reinstalled inside the image via pnpm
+**/node_modules
+.pnpm-store
+
+# Build output
+**/dist
+**/build
+**/*.tsbuildinfo
+
+# Test coverage
+**/coverage
+**/.nyc_output
+
+# Logs — apps/api/logs is written by the container as root and can be
+# unreadable by the host user, which aborts the context send with EACCES.
+**/logs
+**/*.log
+
+# Prisma generated client — regenerated inside the image
+apps/api/prisma/generated
+
+# Version control, editor, and OS cruft
+.git
+.gitignore
+**/.vscode
+**/.idea
+**/.DS_Store
+**/*.swp
